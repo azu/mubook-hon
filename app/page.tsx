@@ -31,7 +31,9 @@ const useDropbox = () => {
         return dropboxClient.filesListFolder({ path: '' });
     }
     const { data: itemLists, error: itemListsError } = useSWR<DropboxResponse<files.ListFolderResult>>("/",
-        dropboxClient ? listFetcher : null);
+        dropboxClient ? listFetcher : null, {
+            revalidateOnFocus: true
+        });
     const epubItems = useMemo(() => {
         return itemLists?.result.entries.filter((entry) => {
             return entry?.path_lower?.endsWith(".epub");
@@ -61,7 +63,6 @@ const Home: NextPage = () => {
     return <div>{
         <ul>
             {epubItems.map((item) => {
-                console.log(item.path_lower);
                 return <li key={item.path_lower}><Link href={{
                     pathname: item.path_lower,
                     query: {
