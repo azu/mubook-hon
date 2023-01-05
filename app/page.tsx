@@ -1,13 +1,10 @@
 "use client"
 import type { NextPage } from 'next'
-import "./view/patch.js"
-import { Dropbox, DropboxResponse, DropboxAuth } from "dropbox";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { useLocalStorage } from "react-use";
+import { Dropbox, DropboxResponse } from "dropbox";
+import { Suspense, useLayoutEffect, useMemo, useState } from "react";
 import useSWR, { Fetcher } from "swr";
 import { files } from "dropbox/types/dropbox_types";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useDropbox } from "./dropbox/useDropbox";
 
 const useReady = () => {

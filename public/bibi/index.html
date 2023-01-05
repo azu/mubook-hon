@@ -101,8 +101,8 @@
         E.dispatch("bibi:commands:move-by", 1)
     };
     const moveToPage = (pageNumber) => {
-        R.Current.Page.PageIndex = pageNumber;
-        E.dispatch("bibi:commands:move-by", 1)
+        // https://github.com/satorumurmur/bibi/issues/78
+        R.focusOn({ Destination: { PageIndex: pageNumber - 1 } });
     };
     const getCurrentPage = () => {
         return R.Pages.indexOf(R.Current.List[0].Page) + 1;
@@ -110,6 +110,25 @@
     const getTotalPage = () => {
         return R.Pages.length;
     };
+
+    // ?p does not work?
+    // https://github.com/satorumurmur/bibi/issues/71
+    const url = new URL(location.href);
+    const pageNumber = url.searchParams.get("p");
+
+    const timerId = setInterval(() => {
+        if (!R?.Pages || R?.Pages.length === 0) {
+            return
+        }
+        console.log("INIT ___ ");
+        if (!pageNumber) {
+            clearInterval(timerId)
+            return;
+        }
+        console.log("Move to " + pageNumber)
+        moveToPage(Number(pageNumber));
+        clearInterval(timerId)
+    }, 100);
     window.bibiHelp = {
         movePrevPage,
         moveNextPage,
