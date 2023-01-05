@@ -1,55 +1,27 @@
 "use client"
-import { FC, useEffect, useMemo, useState } from "react";
+import { FC, Suspense, useEffect, useMemo, useState } from "react";
 import { rest, setupWorker } from "msw";
-import { useLocalStorage } from "react-use";
-import { Dropbox, DropboxAuth } from "dropbox";
+import { Dropbox } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
+import { useDropbox } from "../dropbox/useDropbox";
 
-const useDropbox = (props: { filePath: string; }) => {
-    const [apiKey, setApiKey] = useLocalStorage<string>("mubook-hon-dropbox-api-key", "");
-    const hasApiKey = apiKey !== "";
-    const [hasValidAccessToken, setHasValidAccessToken] = useState(false);
-    const dropboxAuth = useMemo(() => {
-        return new DropboxAuth({
-            refreshToken: apiKey
-        })
-    }, [apiKey]);
-    const dropboxClient = useMemo(() => {
-        if (!hasValidAccessToken) return null;
-        return new Dropbox({
-            accessToken: apiKey
-        })
-    }, [apiKey, hasValidAccessToken]);
-    useEffect(() => {
-        console.log("_____S_");
-        const date = dropboxAuth.getAccessTokenExpiresAt();
-        console.log(date)
-        // @ts-expect-error https://github.com/dropbox/dropbox-sdk-js/issues/606
-        dropboxAuth.checkAndRefreshAccessToken().then(() => {
-            console.log("new", dropboxAuth.getAccessToken());
-            console.log("new?", dropboxAuth.getRefreshToken());
-            setHasValidAccessToken(true);
-            setApiKey(dropboxAuth.getAccessToken());
-            dropboxAuth.checkAndRefreshAccessToken()
-        }).catch((e: Error) => {
-            console.error(e)
-        })
-    }, [dropboxAuth, setApiKey])
+const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => {
     const fileFetcher: Fetcher<Blob, string> = async (args) => {
-        if (!dropboxClient) {
+        if (!dropbox) {
             throw new Error("no dropbox client");
         }
-        return dropboxClient.filesDownload({
+        return dropbox.filesDownload({
             path: args
         }).then((res) => {
             // @ts-expect-error
             return res.result.fileBlob;
         })
     }
-    const { data: fileBlob, error: itemListsError } = useSWR(
-        props.filePath,
-        dropboxClient ? fileFetcher : null);
+    const { data: fileBlob, error: itemListsError } = useSWR(() => dropbox
+            ? props.filePath
+            : undefined,
+        fileFetcher);
     const fileBlobUrl = useMemo(() => {
         if (!fileBlob) {
             return;
@@ -57,8 +29,6 @@ const useDropbox = (props: { filePath: string; }) => {
         return URL.createObjectURL(fileBlob);
     }, [fileBlob]);
     return {
-        hasApiKey,
-        setApiKey,
         fileBlobUrl
     } as const
 }
@@ -85,9 +55,17 @@ export default function Page({ params, searchParams }: PageProps) {
 const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
     const id = props.id;
     const bookName = decodeURIComponent(props.book);
-    const { fileBlobUrl } = useDropbox({
+    const { dropboxClient, hasValidAccessToken, AuthUrl } = useDropbox({});
+    const { fileBlobUrl } = useDropboxAPI(dropboxClient, {
         filePath: "/" + bookName
     });
+    if (!hasValidAccessToken) {
+        return <div>
+            <Suspense fallback={<div>loading...</div>}>
+                <AuthUrl/>
+            </Suspense>
+        </div>
+    }
     return <BibiReader id={id} book={bookName} src={fileBlobUrl} initialPage={props.initialPage}/>
 }
 type BibiReaderProps = {
