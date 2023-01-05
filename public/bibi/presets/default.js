@@ -1,3 +1,5 @@
+// width:640px< is mobile
+const isMobile = window.matchMedia('(max-width:640px)').matches;
 Bibi.preset({
 
 
@@ -47,7 +49,7 @@ Bibi.preset({
     "max-history": 19, // Number (0-19). If larger than 19, treated as 19. If 0, "use-history" is treated as "no".
     
     "use-bookmarks": "yes", // "yes" or "no" or "desktop" or "mobile"
-    "max-bookmarks": 3, // Number (0-9). If larger than 9, treated as 9. If 0, "use-bookmarks" is treated as "no" (but old data is kept in localStorage).
+    "max-bookmarks": 9, // Number (0-9). If larger than 9, treated as 9. If 0, "use-bookmarks" is treated as "no" (but old data is kept in localStorage).
     
     "use-slider": "yes",
     "slider-mode": "auto", // "edgebar" or "bookmap" or "auto"
@@ -55,7 +57,7 @@ Bibi.preset({
     
     "orientation-border-ratio": 1 * 2 / 1.5, // Number (Width per Height)
     
-    "base-font-size": 24, // Number of pixel or "auto"
+    "base-font-size": isMobile ? 16 : 24, // Number of pixel or "auto"
     "font-size-scale-per-step": 1.25, // Number of scale
     "loupe-max-scale": 4, // Number of scale (minimum: 2)
     
@@ -63,13 +65,14 @@ Bibi.preset({
     
     "flipper-width": 0.3, // Number of ratio (lower than 1) or pixel (1 or higher)
     
-    "item-padding-left": 100, // Number of pixel (It is used only if the book is reflowable.)
-    "item-padding-right": 100, // Number of pixel (It is used only if the book is reflowable.)
-    "item-padding-top": 72, // Number of pixel (It is used only if the book is reflowable.)
-    "item-padding-bottom": 72, // Number of pixel (It is used only if the book is reflowable.)
+    // 4^n
+    "item-padding-left": isMobile ? 56 : 84, // Number of pixel (It is used only if the book is reflowable.)
+    "item-padding-right": isMobile ? 56 : 84, // Number of pixel (It is used only if the book is reflowable.)
+    "item-padding-top": isMobile ? 60 : 72, // Number of pixel (It is used only if the book is reflowable.)
+    "item-padding-bottom": isMobile ? 60 : 72, // Number of pixel (It is used only if the book is reflowable.)
     
-    "spread-gap": 16, // Number of pixel
-    "spread-margin": 16, // Number of pixel
+    "spread-gap": 0, // Number of pixel
+    "spread-margin": 0, // Number of pixel
     
     "fix-nav-ttb": "no", // "yes" or "no" or "desktop" or "mobile"
     
@@ -166,5 +169,5 @@ Bibi.preset({
     */
     
     
-    "bibi": "EPUB Reader on your website."
+    "bibi": "EPUB Reader"
 });

@@ -41,6 +41,83 @@
 </div>
 <script>
 
+    const getCurrentTexts = () => {
+        const iframe = document.querySelector(".current iframe");
+        if (!iframe) {
+            throw new Error("Can not find iframe");
+        }
+        // いい感じにchildrenをとるヒューリスティック
+        const findChildren = (parentElement) => {
+            const rootChildren = parentElement.children;
+            return Array.from(rootChildren).flatMap(child => {
+                if (child.tagName === "DIV") {
+                    return findChildren(child);
+                }
+                return [child];
+            });
+        };
+        const children = findChildren(iframe.contentWindow.document.body);
+
+        // https://qiita.com/ozoneboy/items/b57bf4e67110b3756390
+        function absoluteRect(el) {
+            const pos = { top: 0, left: 0 };
+            const boundingClientRect = el.getBoundingClientRect();
+            pos.top = boundingClientRect.top;
+            pos.left = boundingClientRect.left;
+            const doc = el.ownerDocument;
+            let childWindow = doc.defaultView;
+            while (window.top !== childWindow) {
+                pos.top += childWindow.frameElement.getBoundingClientRect().top;
+                pos.left += childWindow.frameElement.getBoundingClientRect().left;
+                childWindow = childWindow.parent;
+            }
+
+            return {
+                top: pos.top,
+                left: pos.left,
+                width: boundingClientRect.width,
+                height: boundingClientRect.height
+            };
+        }
+
+        function elementInViewport(el) {
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+            const { top, left, width, height } = absoluteRect(el);
+            const isInViewportPartial = (top >= 0 && top < viewportHeight && left + width > 0 && left + width < viewportHeight)
+            return isInViewportPartial;
+        }
+
+        const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
+        return {
+            text: visibleChildren.map(el => el.textContent ?? "").join("\n"),
+            lastText: visibleChildren.at(-1)?.textContent ?? "",
+        };
+    }
+
+    const movePrevPage = () => {
+        E.dispatch("bibi:commands:move-by", -1)
+    };
+    const moveNextPage = () => {
+        E.dispatch("bibi:commands:move-by", 1)
+    };
+    const moveToPage = (pageNumber) => {
+        R.Current.Page.PageIndex = pageNumber;
+        E.dispatch("bibi:commands:move-by", 1)
+    };
+    const getCurrentPage = () => {
+        return R.Pages.indexOf(R.Current.List[0].Page) + 1;
+    };
+    const getTotalPage = () => {
+        return R.Pages.length;
+    };
+    window.bibiHelp = {
+        movePrevPage,
+        moveNextPage,
+        moveToPage,
+        getTotalPage,
+        getCurrentPage,
+        getCurrentTexts
+    };
 </script>
 </body>
 

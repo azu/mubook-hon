@@ -2,20 +2,40 @@
 import { FC, useEffect, useMemo, useState } from "react";
 import { rest, setupWorker } from "msw";
 import { useLocalStorage } from "react-use";
-import { Dropbox } from "dropbox";
+import { Dropbox, DropboxAuth } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 
 const useDropbox = (props: { filePath: string; }) => {
-    console.log(props)
     const [apiKey, setApiKey] = useLocalStorage<string>("mubook-hon-dropbox-api-key", "");
     const hasApiKey = apiKey !== "";
+    const [hasValidAccessToken, setHasValidAccessToken] = useState(false);
+    const dropboxAuth = useMemo(() => {
+        return new DropboxAuth({
+            refreshToken: apiKey
+        })
+    }, [apiKey]);
     const dropboxClient = useMemo(() => {
-        if (apiKey === "") return null;
+        if (!hasValidAccessToken) return null;
         return new Dropbox({
             accessToken: apiKey
         })
-    }, [apiKey]);
+    }, [apiKey, hasValidAccessToken]);
+    useEffect(() => {
+        console.log("_____S_");
+        const date = dropboxAuth.getAccessTokenExpiresAt();
+        console.log(date)
+        // @ts-expect-error https://github.com/dropbox/dropbox-sdk-js/issues/606
+        dropboxAuth.checkAndRefreshAccessToken().then(() => {
+            console.log("new", dropboxAuth.getAccessToken());
+            console.log("new?", dropboxAuth.getRefreshToken());
+            setHasValidAccessToken(true);
+            setApiKey(dropboxAuth.getAccessToken());
+            dropboxAuth.checkAndRefreshAccessToken()
+        }).catch((e: Error) => {
+            console.error(e)
+        })
+    }, [dropboxAuth, setApiKey])
     const fileFetcher: Fetcher<Blob, string> = async (args) => {
         if (!dropboxClient) {
             throw new Error("no dropbox client");
@@ -44,7 +64,11 @@ const useDropbox = (props: { filePath: string; }) => {
 }
 
 
-export default function Page({ params, searchParams }: { params: { book: string, }, searchParams: { id: string; } }) {
+export type PageProps = {
+    params: { book: string, };
+    searchParams: { id: string; page?: string; };
+};
+export default function Page({ params, searchParams }: PageProps) {
     const cacheProvider = useCacheProvider({
         dbName: 'mubook-hon',
         storeName: 'book',
@@ -55,21 +79,22 @@ export default function Page({ params, searchParams }: { params: { book: string,
     return <SWRConfig value={{
         provider: cacheProvider,
     }}>
-        <App book={params.book} id={searchParams.id}/>
+        <App book={params.book} id={searchParams.id} initialPage={searchParams.page}/>
     </SWRConfig>
 }
-const App = (props: { id: string; book: string; }) => {
+const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
     const id = props.id;
     const bookName = decodeURIComponent(props.book);
     const { fileBlobUrl } = useDropbox({
         filePath: "/" + bookName
     });
-    return <BibiReader id={id} book={bookName} src={fileBlobUrl}/>
+    return <BibiReader id={id} book={bookName} src={fileBlobUrl} initialPage={props.initialPage}/>
 }
 type BibiReaderProps = {
     id: string;
     book: string;
     src: string | undefined;
+    initialPage?: string;
 }
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
@@ -127,12 +152,24 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             worker.stop();
         }
     }, [props.book, props.id, props.src]);
+    const bookUrl = useMemo(() => {
+        const url = new URL("/bibi/index.html", location.href);
+        url.search = new URLSearchParams({
+            book: props.id,
+            ...(props.initialPage ? {
+                p: props.initialPage
+            } : {})
+        }).toString();
+        return url.toString()
+    }, [props.id, props.initialPage])
     if (!isReady) {
         return <></>;
     }
-    console.log(props.book, props.id);
-    return <iframe src={`/bibi/index.html?book=${props.id}`}
+    console.log(bookUrl)
+    return <iframe src={bookUrl}
                    width={"100%"}
                    height={"100%"}
-                   style={{ height: "100vh" }}></iframe>;
+                   className={"bibi-frame"}
+                   id={"bibi-frame"}
+    ></iframe>;
 }
