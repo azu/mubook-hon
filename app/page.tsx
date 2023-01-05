@@ -102,7 +102,14 @@ const useDropbox = (props: { code?: string; }) => {
             }, [])
             return <a href={url}>Authorize</a>
         }
-    }, [dropboxAuth])
+    }, [dropboxAuth]);
+    return {
+        dropboxClient,
+        hasValidAccessToken,
+        AuthUrl
+    } as const;
+}
+const useDropboxAPI = (dropboxClient: Dropbox | null) => {
     const listFetcher: Fetcher<DropboxResponse<files.ListFolderResult>> = async () => {
         console.log("listFetcher");
         if (!dropboxClient) {
@@ -122,8 +129,6 @@ const useDropbox = (props: { code?: string; }) => {
         }) ?? []
     }, [itemLists])
     return {
-        hasValidAccessToken,
-        AuthUrl,
         epubItems
     } as const
 }
@@ -133,9 +138,10 @@ const Home: NextPage<{
     }
 }> = (props) => {
     const ready = useReady();
-    const { hasValidAccessToken, epubItems, AuthUrl } = useDropbox({
+    const { dropboxClient, hasValidAccessToken, AuthUrl } = useDropbox({
         code: props.searchParams.code
     });
+    const { epubItems } = useDropboxAPI(dropboxClient)
     if (!ready) {
         return null;
     }
