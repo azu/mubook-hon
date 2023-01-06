@@ -9,7 +9,7 @@ type DropboxTokens = {
     accessTokenExpiresAt: string;
 }
 const DROPBOX_AUTH_REDIRECT_URI = "http://localhost:3000/";
-export const useDropbox = (props: { code?: string; }) => {
+export const useDropbox = (props: { code?: string; } = {}) => {
     const router = useRouter()
     const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
     const [hasValidAccessToken, setHasValidAccessToken] = useState(false);

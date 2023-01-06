@@ -207,6 +207,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 id={"bibi-frame"}
                 ref={bibiFrame}
         ></iframe>
-        <button style={{position:"fixed",right:0,bottom:0}} onClick={memo}>Memo</button>
+        <button style={{ position: "fixed", right: 0, bottom: 0 }} onClick={memo}>Memo</button>
     </>;
 }
