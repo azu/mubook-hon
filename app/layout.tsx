@@ -1,4 +1,5 @@
 import "./global.css"
+
 export default function RootLayout({
                                        children,
                                    }: {
@@ -6,7 +7,8 @@ export default function RootLayout({
 }) {
     return (
         <html>
-        <head/>
+        <head>
+            <title>mu-book-hon</title></head>
         <body>{children}</body>
         </html>
     )

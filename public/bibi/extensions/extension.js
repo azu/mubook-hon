@@ -60,7 +60,7 @@ Bibi.x({
         };
     }
     
-    onSelect((selection) => {
-        console.log(selection);
-    })
+    // onSelect((selection) => {
+    //     console.log(selection);
+    // })
 });

@@ -41,7 +41,25 @@
 </div>
 <script>
 
-    const getCurrentTexts = () => {
+    const waitReady = async () => {
+        if (R?.Pages && R?.Pages.length > 0) {
+            return true
+        }
+        let count = 0;
+        while (true) {
+            if (count > 100) {
+                throw new Error('waitReady timeout: ' + (100 * 100) + 'ms')
+            }
+            if (!R?.Pages || R?.Pages.length === 0) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } else {
+                return true;
+            }
+            count++;
+        }
+    }
+    const getCurrentTexts = async () => {
+        await waitReady();
         const iframe = document.querySelector(".current iframe");
         if (!iframe) {
             throw new Error("Can not find iframe");
@@ -88,54 +106,88 @@
         }
 
         const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
+        const selectedText = iframe.contentWindow.getSelection().toString();
         return {
+            selectedText,
             text: visibleChildren.map(el => el.textContent ?? "").join("\n"),
             lastText: visibleChildren.at(-1)?.textContent ?? "",
         };
     }
 
-    const movePrevPage = () => {
+    const movePrevPage = async () => {
+        await waitReady();
         E.dispatch("bibi:commands:move-by", -1)
     };
-    const moveNextPage = () => {
+    const moveNextPage = async () => {
+        await waitReady();
         E.dispatch("bibi:commands:move-by", 1)
     };
-    const moveToPage = (pageNumber) => {
+    const moveToPage = async (pageNumber) => {
+        await waitReady();
         // https://github.com/satorumurmur/bibi/issues/78
         R.focusOn({ Destination: { PageIndex: pageNumber - 1 } });
     };
-    const getCurrentPage = () => {
+    const getCurrentPage = async () => {
+        await waitReady();
         return R.Pages.indexOf(R.Current.List[0].Page) + 1;
     };
-    const getTotalPage = () => {
+    const getTotalPage = async () => {
+        await waitReady();
         return R.Pages.length;
     };
-
-    // ?p does not work?
-    // https://github.com/satorumurmur/bibi/issues/71
-    const url = new URL(location.href);
-    const pageNumber = url.searchParams.get("p");
-
-    const timerId = setInterval(() => {
-        if (!R?.Pages || R?.Pages.length === 0) {
-            return
+    const getBookInfo = async () => {
+        await waitReady();
+        return {
+            type: B.Type, // EPUB
+            title: B.Title,
+            publisher: B.Publisher,
+            author: B.Creator,
+            id: B.ID,
         }
-        console.log("INIT ___ ");
-        if (!pageNumber) {
-            clearInterval(timerId)
-            return;
+    }
+    window.addEventListener("DOMContentLoaded", async () => {
+        // ?p does not work?
+        // https://github.com/satorumurmur/bibi/issues/71
+        const url = new URL(location.href);
+        const pageNumber = url.searchParams.get("p");
+        await waitReady();
+        if (pageNumber) {
+            await moveToPage(pageNumber);
         }
-        console.log("Move to " + pageNumber)
-        moveToPage(Number(pageNumber));
-        clearInterval(timerId)
-    }, 100);
-    window.bibiHelp = {
+
+    })
+
+    const debounce = (fn, ms) => {
+        let timer = null;
+        return (...args) => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            timer = setTimeout(() => {
+                fn(...args);
+            }, ms);
+        };
+    }
+    /**
+     * @param {(currentPage:number) => void} fn
+     */
+    const onChangePage = async (fn) => {
+        await waitReady();
+        const debouncedFn = debounce(fn, 100);
+        E.add("bibi:scrolled", async () => {
+            const currentPage = await getCurrentPage();
+            debouncedFn(currentPage);
+        });
+    }
+    window.viewerController = {
         movePrevPage,
         moveNextPage,
         moveToPage,
         getTotalPage,
         getCurrentPage,
-        getCurrentTexts
+        getCurrentTexts,
+        getBookInfo,
+        onChangePage
     };
 </script>
 </body>

@@ -1,10 +1,12 @@
 "use client"
-import { FC, Suspense, useEffect, useMemo, useState } from "react";
+import { FC, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rest, setupWorker } from "msw";
 import { Dropbox } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
+import { useAsync } from "react-use";
+import { useNotion } from "../notion/useNotion";
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => {
     const fileFetcher: Fetcher<Blob, string> = async (args) => {
@@ -21,7 +23,7 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => 
     const { data: fileBlob, error: itemListsError } = useSWR(() => dropbox
             ? props.filePath
             : undefined,
-        fileFetcher);
+        fileFetcher, {});
     const fileBlobUrl = useMemo(() => {
         if (!fileBlob) {
             return;
@@ -74,8 +76,51 @@ type BibiReaderProps = {
     src: string | undefined;
     initialPage?: string;
 }
+type ViewerContentMethod = {
+    movePrevPage: () => Promise<void>,
+    moveNextPage: () => Promise<void>,
+    moveToPage: (page: Number) => Promise<void>,
+    getTotalPage: () => Promise<number>,
+    getCurrentPage: () => Promise<number>,
+    getCurrentTexts: () => Promise<{ text: string; selectedText: string }>,
+    getBookInfo: () => Promise<{
+        type: "EPUB"
+        title: string;
+        author: string;
+        publisher: string;
+        id: string;
+    }>;
+    onChangePage: (fn: (page: number) => void) => Promise<void>;
+}
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
+    const { currentBook, updateBookStatus, addMemo } = useNotion({
+        bookName: props.book,
+    });
+    const bibiFrame = useRef<HTMLIFrameElement>(null);
+    useAsync(async () => {
+        if (bibiFrame.current) {
+            const contentWindow = bibiFrame.current.contentWindow as WindowProxy & { viewerController: ViewerContentMethod };
+            const bookInfo = await contentWindow.viewerController.getBookInfo();
+            const totalPage = await contentWindow.viewerController.getTotalPage();
+            console.log({
+                bookInfo,
+                currentBook,
+                totalPage
+            })
+            await contentWindow.viewerController.onChangePage(currentPage => {
+                return updateBookStatus({
+                    pageId: bookInfo.id,
+                    fileName: props.book,
+                    publisher: bookInfo.publisher,
+                    title: bookInfo.title,
+                    authors: bookInfo.author.split(",").map(author => author.trim()),
+                    currentPage,
+                    totalPage
+                })
+            });
+        }
+    }, [bibiFrame.current])
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -140,14 +185,28 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         }).toString();
         return url.toString()
     }, [props.id, props.initialPage])
+    const memo = useCallback(async () => {
+        if (bibiFrame.current) {
+            const contentWindow = bibiFrame.current.contentWindow as WindowProxy & { viewerController: ViewerContentMethod };
+            const text = await contentWindow.viewerController.getCurrentTexts();
+            const currentPage = await contentWindow.viewerController.getCurrentPage();
+            await addMemo({
+                memo: text.selectedText,
+                currentPage
+            })
+        }
+    }, [addMemo])
     if (!isReady) {
         return <></>;
     }
-    console.log(bookUrl)
-    return <iframe src={bookUrl}
-                   width={"100%"}
-                   height={"100%"}
-                   className={"bibi-frame"}
-                   id={"bibi-frame"}
-    ></iframe>;
+    return <>
+        <iframe src={bookUrl}
+                width={"100%"}
+                height={"100%"}
+                className={"bibi-frame"}
+                id={"bibi-frame"}
+                ref={bibiFrame}
+        ></iframe>
+        <button style={{position:"fixed",right:0,bottom:0}} onClick={memo}>Memo</button>
+    </>;
 }
