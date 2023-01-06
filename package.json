@@ -1,6 +1,14 @@
 {
   "name": "mubook-hon",
   "private": true,
+  "keywords": [
+    "notion",
+    "dropbox",
+    "epub",
+    "book",
+    "reader",
+    "viewer"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -58,7 +58,9 @@ const Home: NextPage<{
             </Suspense>
         </div>
     }
-    return <div>{
+    return <div>
+        <aside><Link href={"/settings"}>Settings</Link></aside>
+        <h2>Book List</h2>
         <ul>
             {epubItems.map((item) => {
                 return <li key={item.path_lower}><Link href={{
@@ -70,7 +72,7 @@ const Home: NextPage<{
                 }}>{item.path_display}</Link></li>
             })}
         </ul>
-    }</div>
+    </div>
 }
 
 export default Home

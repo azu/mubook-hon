@@ -11,6 +11,7 @@ export default function Page() {
         <h1>Settings</h1>
         <div>
             <h2>Dropbox</h2>
+            <p>You can put books into <i>~/Dropbox/Apps/mubook-hon</i> or <i>~/Dropbox/アプリ/mubook-hon</i></p>
             <div>
                 <p>{hasValidAccessToken ? "Logged in" : "Not logged in"}</p>
                 <AuthUrl/>
