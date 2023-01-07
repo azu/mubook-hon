@@ -63,6 +63,10 @@ export const useDropbox = (props: { code?: string } = {}) => {
             return;
         }
         dropboxAuth.setCodeVerifier(codeVerifier);
+        console.log({
+            DROPBOX_AUTH_REDIRECT_URI,
+            code: props.code
+        });
         dropboxAuth
             .getAccessTokenFromCode(DROPBOX_AUTH_REDIRECT_URI, props.code)
             .then((response) => {
