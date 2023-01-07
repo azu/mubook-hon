@@ -163,9 +163,6 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
             } else {
                 // update item
                 const result = (await notionClient.pages.update({
-                    parent: {
-                        database_id: notionSetting.bookListDatabaseId
-                    },
                     page_id: currentBook.pageId,
                     // @ts-ignore
                     properties: properties
