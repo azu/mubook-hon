@@ -78,7 +78,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
             publisher: prop(result.properties.Publisher, "select").select?.name,
             currentPage: prop(result.properties.CurrentPage, "number").number,
             totalPage: prop(result.properties.TotalPage, "number").number,
-        } as BookItem
+        }
     });
     const { trigger: updateBookStatus } = useSWRMutation(() => notionClient ? [bookName, currentBook] : null, async ([bookName, currentBook], { arg }: { arg: BookItem }) => {
         const bookItem = arg;

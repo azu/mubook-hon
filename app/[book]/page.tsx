@@ -1,12 +1,14 @@
 "use client"
-import { FC, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Dispatch, FC, SetStateAction, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rest, setupWorker } from "msw";
 import { Dropbox } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useAsync } from "react-use";
+import { useAsync, useEffectOnce, usePrevious, usePromise } from "react-use";
 import { useNotion } from "../notion/useNotion";
+import * as Toast from '@radix-ui/react-toast';
+import "./toast.css";
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => {
     const fileFetcher: Fetcher<Blob, string> = async (args) => {
@@ -70,6 +72,54 @@ const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
     }
     return <BibiReader id={id} book={bookName} src={fileBlobUrl} initialPage={props.initialPage}/>
 }
+
+const useToast = () => {
+    const [open, setOpen] = useState(false);
+    const timerRef = useRef(0);
+    const [bookInfo, setBookInfo] = useState<{ currentPage: number; lastPage: number; }>({
+        currentPage: 0,
+        lastPage: 0
+    });
+    useEffect(() => {
+        return () => clearTimeout(timerRef.current);
+    }, []);
+    const show = useCallback((props: { currentPage: number; lastPage: number; }) => {
+        setBookInfo(props);
+        setOpen(true);
+        clearTimeout(timerRef.current);
+        timerRef.current = window.setTimeout(() => {
+            setOpen(false);
+        }, 5000);
+    }, []);
+    const hide = useCallback(() => {
+        setOpen(false);
+        clearTimeout(timerRef.current);
+    }, []);
+    const ToastComponent: FC<{ onClickJumpLastPage: () => void }> = (props) => {
+        return <Toast.Provider swipeDirection="right">
+            <Toast.Root className="ToastRoot" open={open} onOpenChange={setOpen}>
+                <Toast.Title className="ToastTitle">Found last read page</Toast.Title>
+                <Toast.Description>
+                    Current page: {bookInfo.currentPage}, Last read page: {bookInfo.lastPage}
+                    You can Jump to last read page.
+                </Toast.Description>
+                <Toast.Action className="ToastAction" asChild altText="Goto schedule to undo">
+                    <button className="Button small green" onClick={props.onClickJumpLastPage}>Jump</button>
+                </Toast.Action>
+            </Toast.Root>
+            <Toast.Viewport className="ToastViewport"/>
+        </Toast.Provider>
+    }
+    return {
+        open,
+        setOpen,
+        bookInfo,
+        showToast: show,
+        hideToast: hide,
+        ToastComponent
+    } as const
+}
+
 type BibiReaderProps = {
     id: string;
     book: string;
@@ -90,25 +140,41 @@ type ViewerContentMethod = {
         publisher: string;
         id: string;
     }>;
-    onChangePage: (fn: (page: number) => void) => Promise<void>;
+    onChangePage: (fn: (page: number) => void) => Promise<() => void>;
 }
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
     const { currentBook, updateBookStatus, addMemo } = useNotion({
         bookName: props.book,
     });
+    const { showToast, bookInfo, ToastComponent } = useToast();
+    const prevBookState = usePrevious(currentBook);
     const bibiFrame = useRef<HTMLIFrameElement>(null);
+    const onClickJumpLastPage = useCallback(() => {
+        if (bibiFrame.current && currentBook?.currentPage != null) {
+            const contentWindow = bibiFrame.current.contentWindow as WindowProxy & { viewerController: ViewerContentMethod };
+            console.log("jump to " + currentBook.currentPage)
+            contentWindow.viewerController.moveToPage(bookInfo.lastPage).catch((e) => {
+                console.error(e);
+            });
+        }
+    }, [bookInfo.lastPage, currentBook?.currentPage])
     useAsync(async () => {
+        let unListen = () => {
+            // nope
+        };
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & { viewerController: ViewerContentMethod };
             const bookInfo = await contentWindow.viewerController.getBookInfo();
+            const currentPage = await contentWindow.viewerController.getCurrentPage();
             const totalPage = await contentWindow.viewerController.getTotalPage();
             console.log({
                 bookInfo,
                 currentBook,
+                currentPage,
                 totalPage
             })
-            await contentWindow.viewerController.onChangePage(currentPage => {
+            unListen = await contentWindow.viewerController.onChangePage(currentPage => {
                 return updateBookStatus({
                     pageId: bookInfo.id,
                     fileName: props.book,
@@ -120,7 +186,40 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 })
             });
         }
+        return () => {
+            unListen();
+        }
     }, [bibiFrame.current])
+    // when load new book
+    const mounted = usePromise();
+    useAsync(async () => {
+        if (prevBookState || !currentBook) {
+            return
+        }
+        await mounted;
+        // TODO: workaround for wating for iframe load
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!bibiFrame.current) {
+            return;
+        }
+        console.log("new load book 📚")
+        const contentWindow = bibiFrame.current.contentWindow as WindowProxy & { viewerController: ViewerContentMethod };
+        const currentPage = await contentWindow.viewerController.getCurrentPage();
+        console.log({
+            savedPage: currentBook.currentPage,
+            currentPage,
+        })
+        if (currentPage == null || currentBook.currentPage == null) {
+            return;
+        }
+        const isDifferencePage = currentPage !== currentBook.currentPage;
+        if (isDifferencePage) {
+            showToast({
+                currentPage,
+                lastPage: currentBook.currentPage
+            });
+        }
+    }, [prevBookState, currentBook]);
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -207,6 +306,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 id={"bibi-frame"}
                 ref={bibiFrame}
         ></iframe>
+        <ToastComponent onClickJumpLastPage={onClickJumpLastPage}/>
         <button style={{ position: "fixed", right: 0, bottom: 0 }} onClick={memo}>Memo</button>
     </>;
 }

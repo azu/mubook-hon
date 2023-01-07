@@ -169,15 +169,19 @@
         };
     }
     /**
-     * @param {(currentPage:number) => void} fn
+     * @param {(currentPage:number) => (() => void)} fn
      */
     const onChangePage = async (fn) => {
         await waitReady();
-        const debouncedFn = debounce(fn, 100);
-        E.add("bibi:scrolled", async () => {
+        const debouncedFn = debounce(fn, 500);
+        const onScroll = async () => {
             const currentPage = await getCurrentPage();
             debouncedFn(currentPage);
-        });
+        };
+        E.add("bibi:scrolled", onScroll);
+        return () => {
+            E.remove("bibi:scrolled", onScroll)
+        };
     }
     window.viewerController = {
         movePrevPage,
