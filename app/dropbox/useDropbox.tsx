@@ -15,7 +15,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
     const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
     const [hasValidAccessToken, setHasValidAccessToken] = useState(false);
     const dropboxAuth = useMemo(() => {
-        console.log("auth");
+        console.log("create auth");
         return new DropboxAuth({
             clientId: "gzx6eue9upkkcow",
             accessToken: tokens?.accessToken,
@@ -56,6 +56,10 @@ export const useDropbox = (props: { code?: string } = {}) => {
             });
     }, [dropboxAuth, setTokens]);
     useEffect(() => {
+        console.log({
+            DROPBOX_AUTH_REDIRECT_URI,
+            code: props.code
+        });
         if (!props.code) return;
         const codeVerifier = window.sessionStorage.getItem("codeVerifier");
         if (!codeVerifier) {
@@ -63,10 +67,6 @@ export const useDropbox = (props: { code?: string } = {}) => {
             return;
         }
         dropboxAuth.setCodeVerifier(codeVerifier);
-        console.log({
-            DROPBOX_AUTH_REDIRECT_URI,
-            code: props.code
-        });
         dropboxAuth
             .getAccessTokenFromCode(DROPBOX_AUTH_REDIRECT_URI, props.code)
             .then((response) => {
