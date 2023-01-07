@@ -176,7 +176,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         bookName: props.book
     });
     const { showToast, bookInfo, ToastComponent } = useToast();
-    const prevBookState = usePrevious(currentBook);
+    const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement>(null);
     const onClickJumpLastPage = useCallback(() => {
         if (bibiFrame.current && currentBook?.currentPage != null) {
@@ -190,10 +190,14 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         }
     }, [currentBook?.currentPage, bookInfo.lastIIPP]);
     useAsync(async () => {
+        if (isInitialized.current) {
+            return;
+        }
         let unListen = () => {
             // nope
         };
         if (bibiFrame.current) {
+            isInitialized.current = true;
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
                 viewerController: ViewerContentMethod;
             };
@@ -228,7 +232,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     // when load new book
     const mounted = usePromise();
     useAsync(async () => {
-        if (prevBookState || !currentBook) {
+        if (isInitialized.current || !currentBook) {
             return;
         }
         await mounted;
@@ -257,7 +261,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 lastIIPP: currentBook.lastIIPP
             });
         }
-    }, [prevBookState, currentBook]);
+    }, [currentBook]);
     useEffect(() => {
         const src = props.src;
         if (!src) {
