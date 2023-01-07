@@ -23,6 +23,7 @@
     "@radix-ui/colors": "^0.1.8",
     "@radix-ui/react-toast": "^1.1.2",
     "dropbox": "^10.34.0",
+    "encoding": "^0.1.13",
     "husky": "^8.0.3",
     "msw": "^0.49.2",
     "next": "^13.1.1",
