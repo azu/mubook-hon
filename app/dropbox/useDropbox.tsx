@@ -59,7 +59,8 @@ export const useDropbox = (props: { code?: string } = {}) => {
         if (!props.code) return;
         const codeVerifier = window.sessionStorage.getItem("codeVerifier");
         if (!codeVerifier) {
-            throw new Error("codeVerifier not found");
+            console.log("No codeVerifier");
+            return;
         }
         dropboxAuth.setCodeVerifier(codeVerifier);
         dropboxAuth
