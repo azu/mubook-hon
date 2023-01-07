@@ -339,6 +339,9 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }
     return (
         <>
+            <button style={{ position: "fixed", right: 0, bottom: 0, zIndex: 1000 }} onClick={memo}>
+                Memo
+            </button>
             <iframe
                 src={bookUrl}
                 width={"100%"}
@@ -348,9 +351,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 ref={bibiFrame}
             ></iframe>
             <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
-            <button style={{ position: "fixed", right: 0, bottom: 0 }} onClick={memo}>
-                Memo
-            </button>
         </>
     );
 };
