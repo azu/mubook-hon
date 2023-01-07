@@ -1,9 +1,9 @@
 import { useLocalStorage } from "react-use";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Client } from "@notionhq/client";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 export type NotionSetting = { apiKey: string; bookListDatabaseId: string; bookMemoDatabaseId: string };
 const NOTION_API_BASE_URL =
