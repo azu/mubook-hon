@@ -26,10 +26,7 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
     };
     const { data: itemLists, error: itemListsError } = useSWR<DropboxResponse<files.ListFolderResult>>(
         () => (dropboxClient ? "/" : null),
-        listFetcher,
-        {
-            revalidateOnFocus: true
-        }
+        listFetcher
     );
     const epubItems = useMemo(() => {
         return (

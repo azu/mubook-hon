@@ -349,7 +349,18 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }
     return (
         <>
-            <button style={{ position: "fixed", right: 0, bottom: 0, zIndex: 1000 }} onClick={memo}>
+            <button
+                className="Button small violet"
+                style={{
+                    position: "fixed",
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 1000,
+                    padding: "1rem",
+                    borderRadius: "4px"
+                }}
+                onClick={memo}
+            >
                 Memo
             </button>
             <iframe
