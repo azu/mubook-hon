@@ -5,10 +5,11 @@ import { Dropbox } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useAsync, usePrevious, usePromise } from "react-use";
+import { useAsync, usePrevious, usePromise, useSearchParam } from "react-use";
 import { useNotion } from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 import "./toast.css";
+import { useSearchParams } from "next/navigation";
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => {
     const fileFetcher: Fetcher<Blob, string> = async (args) => {
@@ -42,9 +43,9 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => 
 
 type PageProps = {
     params?: { book?: string };
-    searchParams?: { id?: string; page?: string };
 };
-const Page: FC<PageProps> = ({ params, searchParams }) => {
+const Page: FC<PageProps> = ({ params }) => {
+    const searchParams = useSearchParams();
     const cacheProvider = useCacheProvider({
         dbName: "mubook-hon",
         storeName: "book"
@@ -55,7 +56,9 @@ const Page: FC<PageProps> = ({ params, searchParams }) => {
     if (!params?.book) {
         return <div>Book not found</div>;
     }
-    if (!searchParams?.id) {
+    const initialPage = searchParams.get("page") ?? undefined;
+    const fileId = searchParams?.get("id");
+    if (!fileId) {
         return <div>ID not found</div>;
     }
     return (
@@ -64,7 +67,7 @@ const Page: FC<PageProps> = ({ params, searchParams }) => {
                 provider: cacheProvider
             }}
         >
-            <App book={params.book} id={searchParams.id} initialPage={searchParams.page} />
+            <App book={params.book} id={fileId} initialPage={initialPage} />
         </SWRConfig>
     );
 };

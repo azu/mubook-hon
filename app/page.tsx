@@ -6,6 +6,7 @@ import useSWR, { Fetcher } from "swr";
 import { files } from "dropbox/types/dropbox_types";
 import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
+import { useSearchParams } from "next/navigation";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -41,14 +42,11 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
         epubItems
     } as const;
 };
-const Home: FC<{
-    searchParams?: {
-        code?: string;
-    };
-}> = (props) => {
+const Home: FC = () => {
     const ready = useReady();
+    const searchParams = useSearchParams();
     const { dropboxClient, hasValidAccessToken, AuthUrl } = useDropbox({
-        code: props.searchParams?.code
+        code: searchParams.get("code") ?? undefined
     });
     const { epubItems } = useDropboxAPI(dropboxClient);
     if (!ready) {
