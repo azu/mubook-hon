@@ -1,11 +1,11 @@
 "use client"
-import { Dispatch, FC, SetStateAction, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FC, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rest, setupWorker } from "msw";
 import { Dropbox } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useAsync, useEffectOnce, usePrevious, usePromise } from "react-use";
+import { useAsync, usePrevious, usePromise } from "react-use";
 import { useNotion } from "../notion/useNotion";
 import * as Toast from '@radix-ui/react-toast';
 import "./toast.css";
@@ -100,10 +100,13 @@ const useToast = () => {
             <Toast.Root className="ToastRoot" open={open} onOpenChange={setOpen}>
                 <Toast.Title className="ToastTitle">Found last read page</Toast.Title>
                 <Toast.Description>
-                    Current page: {bookInfo.currentPage}, Last read page: {bookInfo.lastPage}
-                    You can Jump to last read page.
+                    <ul>
+                        <li>Current page: {bookInfo.currentPage}</li>
+                        <li>Last read page: {bookInfo.lastPage}</li>
+                    </ul>
+                    <p>You can Jump to last read page.</p>
                 </Toast.Description>
-                <Toast.Action className="ToastAction" asChild altText="Goto schedule to undo">
+                <Toast.Action className="ToastAction" asChild altText="Goto to last read page">
                     <button className="Button small green" onClick={props.onClickJumpLastPage}>Jump</button>
                 </Toast.Action>
             </Toast.Root>
