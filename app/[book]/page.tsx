@@ -338,9 +338,11 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             };
             const text = await contentWindow.viewerController.getCurrentTexts();
             const currentPage = await contentWindow.viewerController.getCurrentPage();
+            const currentIIPP = await contentWindow.viewerController.getCurrentIIPP();
             await addMemo({
                 memo: text.selectedText,
-                currentPage
+                currentPage,
+                IIPP: currentIIPP
             });
         }
     }, [addMemo]);

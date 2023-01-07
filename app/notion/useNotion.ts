@@ -192,9 +192,10 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
     );
     const { trigger: addMemo } = useSWRMutation(
         () => (notionClient ? [bookName, currentBook] : null),
-        async ([bookName, currentBook], { arg }: { arg: { memo: string; currentPage: number } }) => {
+        async ([bookName, currentBook], { arg }: { arg: { memo: string; currentPage: number; IIPP: number } }) => {
             const memo = arg.memo;
             const currentPage = arg.currentPage;
+            const IIPP = arg.IIPP;
             if (!notionClient || !notionSetting?.bookMemoDatabaseId) {
                 throw new Error("notion client is not initialized or book memo database id is not set");
             }
@@ -212,6 +213,9 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     ]
                 },
                 Page: {
+                    number: currentPage
+                },
+                IIPP: {
                     number: currentPage
                 },
                 "Book List": {
