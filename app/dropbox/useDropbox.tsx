@@ -8,7 +8,8 @@ type DropboxTokens = {
     refreshToken: string;
     accessTokenExpiresAt: string;
 };
-const DROPBOX_AUTH_REDIRECT_URI = "http://localhost:3000/";
+const DROPBOX_AUTH_REDIRECT_URI =
+    process.env.NODE_ENV === "production" ? "https://mubook-hon.vercel.app/" : "http://localhost:3000/";
 export const useDropbox = (props: { code?: string } = {}) => {
     const router = useRouter();
     const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
