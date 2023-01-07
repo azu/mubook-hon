@@ -112,19 +112,27 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                         }
                     ]
                 },
-                Author: {
-                    multi_select:
-                        bookItem.authors?.map((author) => {
-                            return {
-                                name: author
-                            };
-                        }) ?? []
-                },
-                Publisher: {
-                    select: {
-                        name: bookItem.publisher
-                    }
-                },
+                ...(bookItem.authors?.length > 0
+                    ? {
+                          Author: {
+                              multi_select:
+                                  bookItem.authors?.map((author) => {
+                                      return {
+                                          name: author
+                                      };
+                                  }) ?? []
+                          }
+                      }
+                    : {}),
+                ...(bookItem.publisher
+                    ? {
+                          Publisher: {
+                              select: {
+                                  name: bookItem.publisher
+                              }
+                          }
+                      }
+                    : {}),
                 CurrentPage: {
                     number: bookItem.currentPage
                 },
