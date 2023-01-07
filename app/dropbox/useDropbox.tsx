@@ -33,9 +33,9 @@ export const useDropbox = (props: { code?: string } = {}) => {
         });
     }, [tokens, hasValidAccessToken]);
     useEffect(() => {
-        // @ts-expect-error https://github.com/dropbox/dropbox-sdk-js/issues/606
         dropboxAuth
             .checkAndRefreshAccessToken()
+            // @ts-expect-error https://github.com/dropbox/dropbox-sdk-js/issues/606
             .then(() => {
                 const accessToken = dropboxAuth.getAccessToken();
                 const refreshToken = dropboxAuth.getRefreshToken();
