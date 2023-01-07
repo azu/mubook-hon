@@ -122,7 +122,11 @@
         await waitReady();
         E.dispatch("bibi:commands:move-by", 1)
     };
-    const moveToPage = async (IIPP) => {
+    /**
+     * @param {number} IIPP
+     * @returns {Promise<void>}
+     */
+    const moveToIIPP = async (IIPP) => {
         await waitReady();
         // https://github.com/satorumurmur/bibi/issues/78
         // https://github.com/satorumurmur/bibi/issues/71
@@ -130,7 +134,28 @@
     };
     const getCurrentPage = async () => {
         await waitReady();
-        // https://github.com/satorumurmur/bibi/issues/71
+        return R.Pages.indexOf(R.Current.Pages[0]) + 1;
+    };
+    /**
+     * IIPP is progress point in the book
+     * Item Index + Page Progress in the Item
+     * https://github.com/satorumurmur/bibi/issues/71
+     * @returns {Promise<*>}
+     */
+    const getCurrentIIPP = async () => {
+        await waitReady();
+        /**
+         * R.Current.Pages[0].Item.Index
+         * 39
+         * R.Current.Pages[0].IndexInItem
+         * 6
+         * R.Current.Pages[0].Item.Pages.length
+         * 8
+         * n.Item.Index + (n.IndexInItem / n.Item.Pages.length)
+         * 39 + (6 / 8)
+         * = 39.75
+         */
+        // R.Current.List[0].Page.Index
         return I.PageObserver.getIIPP();
     };
     const getTotalPage = async () => {
@@ -147,6 +172,7 @@
             id: B.ID,
         }
     }
+
     window.addEventListener("DOMContentLoaded", async () => {
         // ?p does not work?
         // https://github.com/satorumurmur/bibi/issues/71
@@ -188,12 +214,13 @@
     window.viewerController = {
         movePrevPage,
         moveNextPage,
-        moveToPage,
+        moveToIIPP,
         getTotalPage,
         getCurrentPage,
+        getCurrentIIPP,
         getCurrentTexts,
         getBookInfo,
-        onChangePage
+        onChangePage,
     };
 </script>
 </body>

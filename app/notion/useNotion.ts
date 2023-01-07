@@ -26,6 +26,9 @@ export const useNotionSetting = () => {
     } as const;
 };
 
+type BibiItem = {
+    lastIIPP: number;
+};
 export type BookItem = {
     pageId: string;
     fileName: string;
@@ -34,7 +37,7 @@ export type BookItem = {
     totalPage: number;
     publisher?: string;
     authors: string[];
-};
+} & BibiItem;
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
 const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
@@ -80,6 +83,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                 title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                 authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                 publisher: prop(result.properties.Publisher, "select").select?.name,
+                lastIIPP: prop(result.properties.LastIIPP, "number").number,
                 currentPage: prop(result.properties.CurrentPage, "number").number,
                 totalPage: prop(result.properties.TotalPage, "number").number
             };
@@ -133,6 +137,9 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                           }
                       }
                     : {}),
+                LastIIPP: {
+                    number: bookItem.lastIIPP
+                },
                 CurrentPage: {
                     number: bookItem.currentPage
                 },
@@ -158,7 +165,8 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                     publisher: prop(result.properties.Publisher, "select").select?.name,
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0
+                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
+                    lastIIPP: prop(result.properties.LastIIPP, "number").number ?? 0
                 });
             } else {
                 // update item
@@ -175,7 +183,8 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                     publisher: prop(result.properties.Publisher, "select").select?.name,
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0
+                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
+                    lastIIPP: prop(result.properties.LastIIPP, "number").number ?? 0
                 });
             }
             return;

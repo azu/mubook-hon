@@ -96,14 +96,14 @@ const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
 const useToast = () => {
     const [open, setOpen] = useState(false);
     const timerRef = useRef(0);
-    const [bookInfo, setBookInfo] = useState<{ currentPage: number; lastPage: number }>({
-        currentPage: 0,
-        lastPage: 0
+    const [bookInfo, setBookInfo] = useState<{ currentIIPP: number; lastIIPP: number }>({
+        currentIIPP: 0,
+        lastIIPP: 0
     });
     useEffect(() => {
         return () => clearTimeout(timerRef.current);
     }, []);
-    const show = useCallback((props: { currentPage: number; lastPage: number }) => {
+    const show = useCallback((props: { currentIIPP: number; lastIIPP: number }) => {
         setBookInfo(props);
         setOpen(true);
         clearTimeout(timerRef.current);
@@ -122,8 +122,8 @@ const useToast = () => {
                     <Toast.Title className="ToastTitle">Found last read page</Toast.Title>
                     <Toast.Description>
                         <ul>
-                            <li>Current page: {bookInfo.currentPage}</li>
-                            <li>Last read page: {bookInfo.lastPage}</li>
+                            <li>Current Progress: {bookInfo.currentIIPP}</li>
+                            <li>Last read progress: {bookInfo.lastIIPP}</li>
                         </ul>
                         <p>You can Jump to last read page.</p>
                     </Toast.Description>
@@ -156,8 +156,9 @@ type BibiReaderProps = {
 type ViewerContentMethod = {
     movePrevPage: () => Promise<void>;
     moveNextPage: () => Promise<void>;
-    moveToPage: (page: Number) => Promise<void>;
+    moveToIIPP: (page: Number) => Promise<void>;
     getTotalPage: () => Promise<number>;
+    getCurrentIIPP: () => Promise<number>;
     getCurrentPage: () => Promise<number>;
     getCurrentTexts: () => Promise<{ text: string; selectedText: string }>;
     getBookInfo: () => Promise<{
@@ -182,12 +183,12 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
                 viewerController: ViewerContentMethod;
             };
-            console.log("jump to " + currentBook.currentPage);
-            contentWindow.viewerController.moveToPage(bookInfo.lastPage).catch((e) => {
+            console.log("jump to Last IIPP" + bookInfo.lastIIPP);
+            contentWindow.viewerController.moveToIIPP(bookInfo.lastIIPP).catch((e) => {
                 console.error(e);
             });
         }
-    }, [bookInfo.lastPage, currentBook?.currentPage]);
+    }, [currentBook?.currentPage, bookInfo.lastIIPP]);
     useAsync(async () => {
         let unListen = () => {
             // nope
@@ -196,16 +197,18 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
                 viewerController: ViewerContentMethod;
             };
-            const bookInfo = await contentWindow.viewerController.getBookInfo();
-            const currentPage = await contentWindow.viewerController.getCurrentPage();
-            const totalPage = await contentWindow.viewerController.getTotalPage();
-            console.log({
-                bookInfo,
-                currentBook,
-                currentPage,
-                totalPage
-            });
-            unListen = await contentWindow.viewerController.onChangePage((currentPage) => {
+            unListen = await contentWindow.viewerController.onChangePage(async () => {
+                const bookInfo = await contentWindow.viewerController.getBookInfo();
+                const currentPage = await contentWindow.viewerController.getCurrentPage();
+                const totalPage = await contentWindow.viewerController.getTotalPage();
+                const lastIIPP = await contentWindow.viewerController.getCurrentIIPP();
+                console.log("onChangePage", {
+                    bookInfo,
+                    currentBook,
+                    lastIIPP,
+                    currentPage,
+                    totalPage
+                });
                 return updateBookStatus({
                     pageId: bookInfo.id,
                     fileName: props.book,
@@ -213,7 +216,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     title: bookInfo.title,
                     authors: bookInfo.author.split(",").map((author) => author.trim()),
                     currentPage,
-                    totalPage
+                    totalPage,
+                    lastIIPP
                 });
             });
         }
@@ -237,19 +241,20 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
             viewerController: ViewerContentMethod;
         };
-        const currentPage = await contentWindow.viewerController.getCurrentPage();
-        console.log({
-            savedPage: currentBook.currentPage,
-            currentPage
-        });
-        if (currentPage == null || currentBook.currentPage == null) {
+        const currentIIPP = await contentWindow.viewerController.getCurrentIIPP();
+        if (currentIIPP == null || currentBook.lastIIPP == null) {
             return;
         }
-        const isDifferencePage = currentPage !== currentBook.currentPage;
+        const isDifferencePage = Math.abs(currentIIPP - currentBook.lastIIPP) > 1;
+        console.log({
+            currentIIPP,
+            lastIIPP: currentBook.lastIIPP,
+            isDifferencePage
+        });
         if (isDifferencePage) {
             showToast({
-                currentPage,
-                lastPage: currentBook.currentPage
+                currentIIPP,
+                lastIIPP: currentBook.lastIIPP
             });
         }
     }, [prevBookState, currentBook]);
@@ -311,6 +316,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }, [props.book, props.id, props.src]);
     const bookUrl = useMemo(() => {
         const url = new URL("/bibi/index.html", location.href);
+        console.log("props", props.initialPage);
         url.search = new URLSearchParams({
             book: props.id,
             ...(props.initialPage
