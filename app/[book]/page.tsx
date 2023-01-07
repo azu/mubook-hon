@@ -48,7 +48,7 @@ const Page: FC<PageProps> = ({ params }) => {
     const searchParams = useSearchParams();
     const cacheProvider = useCacheProvider({
         dbName: "mubook-hon",
-        storeName: "book"
+        storeName: "mubook-book"
     });
     if (!cacheProvider) {
         return <div>Initializing cache…</div>;

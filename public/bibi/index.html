@@ -122,14 +122,16 @@
         await waitReady();
         E.dispatch("bibi:commands:move-by", 1)
     };
-    const moveToPage = async (pageNumber) => {
+    const moveToPage = async (IIPP) => {
         await waitReady();
         // https://github.com/satorumurmur/bibi/issues/78
-        R.focusOn({ Destination: { PageIndex: pageNumber - 1 } });
+        // https://github.com/satorumurmur/bibi/issues/71
+        R.focusOn({ Destination: { IIPP: IIPP } });
     };
     const getCurrentPage = async () => {
         await waitReady();
-        return R.Pages.indexOf(R.Current.List[0].Page) + 1;
+        // https://github.com/satorumurmur/bibi/issues/71
+        return I.PageObserver.getIIPP();
     };
     const getTotalPage = async () => {
         await waitReady();
