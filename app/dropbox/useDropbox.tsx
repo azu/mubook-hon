@@ -7,20 +7,20 @@ type DropboxTokens = {
     accessToken: string;
     refreshToken: string;
     accessTokenExpiresAt: string;
-}
+};
 const DROPBOX_AUTH_REDIRECT_URI = "http://localhost:3000/";
-export const useDropbox = (props: { code?: string; } = {}) => {
-    const router = useRouter()
+export const useDropbox = (props: { code?: string } = {}) => {
+    const router = useRouter();
     const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
     const [hasValidAccessToken, setHasValidAccessToken] = useState(false);
     const dropboxAuth = useMemo(() => {
-        console.log("auth")
+        console.log("auth");
         return new DropboxAuth({
             clientId: "gzx6eue9upkkcow",
             accessToken: tokens?.accessToken,
             refreshToken: tokens?.refreshToken,
             accessTokenExpiresAt: tokens?.accessTokenExpiresAt ? new Date(tokens.accessTokenExpiresAt) : undefined
-        })
+        });
     }, [tokens?.refreshToken, tokens?.accessToken, tokens?.accessTokenExpiresAt]);
     const dropboxClient = useMemo(() => {
         if (!hasValidAccessToken) return null;
@@ -30,35 +30,39 @@ export const useDropbox = (props: { code?: string; } = {}) => {
             accessToken: tokens?.accessToken,
             refreshToken: tokens?.refreshToken,
             accessTokenExpiresAt: tokens ? new Date(tokens.accessTokenExpiresAt) : undefined
-        })
+        });
     }, [tokens, hasValidAccessToken]);
     useEffect(() => {
         // @ts-expect-error https://github.com/dropbox/dropbox-sdk-js/issues/606
-        dropboxAuth.checkAndRefreshAccessToken().then(() => {
-            const accessToken = dropboxAuth.getAccessToken();
-            const refreshToken = dropboxAuth.getRefreshToken();
-            const accessTokenExpiresAt = dropboxAuth.getAccessTokenExpiresAt();
-            const b = Boolean(accessToken && refreshToken);
-            setHasValidAccessToken(b);
-            console.log("checkAndRefreshAccessToken", b)
-            setTokens({
-                accessToken,
-                refreshToken,
-                accessTokenExpiresAt: accessTokenExpiresAt?.toISOString()
+        dropboxAuth
+            .checkAndRefreshAccessToken()
+            .then(() => {
+                const accessToken = dropboxAuth.getAccessToken();
+                const refreshToken = dropboxAuth.getRefreshToken();
+                const accessTokenExpiresAt = dropboxAuth.getAccessTokenExpiresAt();
+                const b = Boolean(accessToken && refreshToken);
+                setHasValidAccessToken(b);
+                console.log("checkAndRefreshAccessToken", b);
+                setTokens({
+                    accessToken,
+                    refreshToken,
+                    accessTokenExpiresAt: accessTokenExpiresAt?.toISOString()
+                });
             })
-        }).catch((e: Error) => {
-            console.error(e)
-            setTokens(undefined)
-        })
+            .catch((e: Error) => {
+                console.error(e);
+                setTokens(undefined);
+            });
     }, [dropboxAuth, setTokens]);
     useEffect(() => {
         if (!props.code) return;
-        const codeVerifier = window.sessionStorage.getItem('codeVerifier');
+        const codeVerifier = window.sessionStorage.getItem("codeVerifier");
         if (!codeVerifier) {
             throw new Error("codeVerifier not found");
         }
         dropboxAuth.setCodeVerifier(codeVerifier);
-        dropboxAuth.getAccessTokenFromCode(DROPBOX_AUTH_REDIRECT_URI, props.code)
+        dropboxAuth
+            .getAccessTokenFromCode(DROPBOX_AUTH_REDIRECT_URI, props.code)
             .then((response) => {
                 console.log("getAccessTokenFromCode", response);
                 const result = response.result;
@@ -69,30 +73,39 @@ export const useDropbox = (props: { code?: string; } = {}) => {
                     refreshToken: result.refresh_token,
                     // @ts-ignore
                     accessTokenExpiresAt: new Date(Date.now() + result.expires_in * 1000).toISOString()
-                })
-                router.replace("/")
-                window.sessionStorage.removeItem('codeVerifier');
+                });
+                router.replace("/");
+                window.sessionStorage.removeItem("codeVerifier");
             })
             .catch((error) => {
-                console.error(error)
+                console.error(error);
             });
-    }, [dropboxAuth, props.code, router, setTokens])
+    }, [dropboxAuth, props.code, router, setTokens]);
     const AuthUrl = useMemo(() => {
         return function AuthURL() {
             const [url, setUrl] = useState("");
             useEffect(() => {
-                dropboxAuth.getAuthenticationUrl(DROPBOX_AUTH_REDIRECT_URI, undefined, 'code', 'offline', undefined, undefined, true).then((ret) => {
-                    window.sessionStorage.clear();
-                    window.sessionStorage.setItem("codeVerifier", dropboxAuth.getCodeVerifier());
-                    setUrl(ret.toString());
-                })
-            }, [])
-            return <a href={url}>Authorize</a>
-        }
+                dropboxAuth
+                    .getAuthenticationUrl(
+                        DROPBOX_AUTH_REDIRECT_URI,
+                        undefined,
+                        "code",
+                        "offline",
+                        undefined,
+                        undefined,
+                        true
+                    )
+                    .then((ret) => {
+                        window.sessionStorage.setItem("codeVerifier", dropboxAuth.getCodeVerifier());
+                        setUrl(ret.toString());
+                    });
+            }, []);
+            return <a href={url}>Authorize</a>;
+        };
     }, [dropboxAuth]);
     return {
         dropboxClient,
         hasValidAccessToken,
         AuthUrl
     } as const;
-}
+};
