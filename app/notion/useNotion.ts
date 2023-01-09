@@ -216,7 +216,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     number: currentPage
                 },
                 IIPP: {
-                    number: currentPage
+                    number: IIPP
                 },
                 "Book List": {
                     relation: [
