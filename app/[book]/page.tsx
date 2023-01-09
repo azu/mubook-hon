@@ -177,7 +177,61 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     });
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
-    const bibiFrame = useRef<HTMLIFrameElement>(null);
+    const bibiFrame = useRef<HTMLIFrameElement>();
+    const restoreLastPositionAtFirst = useCallback(async () => {
+        // execute once
+        if (isInitialized.current) {
+            return;
+        }
+        if (!currentBook) {
+            return;
+        }
+        if (!bibiFrame.current) {
+            return;
+        }
+        console.log("restoreLastPosition", {
+            isInitialized: isInitialized.current,
+            currentBook,
+            bibiFrame: bibiFrame.current
+        });
+        isInitialized.current = true;
+        console.log("new load book 📚");
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for load content
+        const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
+            viewerController: ViewerContentMethod;
+        };
+        const currentIIPP = await contentWindow.viewerController.getCurrentIIPP();
+        if (currentIIPP == null || currentBook.lastIIPP == null) {
+            return;
+        }
+        const isDifferencePage = Math.abs(currentIIPP - currentBook.lastIIPP) > 1;
+        console.log({
+            currentIIPP,
+            lastIIPP: currentBook.lastIIPP,
+            isDifferencePage
+        });
+        if (isDifferencePage) {
+            showToast({
+                currentIIPP,
+                lastIIPP: currentBook.lastIIPP
+            });
+        }
+    }, [currentBook, showToast]);
+    useEffect(() => {
+        console.log("Updated Current Book", currentBook);
+        if (!isInitialized.current && currentBook) {
+            restoreLastPositionAtFirst();
+        }
+    }, [currentBook, restoreLastPositionAtFirst]);
+    const onInitializeIframeRef = useCallback(
+        async (frameElement: HTMLIFrameElement) => {
+            bibiFrame.current = frameElement;
+            if (bibiFrame.current) {
+                await restoreLastPositionAtFirst();
+            }
+        },
+        [restoreLastPositionAtFirst]
+    );
     const onClickJumpLastPage = useCallback(() => {
         if (bibiFrame.current && currentBook?.currentPage != null) {
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
@@ -190,14 +244,10 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         }
     }, [currentBook?.currentPage, bookInfo.lastIIPP]);
     useAsync(async () => {
-        if (isInitialized.current) {
-            return;
-        }
         let unListen = () => {
             // nope
         };
         if (bibiFrame.current) {
-            isInitialized.current = true;
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
                 viewerController: ViewerContentMethod;
             };
@@ -229,39 +279,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             unListen();
         };
     }, [bibiFrame.current]);
-    // when load new book
-    const mounted = usePromise();
-    useAsync(async () => {
-        if (isInitialized.current || !currentBook) {
-            return;
-        }
-        await mounted;
-        // TODO: workaround for wating for iframe load
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (!bibiFrame.current) {
-            return;
-        }
-        console.log("new load book 📚");
-        const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
-            viewerController: ViewerContentMethod;
-        };
-        const currentIIPP = await contentWindow.viewerController.getCurrentIIPP();
-        if (currentIIPP == null || currentBook.lastIIPP == null) {
-            return;
-        }
-        const isDifferencePage = Math.abs(currentIIPP - currentBook.lastIIPP) > 1;
-        console.log({
-            currentIIPP,
-            lastIIPP: currentBook.lastIIPP,
-            isDifferencePage
-        });
-        if (isDifferencePage) {
-            showToast({
-                currentIIPP,
-                lastIIPP: currentBook.lastIIPP
-            });
-        }
-    }, [currentBook]);
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -320,7 +337,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }, [props.book, props.id, props.src]);
     const bookUrl = useMemo(() => {
         const url = new URL("/bibi/index.html", location.href);
-        console.log("props", props.initialPage);
         url.search = new URLSearchParams({
             book: props.id,
             ...(props.initialPage
@@ -329,6 +345,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                   }
                 : {})
         }).toString();
+        console.log("bookUrl", url);
         return url.toString();
     }, [props.id, props.initialPage]);
     const memo = useCallback(async () => {
@@ -371,7 +388,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 height={"100%"}
                 className={"bibi-frame"}
                 id={"bibi-frame"}
-                ref={bibiFrame}
+                ref={onInitializeIframeRef}
             ></iframe>
             <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
         </>

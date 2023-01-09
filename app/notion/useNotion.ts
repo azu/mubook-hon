@@ -175,7 +175,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     // @ts-ignore
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("update new book", result);
+                console.log("Response page update", result);
                 await mutateCurrentBook({
                     pageId: result.id,
                     fileName: prop(result.properties.FileName, "title").title[0].plain_text,
