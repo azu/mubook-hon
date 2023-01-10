@@ -32,12 +32,19 @@ export type BibiPositionMaker = {
     ElementSelector: string; // css selector of Item(iframe)
 };
 export type BookMarker = BibiPositionMaker;
-export const parseBookMarker = (markerString?: string): BookMarker | undefined => {
+
+export const encodeBookMarker = (marker?: BookMarker): string => {
+    if (!marker) {
+        return "";
+    }
+    return encodeURIComponent(JSON.stringify(marker));
+};
+export const decodeBookMarker = (markerString?: string): BookMarker | undefined => {
     if (!markerString) {
         return;
     }
     try {
-        return JSON.parse(markerString);
+        return JSON.parse(decodeURIComponent(markerString));
     } catch (error) {
         console.warn("Fail to parse marker string", markerString);
     }
@@ -97,7 +104,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                 title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                 authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                 publisher: prop(result.properties.Publisher, "select").select?.name,
-                lastMarker: parseBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text),
+                lastMarker: decodeBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text),
                 currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                 totalPage: prop(result.properties.TotalPage, "number").number ?? 0
             };
@@ -156,7 +163,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     rich_text: [
                         {
                             text: {
-                                content: JSON.stringify(bookItem.lastMarker)
+                                content: encodeBookMarker(bookItem.lastMarker)
                             }
                         }
                     ]
@@ -186,7 +193,9 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     publisher: prop(result.properties.Publisher, "select").select?.name,
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                     totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                    lastMarker: parseBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text)
+                    lastMarker: decodeBookMarker(
+                        prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                    )
                 });
             } else {
                 // update item
@@ -203,7 +212,9 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     publisher: prop(result.properties.Publisher, "select").select?.name,
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                     totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                    lastMarker: parseBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text)
+                    lastMarker: decodeBookMarker(
+                        prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                    )
                 });
             }
             return;
@@ -241,7 +252,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     rich_text: [
                         {
                             text: {
-                                content: JSON.stringify(marker)
+                                content: encodeBookMarker(marker)
                             }
                         }
                     ]
