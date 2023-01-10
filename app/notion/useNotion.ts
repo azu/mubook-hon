@@ -101,6 +101,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     }
                 }
             });
+            console.log("⭐Fetch book 📚", results[0]);
             const result = results[0] as PageObjectResponse;
             if (!result) {
                 return NO_BOOK_DATA;
@@ -210,7 +211,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     },
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("create new book 📚", result);
+                console.log("⭐ create new book 📚", result);
                 await mutateCurrentBook({
                     pageId: result.id,
                     fileId: prop(result.properties.FileId, "title").title[0].plain_text,
@@ -230,7 +231,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     page_id: currentBook.pageId,
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("Response page update", result);
+                console.log("⭐ Update new book 📚", result);
                 await mutateCurrentBook({
                     pageId: result.id,
                     fileId: prop(result.properties.FileId, "title").title[0].plain_text,
@@ -299,6 +300,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     ]
                 }
             };
+            console.log("⭐ New Memo", properties);
             // create new book
             const result = (await notionClient.pages.create({
                 parent: {

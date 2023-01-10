@@ -89,16 +89,10 @@
 
     /**
      * 指定された要素と同一階層、同名の要素コレクション内におけるインデックスを取得します。
-     *
-     * @param {Element} el   要素。
-     * @param {String}  name 要素名。
-     *
-     * @return {Number} インデックス。範囲は 1 〜 N となります。
      */
     function getSiblingElemetsIndex(el, name) {
-        var index = 1;
-        var sib = el;
-
+        let index = 1;
+        let sib = el;
         while ((sib = sib.previousElementSibling)) {
             if (sib.nodeName.toLowerCase() === name) {
                 ++index;
@@ -108,14 +102,8 @@
     }
 
     /**
-     * 指定された要素を示すセレクターを取得します。
-     *
-     * @see http://stackoverflow.com/questions/3620116/get-css-path-from-dom-element
-     *
-     * @param {Element} el 要素。
-     * @param {Window} win
-     *
-     * @return {Array} セレクター名コレクション。
+     * Create CSS selector as array。
+     * http://stackoverflow.com/questions/3620116/get-css-path-from-dom-element
      */
     function getSelectorFromElement(el, win) {
         const names = [];
@@ -125,21 +113,11 @@
         }
         while (el.nodeType === Node.ELEMENT_NODE) {
             let name = el.nodeName.toLowerCase();
-            if (el.id) {
-                // id はページ内で一意となるため、これ以上の検索は不要
-                name += '#' + el.id;
-                names.unshift(name);
-                break;
-            }
 
-            // 同じ階層に同名要素が複数ある場合は識別のためインデックスを付与する
-            // 複数要素の先頭 ( index = 1 ) の場合、インデックスは省略可能
-            //
-            var index = getSiblingElemetsIndex(el, name);
+            const index = getSiblingElemetsIndex(el, name);
             if (1 < index) {
                 name += ':nth-of-type(' + index + ')';
             }
-
             names.unshift(name);
             el = el.parentNode;
         }
@@ -223,24 +201,6 @@
         R.focusOn({ Destination: { IIPP: IIPP } });
     };
 
-    // firefox -polyfill
-    if (!Element.prototype.scrollIntoViewIfNeeded) {
-        Element.prototype.scrollIntoViewIfNeeded = function (centerIfNeeded = true) {
-            const el = this;
-            new IntersectionObserver(function ([entry]) {
-                const ratio = entry.intersectionRatio;
-                if (ratio < 1) {
-                    let place = ratio <= 0 && centerIfNeeded ? 'center' : 'nearest';
-                    el.scrollIntoView({
-                        block: place,
-                        inline: place,
-                    });
-                }
-                this.disconnect();
-            }).observe(this);
-        };
-    }
-
     /**
      * @param {{ ElementSelector:string, ItemIndex:number }} positionMarker
      * @returns {Promise<void>}
@@ -254,13 +214,38 @@
         // Use DOM API
         try {
             const MoveToItem = R.Items[positionMarker.ItemIndex]
+            // firefox -polyfill
+            if (!MoveToItem.contentWindow.Element.prototype.scrollIntoViewIfNeeded) {
+                MoveToItem.contentWindow.Element.prototype.scrollIntoViewIfNeeded = function (centerIfNeeded = true) {
+                    const el = this;
+                    new MoveToItem.contentWindow.IntersectionObserver(function ([entry]) {
+                        const ratio = entry.intersectionRatio;
+                        if (ratio < 1) {
+                            let place = ratio <= 0 && centerIfNeeded ? 'center' : 'nearest';
+                            el.scrollIntoView({
+                                block: place,
+                                inline: place,
+                            });
+                        }
+                        this.disconnect();
+                    }).observe(this);
+                };
+            }
+            MoveToItem.contentWindow.document.body.style.opacity = "0.1";
             MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoViewIfNeeded()
-            R.focusOn({
-                Destination: {
-                    ElementSelector: positionMarker.ElementSelector,
-                    ItemIndex: positionMarker.ItemIndex
-                }
+            requestAnimationFrame(async () => {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                await movePrevPage();
+                await new Promise(resolve => setTimeout(resolve, 100))
+                await moveNextPage();
+                MoveToItem.contentWindow.document.body.style.opacity = "";
             });
+            // R.focusOn({
+            //     Destination: {
+            //         ElementSelector: positionMarker.ElementSelector,
+            //         ItemIndex: positionMarker.ItemIndex
+            //     }
+            // });
         } catch (error) {
             console.error("Fail to move", error)
         }
