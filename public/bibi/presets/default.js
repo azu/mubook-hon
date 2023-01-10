@@ -35,7 +35,7 @@ Bibi.preset({
     "use-loupe": "desktop", // "yes" or "no" or "desktop" or "mobile" (Note: Loupe buttons will not appear in touch-devices even if it is set "yes" or "mobile".)
     "use-nombre": "yes", // "yes" or "no" or "desktop" or "mobile"
 
-    "use-arrows": "yes", // "yes" or "no" or "desktop" or "mobile"
+    "use-arrows": isMobile ? "no" : "yes", // "yes" or "no" or "desktop" or "mobile"
     "use-keys": "yes", // "yes" or "no" or "desktop" or "mobile"
     "accept-orthogonal-input": "no", // "yes" or "no" or "desktop" or "mobile"
 

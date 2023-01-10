@@ -70,10 +70,11 @@ const Home: FC = () => {
                         <li key={item.path_lower}>
                             <Link
                                 href={{
-                                    pathname: item.path_lower,
+                                    pathname: "/viewer",
                                     query: {
                                         // @ts-ignore
-                                        id: item.id.replace("id:", "")
+                                        id: item.id,
+                                        name: item.path_display
                                     }
                                 }}
                             >

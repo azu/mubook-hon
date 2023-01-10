@@ -1,42 +1,67 @@
 "use client";
 import { FC, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { rest, setupWorker } from "msw";
-import { Dropbox } from "dropbox";
+import { Dropbox, DropboxResponse } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useAsync } from "react-use";
-import { BibiPositionMaker, BookMarker, useNotion } from "../notion/useNotion";
+import {
+    BibiPositionMaker,
+    BookMarker,
+    decodeBookMarker,
+    encodeBookMarker,
+    NO_BOOK_DATA,
+    useNotion
+} from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 import "./toast.css";
 import { useSearchParams } from "next/navigation";
+import { files } from "dropbox/types/dropbox_types";
+import Head from "next/head";
 
-const useDropboxAPI = (dropbox: Dropbox | null, props: { filePath: string }) => {
-    const fileFetcher: Fetcher<Blob, string> = async (args) => {
+const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
+    const fileFetcher: Fetcher<
+        DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob },
+        { fileId: string }
+    > = async ({ fileId }) => {
         if (!dropbox) {
             throw new Error("no dropbox client");
         }
+        console.log("download dropbox fileId", fileId);
         return dropbox
             .filesDownload({
-                path: args
+                path: fileId
             })
             .then((res) => {
-                // @ts-expect-error
-                return res.result.fileBlob;
-            });
+                // @ts-ignore
+                return res.result;
+            }) as Promise<DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob }>;
     };
-    const { data: fileBlob, error: itemListsError } = useSWR(
-        () => (dropbox ? props.filePath : undefined),
+    const { data: downloadResponse, error: itemListsError } = useSWR(
+        () =>
+            dropbox
+                ? {
+                      cacheKey: "/dropbox/filesDownload",
+                      fileId: props.fileId
+                  }
+                : undefined,
         fileFetcher,
         {}
     );
     const fileBlobUrl = useMemo(() => {
-        if (!fileBlob) {
+        if (!downloadResponse) {
             return;
         }
-        return URL.createObjectURL(fileBlob);
-    }, [fileBlob]);
+        return URL.createObjectURL(downloadResponse.fileBlob);
+    }, [downloadResponse]);
+    const fileDisplayName = useMemo(() => {
+        if (!downloadResponse) {
+            return "";
+        }
+        return downloadResponse.name ?? "";
+    }, [downloadResponse]);
     return {
+        fileDisplayName,
         fileBlobUrl
     } as const;
 };
@@ -53,10 +78,8 @@ const Page: FC<PageProps> = ({ params }) => {
     if (!cacheProvider) {
         return <div>Initializing cache…</div>;
     }
-    if (!params?.book) {
-        return <div>Book not found</div>;
-    }
     const initialPage = searchParams.get("page") ?? undefined;
+    const initialMarker = searchParams.get("marker") ?? undefined;
     const fileId = searchParams?.get("id");
     if (!fileId) {
         return <div>ID not found</div>;
@@ -67,19 +90,18 @@ const Page: FC<PageProps> = ({ params }) => {
                 provider: cacheProvider
             }}
         >
-            <App book={params.book} id={fileId} initialPage={initialPage} />
+            <App id={fileId} initialPage={initialPage} initialMarker={initialMarker} />
         </SWRConfig>
     );
 };
 
 export default Page;
 
-const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
+const App = (props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker">) => {
     const id = props.id;
-    const bookName = decodeURIComponent(props.book);
     const { dropboxClient, hasValidAccessToken, AuthUrl } = useDropbox({});
-    const { fileBlobUrl } = useDropboxAPI(dropboxClient, {
-        filePath: "/" + bookName
+    const { fileBlobUrl, fileDisplayName } = useDropboxAPI(dropboxClient, {
+        fileId: id
     });
     if (!hasValidAccessToken) {
         return (
@@ -90,7 +112,15 @@ const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
             </div>
         );
     }
-    return <BibiReader id={id} book={bookName} src={fileBlobUrl} initialPage={props.initialPage} />;
+    return (
+        <BibiReader
+            id={id}
+            bookFileName={fileDisplayName}
+            src={fileBlobUrl}
+            initialPage={props.initialPage}
+            initialMarker={props.initialMarker}
+        />
+    );
 };
 
 const useToast = () => {
@@ -146,9 +176,10 @@ const useToast = () => {
 
 type BibiReaderProps = {
     id: string;
-    book: string;
+    bookFileName: string;
     src: string | undefined;
     initialPage?: string;
+    initialMarker?: string;
 };
 type ViewerContentMethod = {
     movePrevPage: () => Promise<void>;
@@ -172,7 +203,8 @@ type ViewerContentMethod = {
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
     const { currentBook, updateBookStatus, addMemo } = useNotion({
-        bookName: props.book
+        fileId: props.id,
+        fileName: props.bookFileName
     });
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
@@ -188,40 +220,84 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         if (!bibiFrame.current) {
             return;
         }
-        console.log("restoreLastPosition", {
-            isInitialized: isInitialized.current,
-            currentBook,
-            bibiFrame: bibiFrame.current
-        });
         console.log("new load book 📚");
         await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for load content
         const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
             viewerController: ViewerContentMethod;
         };
-        const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-        if (currentMarker == null || currentBook.lastMarker == null) {
-            return;
-        }
-        const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
-        console.log("check restore position", {
-            currentMarker: currentMarker,
-            lastMarker: currentBook.lastMarker,
-            isDifferencePage
+        console.log("restoreLastPosition", {
+            isInitialized: isInitialized.current,
+            currentBook,
+            bibiFrame: bibiFrame.current
         });
-        if (isDifferencePage) {
-            showToast({
-                current: currentMarker,
-                lastRead: currentBook.lastMarker
+        // prefer ?marker rather than restore position
+        if (props.initialMarker) {
+            const marker = decodeBookMarker(props.initialMarker);
+            console.log("restore to initial marker", {
+                marker: marker
             });
+            if (marker) {
+                await contentWindow.viewerController.moveToPositionMarker(marker);
+            }
+            isInitialized.current = true;
+        } else {
+            // restore last position
+            const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+            if (currentMarker == null || currentBook.lastMarker == null) {
+                isInitialized.current = true;
+                return;
+            }
+            const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
+            console.log("check restore position", {
+                currentMarker: currentMarker,
+                lastMarker: currentBook.lastMarker,
+                isDifferencePage
+            });
+            if (isDifferencePage) {
+                showToast({
+                    current: currentMarker,
+                    lastRead: currentBook.lastMarker
+                });
+            }
+            isInitialized.current = true;
         }
-        isInitialized.current = true;
-    }, [currentBook, showToast]);
+    }, [currentBook, props.initialMarker, showToast]);
     useEffect(() => {
         console.log("Updated Current Book", currentBook);
         if (!isInitialized.current && currentBook) {
             restoreLastPositionAtFirst();
         }
     }, [currentBook, restoreLastPositionAtFirst]);
+    useEffect(
+        function updateBookStatusIfBookIsNotRegister() {
+            const current = bibiFrame.current;
+            console.log("updateBookStatusIfBookIsNotRegister", currentBook, current);
+            if (currentBook === NO_BOOK_DATA && current) {
+                (async function registerBook() {
+                    const contentWindow = current.contentWindow as WindowProxy & {
+                        viewerController: ViewerContentMethod;
+                    };
+                    const bookInfo = await contentWindow.viewerController.getBookInfo();
+                    const currentPage = await contentWindow.viewerController.getCurrentPage();
+                    const totalPage = await contentWindow.viewerController.getTotalPage();
+                    const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                    return updateBookStatus({
+                        pageId: bookInfo.id,
+                        fileId: props.id,
+                        fileName: props.bookFileName,
+                        publisher: bookInfo.publisher,
+                        title: bookInfo.title,
+                        authors: bookInfo.author.split(",").map((author) => author.trim()),
+                        currentPage,
+                        totalPage,
+                        lastMarker
+                    });
+                })();
+            }
+        },
+        [currentBook, props.bookFileName, props.id, updateBookStatus]
+    );
+
     const viewerControllerUnListen = useRef<() => void>();
     const onInitializeIframeRef = useCallback(
         async (frameElement: HTMLIFrameElement) => {
@@ -233,6 +309,15 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
                     viewerController: ViewerContentMethod;
                 };
+                await new Promise<void>((resolve) => {
+                    if (contentWindow.document.readyState === "complete") {
+                        setTimeout(() => resolve(), 1000);
+                    } else {
+                        contentWindow.addEventListener("load", () => {
+                            resolve();
+                        });
+                    }
+                });
                 viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
                     if (!isInitialized.current) {
                         console.log("not yet initialized");
@@ -251,7 +336,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     });
                     return updateBookStatus({
                         pageId: bookInfo.id,
-                        fileName: props.book,
+                        fileId: props.id,
+                        fileName: props.bookFileName,
                         publisher: bookInfo.publisher,
                         title: bookInfo.title,
                         authors: bookInfo.author.split(",").map((author) => author.trim()),
@@ -264,7 +350,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 viewerControllerUnListen.current?.();
             }
         },
-        [currentBook, props.book, restoreLastPositionAtFirst, updateBookStatus]
+        [currentBook, props.bookFileName, props.id, restoreLastPositionAtFirst, updateBookStatus]
     );
     const onClickJumpLastPage = useCallback(() => {
         if (bibiFrame.current && currentBook?.currentPage != null && bookInfo?.lastRead) {
@@ -287,20 +373,23 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             // 1. /META-INF/container.xml
             // 2. /OEBPS/content.opf
             // Response epub content as /OEBPS/content.opf
-            rest.get("/bibi-bookshelf/" + props.id + "/META-INF/container.xml", async (_, res, ctx) => {
-                return res(
-                    ctx.set("Content-Type", "application/xml"),
-                    // Respond with the "ArrayBuffer".
-                    ctx.body(`<?xml version="1.0" ?>
+            rest.get(
+                "/bibi-bookshelf/" + props.id.replace("id:", "") + "/META-INF/container.xml",
+                async (_, res, ctx) => {
+                    return res(
+                        ctx.set("Content-Type", "application/xml"),
+                        // Respond with the "ArrayBuffer".
+                        ctx.body(`<?xml version="1.0" ?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml" />
   </rootfiles>
 </container>
 `)
-                );
-            }),
-            rest.get("/bibi-bookshelf/" + props.id + "/OEBPS/package.opf", async (_, res, ctx) => {
+                    );
+                }
+            ),
+            rest.get("/bibi-bookshelf/" + props.id.replace("id:", "") + "/OEBPS/package.opf", async (_, res, ctx) => {
                 const epub = await fetch(src).then((res) => res.arrayBuffer());
                 return res(
                     ctx.set("Content-Length", epub.byteLength.toString()),
@@ -308,7 +397,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     ctx.body(epub)
                 );
             }),
-            rest.get("/bibi-bookshelf/" + props.id, async (_, res, ctx) => {
+            rest.get("/bibi-bookshelf/" + props.id.replace("id:", ""), async (_, res, ctx) => {
                 const epub = await fetch(src).then((res) => res.arrayBuffer());
                 return res(
                     ctx.set("Content-Length", epub.byteLength.toString()),
@@ -332,19 +421,18 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         return () => {
             worker.stop();
         };
-    }, [props.book, props.id, props.src]);
+    }, [props.bookFileName, props.id, props.src]);
     const bookUrl = useMemo(() => {
         const url = new URL("/bibi/index.html", location.href);
-        url.search = new URLSearchParams({
-            book: props.id,
-            ...(props.initialPage
-                ? {
-                      p: props.initialPage
-                  }
-                : {})
-        }).toString();
-        console.log("bookUrl", url);
-        return url.toString();
+        // We can not use URLSearchParams because URLSearchParams encoding and encodeURIComponent is different
+        // https://kuma-emon.com/it/pc/2178/
+        const bookUrl =
+            url.toString() +
+            "?book=" +
+            props.id.replace("id:", "") +
+            (props.initialPage ? "&p=" + props.initialPage : "");
+        console.log("bookUrl", bookUrl);
+        return bookUrl;
     }, [props.id, props.initialPage]);
     const memo = useCallback(async () => {
         if (bibiFrame.current) {
@@ -366,6 +454,9 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }
     return (
         <>
+            <Head>
+                <title>{props.bookFileName}</title>
+            </Head>
             <button
                 className="Button small violet"
                 style={{

@@ -1,5 +1,5 @@
 import { useLocalStorage } from "react-use";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { Client } from "@notionhq/client";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
@@ -51,6 +51,7 @@ export const decodeBookMarker = (markerString?: string): BookMarker | undefined 
 };
 export type BookItem = {
     pageId: string;
+    fileId: string;
     fileName: string;
     title: string;
     currentPage: number;
@@ -67,7 +68,8 @@ const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
     }
     return o as T extends F["type"] ? Extract<F, { type: T }> : never;
 };
-export const useNotion = ({ bookName }: { bookName: string }) => {
+export const NO_BOOK_DATA = null;
+export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: string }) => {
     const { notionSetting } = useNotionSetting();
     const notionClient = useMemo(() => {
         if (!notionSetting?.apiKey) {
@@ -78,8 +80,14 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
             baseUrl: NOTION_API_BASE_URL
         });
     }, [notionSetting?.apiKey]);
-    const { data: currentBook, mutate: mutateCurrentBook } = useSWR<BookItem>(
-        () => (notionClient ? bookName : null),
+    const { data: currentBook, mutate: mutateCurrentBook } = useSWR<BookItem | typeof NO_BOOK_DATA>(
+        () =>
+            notionClient
+                ? {
+                      cacheKey: "/notion/get-book",
+                      fileId
+                  }
+                : null,
         (async () => {
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
@@ -87,20 +95,20 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
             const { results } = await notionClient.databases.query({
                 database_id: notionSetting.bookListDatabaseId,
                 filter: {
-                    property: "FileName",
+                    property: "FileId",
                     title: {
-                        equals: bookName
+                        equals: fileId
                     }
                 }
             });
             const result = results[0] as PageObjectResponse;
             if (!result) {
-                return;
+                return NO_BOOK_DATA;
             }
-
-            const newVar: BookItem = {
+            const currentBook: BookItem = {
                 pageId: result.id,
-                fileName: prop(result.properties.FileName, "title").title[0].plain_text,
+                fileId: prop(result.properties.FileId, "title").title[0].plain_text,
+                fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
                 title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                 authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                 publisher: prop(result.properties.Publisher, "select").select?.name,
@@ -108,23 +116,41 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                 currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                 totalPage: prop(result.properties.TotalPage, "number").number ?? 0
             };
-            return newVar;
+            return currentBook;
         }) as Fetcher<BookItem>
     );
     const { trigger: updateBookStatus } = useSWRMutation(
-        () => (notionClient ? [bookName, currentBook] : null),
-        async ([bookName, currentBook], { arg }: { arg: BookItem }) => {
+        () =>
+            notionClient
+                ? {
+                      cacheKey: "/notion/update-book-status",
+                      fileId,
+                      fileName,
+                      currentBook
+                  }
+                : null,
+        async (param, { arg }: { arg: BookItem }) => {
+            const { fileId, fileName, currentBook } = param;
             const bookItem = arg;
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
-            console.log("currentBook", currentBook);
+            console.log("update target currentBook", currentBook);
             const properties = {
-                FileName: {
+                FileId: {
                     title: [
                         {
                             text: {
-                                content: bookName
+                                content: fileId
+                            }
+                        }
+                    ]
+                },
+                FileName: {
+                    rich_text: [
+                        {
+                            text: {
+                                content: fileName
                             }
                         }
                     ]
@@ -184,10 +210,11 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     },
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("create new book", result);
+                console.log("create new book 📚", result);
                 await mutateCurrentBook({
                     pageId: result.id,
-                    fileName: prop(result.properties.FileName, "title").title[0].plain_text,
+                    fileId: prop(result.properties.FileId, "title").title[0].plain_text,
+                    fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
                     title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                     authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                     publisher: prop(result.properties.Publisher, "select").select?.name,
@@ -206,7 +233,8 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                 console.log("Response page update", result);
                 await mutateCurrentBook({
                     pageId: result.id,
-                    fileName: prop(result.properties.FileName, "title").title[0].plain_text,
+                    fileId: prop(result.properties.FileId, "title").title[0].plain_text,
+                    fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
                     title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                     authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                     publisher: prop(result.properties.Publisher, "select").select?.name,
@@ -221,11 +249,17 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
         }
     );
     const { trigger: addMemo } = useSWRMutation(
-        () => (notionClient ? [bookName, currentBook] : null),
-        async (
-            [bookName, currentBook],
-            { arg }: { arg: { memo: string; currentPage: number; marker: BookMarker } }
-        ) => {
+        () =>
+            notionClient
+                ? {
+                      cacheKey: "/notion/add-memo",
+                      fileId,
+                      fileName,
+                      currentBook
+                  }
+                : null,
+        async (params, { arg }: { arg: { memo: string; currentPage: number; marker: BookMarker } }) => {
+            const { currentBook } = params;
             const memo = arg.memo;
             const currentPage = arg.currentPage;
             const marker = arg.marker;

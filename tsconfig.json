@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2018",
     "lib": [
       "dom",
       "dom.iterable",
@@ -23,6 +23,12 @@
         "name": "next"
       }
     ]
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "commonjs"
+    }
   },
   "include": [
     "next-env.d.ts",
