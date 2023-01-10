@@ -5,8 +5,8 @@ import { Dropbox } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useAsync, usePrevious, usePromise, useSearchParam } from "react-use";
-import { useNotion } from "../notion/useNotion";
+import { useAsync } from "react-use";
+import { BibiPositionMaker, BookMarker, useNotion } from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 import "./toast.css";
 import { useSearchParams } from "next/navigation";
@@ -96,15 +96,12 @@ const App = (props: Pick<BibiReaderProps, "id" | "book" | "initialPage">) => {
 const useToast = () => {
     const [open, setOpen] = useState(false);
     const timerRef = useRef(0);
-    const [bookInfo, setBookInfo] = useState<{ currentIIPP: number; lastIIPP: number }>({
-        currentIIPP: 0,
-        lastIIPP: 0
-    });
+    const [restoreMakers, setRestoreMakers] = useState<{ current: BookMarker; lastRead: BookMarker }>();
     useEffect(() => {
         return () => clearTimeout(timerRef.current);
     }, []);
-    const show = useCallback((props: { currentIIPP: number; lastIIPP: number }) => {
-        setBookInfo(props);
+    const show = useCallback((bookMakers: { current: BookMarker; lastRead: BookMarker }) => {
+        setRestoreMakers(bookMakers);
         setOpen(true);
         clearTimeout(timerRef.current);
         timerRef.current = window.setTimeout(() => {
@@ -122,8 +119,8 @@ const useToast = () => {
                     <Toast.Title className="ToastTitle">Found last read page</Toast.Title>
                     <Toast.Description>
                         <ul>
-                            <li>Current Progress: {bookInfo.currentIIPP}</li>
-                            <li>Last read progress: {bookInfo.lastIIPP}</li>
+                            <li>Current Item: {restoreMakers?.current.ItemIndex}</li>
+                            <li>Last read Item: {restoreMakers?.lastRead.ItemIndex}</li>
                         </ul>
                         <p>You can Jump to last read page.</p>
                     </Toast.Description>
@@ -140,7 +137,7 @@ const useToast = () => {
     return {
         open,
         setOpen,
-        bookInfo,
+        bookInfo: restoreMakers,
         showToast: show,
         hideToast: hide,
         ToastComponent
@@ -157,9 +154,11 @@ type ViewerContentMethod = {
     movePrevPage: () => Promise<void>;
     moveNextPage: () => Promise<void>;
     moveToIIPP: (page: Number) => Promise<void>;
+    moveToPositionMarker: (marker: BibiPositionMaker) => Promise<void>;
     getTotalPage: () => Promise<number>;
     getCurrentIIPP: () => Promise<number>;
     getCurrentPage: () => Promise<number>;
+    getCurrentPositionMaker: () => Promise<BibiPositionMaker>;
     getCurrentTexts: () => Promise<{ text: string; selectedText: string }>;
     getBookInfo: () => Promise<{
         type: "EPUB";
@@ -200,20 +199,20 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
             viewerController: ViewerContentMethod;
         };
-        const currentIIPP = await contentWindow.viewerController.getCurrentIIPP();
-        if (currentIIPP == null || currentBook.lastIIPP == null) {
+        const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+        if (currentMarker == null || currentBook.lastMarker == null) {
             return;
         }
-        const isDifferencePage = Math.abs(currentIIPP - currentBook.lastIIPP) > 1;
+        const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
         console.log({
-            currentIIPP,
-            lastIIPP: currentBook.lastIIPP,
+            currentIIPP: currentMarker,
+            lastMarker: currentBook.lastMarker,
             isDifferencePage
         });
         if (isDifferencePage) {
             showToast({
-                currentIIPP,
-                lastIIPP: currentBook.lastIIPP
+                current: currentMarker,
+                lastRead: currentBook.lastMarker
             });
         }
     }, [currentBook, showToast]);
@@ -233,16 +232,16 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         [restoreLastPositionAtFirst]
     );
     const onClickJumpLastPage = useCallback(() => {
-        if (bibiFrame.current && currentBook?.currentPage != null) {
+        if (bibiFrame.current && currentBook?.currentPage != null && bookInfo?.lastRead) {
             const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
                 viewerController: ViewerContentMethod;
             };
-            console.log("jump to Last IIPP" + bookInfo.lastIIPP);
-            contentWindow.viewerController.moveToIIPP(bookInfo.lastIIPP).catch((e) => {
+            console.log("jump to Last marker", bookInfo?.lastRead);
+            contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead).catch((e) => {
                 console.error(e);
             });
         }
-    }, [currentBook?.currentPage, bookInfo.lastIIPP]);
+    }, [bookInfo?.lastRead, currentBook?.currentPage]);
     useAsync(async () => {
         let unListen = () => {
             // nope
@@ -255,11 +254,11 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 const bookInfo = await contentWindow.viewerController.getBookInfo();
                 const currentPage = await contentWindow.viewerController.getCurrentPage();
                 const totalPage = await contentWindow.viewerController.getTotalPage();
-                const lastIIPP = await contentWindow.viewerController.getCurrentIIPP();
+                const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
                 console.log("onChangePage", {
                     bookInfo,
                     currentBook,
-                    lastIIPP,
+                    lastMarker,
                     currentPage,
                     totalPage
                 });
@@ -271,7 +270,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     authors: bookInfo.author.split(",").map((author) => author.trim()),
                     currentPage,
                     totalPage,
-                    lastIIPP
+                    lastMarker
                 });
             });
         }
@@ -355,11 +354,11 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             };
             const text = await contentWindow.viewerController.getCurrentTexts();
             const currentPage = await contentWindow.viewerController.getCurrentPage();
-            const currentIIPP = await contentWindow.viewerController.getCurrentIIPP();
+            const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             await addMemo({
                 memo: text.selectedText,
                 currentPage,
-                IIPP: currentIIPP
+                marker: currentMarker
             });
         }
     }, [addMemo]);

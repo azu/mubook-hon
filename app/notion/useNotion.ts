@@ -4,6 +4,7 @@ import { Client } from "@notionhq/client";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { Fetcher } from "swr/_internal";
 
 export type NotionSetting = { apiKey: string; bookListDatabaseId: string; bookMemoDatabaseId: string };
 const NOTION_API_BASE_URL =
@@ -26,8 +27,20 @@ export const useNotionSetting = () => {
     } as const;
 };
 
-type BibiItem = {
-    lastIIPP: number;
+export type BibiPositionMaker = {
+    ItemIndex: number; // iframe index
+    ElementSelector: string; // css selector of Item(iframe)
+};
+export type BookMarker = BibiPositionMaker;
+export const parseBookMarker = (markerString?: string): BookMarker | undefined => {
+    if (!markerString) {
+        return;
+    }
+    try {
+        return JSON.parse(markerString);
+    } catch (error) {
+        console.warn("Fail to parse marker string", markerString);
+    }
 };
 export type BookItem = {
     pageId: string;
@@ -37,7 +50,8 @@ export type BookItem = {
     totalPage: number;
     publisher?: string;
     authors: string[];
-} & BibiItem;
+    lastMarker?: BookMarker;
+};
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
 const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
@@ -57,9 +71,9 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
             baseUrl: NOTION_API_BASE_URL
         });
     }, [notionSetting?.apiKey]);
-    const { data: currentBook, mutate: mutateCurrentBook } = useSWR(
+    const { data: currentBook, mutate: mutateCurrentBook } = useSWR<BookItem>(
         () => (notionClient ? bookName : null),
-        async () => {
+        (async () => {
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
@@ -77,17 +91,18 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                 return;
             }
 
-            return {
+            const newVar: BookItem = {
                 pageId: result.id,
                 fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                 title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                 authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                 publisher: prop(result.properties.Publisher, "select").select?.name,
-                lastIIPP: prop(result.properties.LastIIPP, "number").number,
-                currentPage: prop(result.properties.CurrentPage, "number").number,
-                totalPage: prop(result.properties.TotalPage, "number").number
+                lastMarker: parseBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text),
+                currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
+                totalPage: prop(result.properties.TotalPage, "number").number ?? 0
             };
-        }
+            return newVar;
+        }) as Fetcher<BookItem>
     );
     const { trigger: updateBookStatus } = useSWRMutation(
         () => (notionClient ? [bookName, currentBook] : null),
@@ -137,8 +152,14 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                           }
                       }
                     : {}),
-                LastIIPP: {
-                    number: bookItem.lastIIPP
+                LastMarker: {
+                    rich_text: [
+                        {
+                            text: {
+                                content: JSON.stringify(bookItem.lastMarker)
+                            }
+                        }
+                    ]
                 },
                 CurrentPage: {
                     number: bookItem.currentPage
@@ -154,7 +175,6 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     parent: {
                         database_id: notionSetting.bookListDatabaseId
                     },
-                    // @ts-ignore
                     properties: properties
                 })) as PageObjectResponse;
                 console.log("create new book", result);
@@ -166,13 +186,12 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     publisher: prop(result.properties.Publisher, "select").select?.name,
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                     totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                    lastIIPP: prop(result.properties.LastIIPP, "number").number ?? 0
+                    lastMarker: parseBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text)
                 });
             } else {
                 // update item
                 const result = (await notionClient.pages.update({
                     page_id: currentBook.pageId,
-                    // @ts-ignore
                     properties: properties
                 })) as PageObjectResponse;
                 console.log("Response page update", result);
@@ -184,7 +203,7 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                     publisher: prop(result.properties.Publisher, "select").select?.name,
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                     totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                    lastIIPP: prop(result.properties.LastIIPP, "number").number ?? 0
+                    lastMarker: parseBookMarker(prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text)
                 });
             }
             return;
@@ -192,10 +211,13 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
     );
     const { trigger: addMemo } = useSWRMutation(
         () => (notionClient ? [bookName, currentBook] : null),
-        async ([bookName, currentBook], { arg }: { arg: { memo: string; currentPage: number; IIPP: number } }) => {
+        async (
+            [bookName, currentBook],
+            { arg }: { arg: { memo: string; currentPage: number; marker: BookMarker } }
+        ) => {
             const memo = arg.memo;
             const currentPage = arg.currentPage;
-            const IIPP = arg.IIPP;
+            const marker = arg.marker;
             if (!notionClient || !notionSetting?.bookMemoDatabaseId) {
                 throw new Error("notion client is not initialized or book memo database id is not set");
             }
@@ -215,8 +237,14 @@ export const useNotion = ({ bookName }: { bookName: string }) => {
                 Page: {
                     number: currentPage
                 },
-                IIPP: {
-                    number: IIPP
+                Marker: {
+                    rich_text: [
+                        {
+                            text: {
+                                content: JSON.stringify(marker)
+                            }
+                        }
+                    ]
                 },
                 "Book List": {
                     relation: [

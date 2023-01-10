@@ -57,6 +57,51 @@
             count++;
         }
     }
+
+    // https://qiita.com/ozoneboy/items/b57bf4e67110b3756390
+    function absoluteRect(el) {
+        const pos = { top: 0, left: 0 };
+        const boundingClientRect = el.getBoundingClientRect();
+        pos.top = boundingClientRect.top;
+        pos.left = boundingClientRect.left;
+        const doc = el.ownerDocument;
+        let childWindow = doc.defaultView;
+        while (window.top !== childWindow) {
+            pos.top += childWindow.frameElement.getBoundingClientRect().top;
+            pos.left += childWindow.frameElement.getBoundingClientRect().left;
+            childWindow = childWindow.parent;
+        }
+
+        return {
+            top: pos.top,
+            left: pos.left,
+            width: boundingClientRect.width,
+            height: boundingClientRect.height
+        };
+    }
+
+    function elementInViewport(el) {
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        const { top, left, width, height } = absoluteRect(el);
+        const isInViewportPartial = (top >= 0 && top < viewportHeight && left + width > 0 && left + width < viewportHeight)
+        return isInViewportPartial;
+    }
+
+    /**
+     * @param {HTMLElement} bodyChildren
+     * @returns {*}
+     */
+    const findFirstVisibleElement = (bodyChildren) => {
+        const index = Array.from(bodyChildren).findIndex(element => {
+            return elementInViewport(element);
+        });
+        return {
+            element: bodyChildren[index],
+            index,
+            cssSelector: "body > *:nth-child(" + (index + 1) + ")"
+        }
+    };
+
     const getCurrentTexts = async () => {
         await waitReady();
         const iframe = document.querySelector(".current iframe");
@@ -74,36 +119,6 @@
             });
         };
         const children = findChildren(iframe.contentWindow.document.body);
-
-        // https://qiita.com/ozoneboy/items/b57bf4e67110b3756390
-        function absoluteRect(el) {
-            const pos = { top: 0, left: 0 };
-            const boundingClientRect = el.getBoundingClientRect();
-            pos.top = boundingClientRect.top;
-            pos.left = boundingClientRect.left;
-            const doc = el.ownerDocument;
-            let childWindow = doc.defaultView;
-            while (window.top !== childWindow) {
-                pos.top += childWindow.frameElement.getBoundingClientRect().top;
-                pos.left += childWindow.frameElement.getBoundingClientRect().left;
-                childWindow = childWindow.parent;
-            }
-
-            return {
-                top: pos.top,
-                left: pos.left,
-                width: boundingClientRect.width,
-                height: boundingClientRect.height
-            };
-        }
-
-        function elementInViewport(el) {
-            const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-            const { top, left, width, height } = absoluteRect(el);
-            const isInViewportPartial = (top >= 0 && top < viewportHeight && left + width > 0 && left + width < viewportHeight)
-            return isInViewportPartial;
-        }
-
         const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
         const selectedText = iframe.contentWindow.getSelection().toString();
         return {
@@ -131,9 +146,46 @@
         // https://github.com/satorumurmur/bibi/issues/71
         R.focusOn({ Destination: { IIPP: IIPP } });
     };
+
+    /**
+     * @param {{ ElementSelector:string, ItemIndex:number }} positionMarker
+     * @returns {Promise<void>}
+     */
+    const moveToPositionMarker = async (positionMarker) => {
+        await waitReady();
+        // select item and query ElementSelector
+        console.log("Move to destination", positionMarker);
+        // https://github.com/satorumurmur/bibi/issues/78
+        // https://github.com/satorumurmur/bibi/issues/71
+        // Use DOM API
+        try {
+            const MoveToItem = R.Items[positionMarker.ItemIndex]
+            MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoViewIfNeeded()
+            R.focusOn({
+                Destination: {
+                    ElementSelector: positionMarker.ElementSelector,
+                    ItemIndex: positionMarker.ItemIndex
+                }
+            });
+        } catch (error) {
+            console.error("Fail to move", { ElementSelector, ItemIndex })
+        }
+    };
     const getCurrentPage = async () => {
         await waitReady();
         return R.Pages.indexOf(R.Current.Pages[0]) + 1;
+    };
+    /**
+     * @returns {Promise<{ItemIndex: number, ElementSelector: string}>}
+     */
+    const getCurrentPositionMaker = async () => {
+        await waitReady();
+        const foundElement = findFirstVisibleElement(R.Current.Pages[0].Item.contentWindow.document.body.children);
+        const index = R.Current.Pages[0].Item.Index;
+        return {
+            ElementSelector: foundElement.cssSelector,
+            ItemIndex: index
+        };
     };
     /**
      * IIPP is progress point in the book
@@ -179,7 +231,7 @@
         const pageNumber = url.searchParams.get("p");
         await waitReady();
         if (pageNumber) {
-            await moveToPage(pageNumber);
+            await moveToIIPP(pageNumber);
         }
 
     })
@@ -210,16 +262,21 @@
             E.remove("bibi:scrolled", onScroll)
         };
     }
+
     window.viewerController = {
         movePrevPage,
         moveNextPage,
         moveToIIPP,
         getTotalPage,
+        moveToPositionMarker,
+        getCurrentPositionMaker,
         getCurrentPage,
         getCurrentIIPP,
         getCurrentTexts,
         getBookInfo,
         onChangePage,
+        // utils.
+        findFirstVisibleElement
     };
 </script>
 </body>

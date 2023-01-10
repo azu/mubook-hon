@@ -1,7 +1,7 @@
 "use client";
 import type { NextPage } from "next";
 import { Dropbox, DropboxResponse } from "dropbox";
-import { FC, Suspense, useLayoutEffect, useMemo, useState } from "react";
+import { FC, Suspense, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import useSWR, { Fetcher } from "swr";
 import { files } from "dropbox/types/dropbox_types";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { useSearchParams } from "next/navigation";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
-    useLayoutEffect(() => {
+    useEffect(() => {
         setReady(true);
     }, []);
     return ready;

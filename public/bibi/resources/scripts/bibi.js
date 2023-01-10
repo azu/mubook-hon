@@ -3862,6 +3862,7 @@
                     if (_.Moving) return n();
                     if ((("number" == typeof e || /^\d+$/.test(e)) && (e = { Destination: 1 * e }), !e)) return n();
                     var i = (e.Destination = _.hatchDestination(e.Destination));
+                    // console.log("focusOn Destination", i);
                     if (!i) return n();
                     W.dispatch("bibi:is-going-to:focus-on", e),
                         (_.Moving = !0),
