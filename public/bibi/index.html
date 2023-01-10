@@ -231,6 +231,7 @@
                     }).observe(this);
                 };
             }
+            // FIXME: shake and correct position!!
             MoveToItem.contentWindow.document.body.style.opacity = "0.1";
             MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoViewIfNeeded()
             requestAnimationFrame(async () => {
