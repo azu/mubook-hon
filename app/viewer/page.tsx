@@ -5,14 +5,7 @@ import { Dropbox, DropboxResponse } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import {
-    BibiPositionMaker,
-    BookMarker,
-    decodeBookMarker,
-    encodeBookMarker,
-    NO_BOOK_DATA,
-    useNotion
-} from "../notion/useNotion";
+import { BibiPositionMaker, BookMarker, decodeBookMarker, NO_BOOK_DATA, useNotion } from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 import "./toast.css";
 import { useSearchParams } from "next/navigation";
@@ -113,13 +106,18 @@ const App = (props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker"
         );
     }
     return (
-        <BibiReader
-            id={id}
-            bookFileName={fileDisplayName}
-            src={fileBlobUrl}
-            initialPage={props.initialPage}
-            initialMarker={props.initialMarker}
-        />
+        <>
+            <Head>
+                <title>{fileDisplayName}</title>
+            </Head>
+            <BibiReader
+                id={id}
+                bookFileName={fileDisplayName}
+                src={fileBlobUrl}
+                initialPage={props.initialPage}
+                initialMarker={props.initialMarker}
+            />
+        </>
     );
 };
 
@@ -269,11 +267,11 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         }
     }, [currentBook, restoreLastPositionAtFirst]);
     useEffect(
-        function updateBookStatusIfBookIsNotRegister() {
+        function registerNewBookStatusIfBookIsNotFoundOnDB() {
             const current = bibiFrame.current;
-            console.log("updateBookStatusIfBookIsNotRegister", currentBook, current);
             if (currentBook === NO_BOOK_DATA && current) {
                 (async function registerBook() {
+                    console.log("registerNewBookStatusIfBookIsNotFoundOnDB", currentBook, current);
                     const contentWindow = current.contentWindow as WindowProxy & {
                         viewerController: ViewerContentMethod;
                     };
@@ -454,9 +452,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }
     return (
         <>
-            <Head>
-                <title>{props.bookFileName}</title>
-            </Head>
             <button
                 className="Button small violet"
                 style={{

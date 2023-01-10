@@ -18,14 +18,18 @@ const useReady = () => {
 
 const useDropboxAPI = (dropboxClient: Dropbox | null) => {
     const listFetcher: Fetcher<DropboxResponse<files.ListFolderResult>> = async () => {
-        console.log("listFetcher");
         if (!dropboxClient) {
             throw new Error("no dropbox client");
         }
         return dropboxClient.filesListFolder({ path: "" });
     };
     const { data: itemLists, error: itemListsError } = useSWR<DropboxResponse<files.ListFolderResult>>(
-        () => (dropboxClient ? "/" : null),
+        () =>
+            dropboxClient
+                ? {
+                      cacheKey: "/dropbox/filesListFolder/"
+                  }
+                : null,
         listFetcher
     );
     const epubItems = useMemo(() => {

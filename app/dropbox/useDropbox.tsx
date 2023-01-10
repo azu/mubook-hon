@@ -56,10 +56,6 @@ export const useDropbox = (props: { code?: string } = {}) => {
             });
     }, [dropboxAuth, setTokens]);
     useEffect(() => {
-        console.log({
-            DROPBOX_AUTH_REDIRECT_URI,
-            code: props.code
-        });
         if (!props.code) return;
         const codeVerifier = window.sessionStorage.getItem("codeVerifier");
         if (!codeVerifier) {
