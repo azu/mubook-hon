@@ -160,7 +160,7 @@
         // Use DOM API
         try {
             const MoveToItem = R.Items[positionMarker.ItemIndex]
-            MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoViewIfNeeded()
+            MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoView()
             R.focusOn({
                 Destination: {
                     ElementSelector: positionMarker.ElementSelector,
