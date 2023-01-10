@@ -270,8 +270,12 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         function registerNewBookStatusIfBookIsNotFoundOnDB() {
             const current = bibiFrame.current;
             if (currentBook === NO_BOOK_DATA && current) {
+                // TODO: this line change behavior?
+                console.log("Check registerNewBookStatusIfBookIsNotFoundOnDB", {
+                    currentBook,
+                    current
+                });
                 (async function registerBook() {
-                    console.log("registerNewBookStatusIfBookIsNotFoundOnDB", currentBook, current);
                     const contentWindow = current.contentWindow as WindowProxy & {
                         viewerController: ViewerContentMethod;
                     };
