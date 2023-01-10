@@ -88,17 +88,93 @@
     }
 
     /**
-     * @param {HTMLElement} bodyChildren
+     * 指定された要素と同一階層、同名の要素コレクション内におけるインデックスを取得します。
+     *
+     * @param {Element} el   要素。
+     * @param {String}  name 要素名。
+     *
+     * @return {Number} インデックス。範囲は 1 〜 N となります。
+     */
+    function getSiblingElemetsIndex(el, name) {
+        var index = 1;
+        var sib = el;
+
+        while ((sib = sib.previousElementSibling)) {
+            if (sib.nodeName.toLowerCase() === name) {
+                ++index;
+            }
+        }
+        return index;
+    }
+
+    /**
+     * 指定された要素を示すセレクターを取得します。
+     *
+     * @see http://stackoverflow.com/questions/3620116/get-css-path-from-dom-element
+     *
+     * @param {Element} el 要素。
+     * @param {Window} win
+     *
+     * @return {Array} セレクター名コレクション。
+     */
+    function getSelectorFromElement(el, win) {
+        const names = [];
+        if (!(el instanceof win.Element)) {
+            console.log("??")
+            return names;
+        }
+        while (el.nodeType === Node.ELEMENT_NODE) {
+            let name = el.nodeName.toLowerCase();
+            if (el.id) {
+                // id はページ内で一意となるため、これ以上の検索は不要
+                name += '#' + el.id;
+                names.unshift(name);
+                break;
+            }
+
+            // 同じ階層に同名要素が複数ある場合は識別のためインデックスを付与する
+            // 複数要素の先頭 ( index = 1 ) の場合、インデックスは省略可能
+            //
+            var index = getSiblingElemetsIndex(el, name);
+            if (1 < index) {
+                name += ':nth-of-type(' + index + ')';
+            }
+
+            names.unshift(name);
+            el = el.parentNode;
+        }
+        return names;
+    }
+
+    const findChildren = (parentElement) => {
+        const rootChildren = parentElement.children;
+        return Array.from(rootChildren).flatMap(child => {
+            if (child.tagName === "DIV") {
+                return findChildren(child);
+            }
+            return [child];
+        });
+    };
+
+    /**
+     * @param {Window} contentWindow
      * @returns {*}
      */
-    const findFirstVisibleElement = (bodyChildren) => {
-        const index = Array.from(bodyChildren).findIndex(element => {
+    const findFirstVisibleElement = (contentWindow) => {
+        const foundElement = findChildren(contentWindow.document.body).find(element => {
             return elementInViewport(element);
         });
+        if (!foundElement) {
+            console.log("Not Found", { contentWindow })
+            return undefined;
+        }
+        const cssSelector = getSelectorFromElement(foundElement, contentWindow).join(" > ");
+        console.log({
+            cssSelector
+        })
         return {
-            element: bodyChildren[index],
-            index,
-            cssSelector: "body > *:nth-child(" + (index + 1) + ")"
+            element: foundElement,
+            cssSelector: cssSelector
         }
     };
 
@@ -147,6 +223,24 @@
         R.focusOn({ Destination: { IIPP: IIPP } });
     };
 
+    // firefox -polyfill
+    if (!Element.prototype.scrollIntoViewIfNeeded) {
+        Element.prototype.scrollIntoViewIfNeeded = function (centerIfNeeded = true) {
+            const el = this;
+            new IntersectionObserver(function ([entry]) {
+                const ratio = entry.intersectionRatio;
+                if (ratio < 1) {
+                    let place = ratio <= 0 && centerIfNeeded ? 'center' : 'nearest';
+                    el.scrollIntoView({
+                        block: place,
+                        inline: place,
+                    });
+                }
+                this.disconnect();
+            }).observe(this);
+        };
+    }
+
     /**
      * @param {{ ElementSelector:string, ItemIndex:number }} positionMarker
      * @returns {Promise<void>}
@@ -160,7 +254,7 @@
         // Use DOM API
         try {
             const MoveToItem = R.Items[positionMarker.ItemIndex]
-            MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoView()
+            MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoViewIfNeeded()
             R.focusOn({
                 Destination: {
                     ElementSelector: positionMarker.ElementSelector,
@@ -180,8 +274,14 @@
      */
     const getCurrentPositionMaker = async () => {
         await waitReady();
-        const foundElement = findFirstVisibleElement(R.Current.Pages[0].Item.contentWindow.document.body.children);
+        const foundElement = findFirstVisibleElement(R.Current.Pages[0].Item.contentWindow);
         const index = R.Current.Pages[0].Item.Index;
+        if (!foundElement) {
+            return {
+                ElementSelector: "body",
+                ItemIndex: index
+            }
+        }
         return {
             ElementSelector: foundElement.cssSelector,
             ItemIndex: index
