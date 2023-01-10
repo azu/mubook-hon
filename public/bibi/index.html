@@ -41,7 +41,7 @@
 </div>
 <script>
     const waitReady = async () => {
-        if (R?.Pages && R?.Pages.length > 0) {
+        if (typeof R === "object " && R?.Pages && R?.Pages.length > 0) {
             return true
         }
         let count = 0;
@@ -49,7 +49,7 @@
             if (count > 100) {
                 throw new Error('waitReady timeout: ' + (100 * 100) + 'ms')
             }
-            if (!R?.Pages || R?.Pages.length === 0) {
+            if (typeof R === "undefined" || !R?.Pages || R?.Pages.length === 0) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             } else {
                 return true;
