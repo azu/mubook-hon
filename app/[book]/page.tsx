@@ -119,8 +119,8 @@ const useToast = () => {
                     <Toast.Title className="ToastTitle">Found last read page</Toast.Title>
                     <Toast.Description>
                         <ul>
-                            <li>Current Item: {restoreMakers?.current.ItemIndex}</li>
-                            <li>Last read Item: {restoreMakers?.lastRead.ItemIndex}</li>
+                            <li>Current: {restoreMakers?.current.ItemIndex}</li>
+                            <li>Last read: {restoreMakers?.lastRead.ItemIndex}</li>
                         </ul>
                         <p>You can Jump to last read page.</p>
                     </Toast.Description>
@@ -193,7 +193,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             currentBook,
             bibiFrame: bibiFrame.current
         });
-        isInitialized.current = true;
         console.log("new load book 📚");
         await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for load content
         const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
@@ -204,8 +203,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             return;
         }
         const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
-        console.log({
-            currentIIPP: currentMarker,
+        console.log("check restore position", {
+            currentMarker: currentMarker,
             lastMarker: currentBook.lastMarker,
             isDifferencePage
         });
@@ -215,6 +214,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 lastRead: currentBook.lastMarker
             });
         }
+        isInitialized.current = true;
     }, [currentBook, showToast]);
     useEffect(() => {
         console.log("Updated Current Book", currentBook);
@@ -222,14 +222,49 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             restoreLastPositionAtFirst();
         }
     }, [currentBook, restoreLastPositionAtFirst]);
+    const viewerControllerUnListen = useRef<() => void>();
     const onInitializeIframeRef = useCallback(
         async (frameElement: HTMLIFrameElement) => {
             bibiFrame.current = frameElement;
-            if (bibiFrame.current) {
+            if (bibiFrame.current && !isInitialized.current) {
                 await restoreLastPositionAtFirst();
             }
+            if (bibiFrame.current) {
+                const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
+                    viewerController: ViewerContentMethod;
+                };
+                viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
+                    if (!isInitialized.current) {
+                        console.log("not yet initialized");
+                        return;
+                    }
+                    const bookInfo = await contentWindow.viewerController.getBookInfo();
+                    const currentPage = await contentWindow.viewerController.getCurrentPage();
+                    const totalPage = await contentWindow.viewerController.getTotalPage();
+                    const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                    console.log("onChangePage", {
+                        bookInfo,
+                        currentBook,
+                        lastMarker,
+                        currentPage,
+                        totalPage
+                    });
+                    return updateBookStatus({
+                        pageId: bookInfo.id,
+                        fileName: props.book,
+                        publisher: bookInfo.publisher,
+                        title: bookInfo.title,
+                        authors: bookInfo.author.split(",").map((author) => author.trim()),
+                        currentPage,
+                        totalPage,
+                        lastMarker
+                    });
+                });
+            } else {
+                viewerControllerUnListen.current?.();
+            }
         },
-        [restoreLastPositionAtFirst]
+        [currentBook, props.book, restoreLastPositionAtFirst, updateBookStatus]
     );
     const onClickJumpLastPage = useCallback(() => {
         if (bibiFrame.current && currentBook?.currentPage != null && bookInfo?.lastRead) {
@@ -242,42 +277,6 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             });
         }
     }, [bookInfo?.lastRead, currentBook?.currentPage]);
-    useAsync(async () => {
-        let unListen = () => {
-            // nope
-        };
-        if (bibiFrame.current) {
-            const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
-                viewerController: ViewerContentMethod;
-            };
-            unListen = await contentWindow.viewerController.onChangePage(async () => {
-                const bookInfo = await contentWindow.viewerController.getBookInfo();
-                const currentPage = await contentWindow.viewerController.getCurrentPage();
-                const totalPage = await contentWindow.viewerController.getTotalPage();
-                const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-                console.log("onChangePage", {
-                    bookInfo,
-                    currentBook,
-                    lastMarker,
-                    currentPage,
-                    totalPage
-                });
-                return updateBookStatus({
-                    pageId: bookInfo.id,
-                    fileName: props.book,
-                    publisher: bookInfo.publisher,
-                    title: bookInfo.title,
-                    authors: bookInfo.author.split(",").map((author) => author.trim()),
-                    currentPage,
-                    totalPage,
-                    lastMarker
-                });
-            });
-        }
-        return () => {
-            unListen();
-        };
-    }, [bibiFrame.current]);
     useEffect(() => {
         const src = props.src;
         if (!src) {
