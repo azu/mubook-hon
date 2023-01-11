@@ -7,7 +7,10 @@ import { useMemo } from "react";
 export default function Page() {
     const { notionSetting, updateNotionSettings } = useNotionSetting();
     const { hasValidAccessToken, AuthUrl } = useDropbox();
-    const DropboxyFilePath = useMemo(() => {
+    const DropboxFilePath = useMemo(() => {
+        if (typeof navigator === "undefined") {
+            return <b>~/Dropbox/Apps/mubook-hon</b>;
+        }
         return navigator.languages.includes("ja") ? (
             <b>~/Dropbox/アプリ/mubook-hon</b>
         ) : (
@@ -19,7 +22,7 @@ export default function Page() {
             <h1>Settings</h1>
             <div>
                 <h2>Dropbox</h2>
-                <p>You can put books into {DropboxyFilePath}</p>
+                <p>You can put books into {DropboxFilePath}</p>
                 <div>
                     <p>{hasValidAccessToken ? "✅ Already Logged in" : "❌ Not logged in"}</p>
                     <span>➡️️</span>
