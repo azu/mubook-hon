@@ -104,12 +104,12 @@
     /**
      * Create CSS selector as array。
      * http://stackoverflow.com/questions/3620116/get-css-path-from-dom-element
+     * @return {string|undefined}
      */
     function getSelectorFromElement(el, win) {
         const names = [];
         if (!(el instanceof win.Element)) {
-            console.log("??")
-            return names;
+            return undefined;
         }
         while (el.nodeType === Node.ELEMENT_NODE) {
             let name = el.nodeName.toLowerCase();
@@ -177,27 +177,98 @@
             lastText: visibleChildren.at(-1)?.textContent ?? "",
         };
     }
+    const getSelectorFromSelection = (selection, window) => {
+        const NoSelectors = {
+            start: undefined,
+            end: undefined
+        };
+        if (!selection.anchorNode || !selection.focusNode) {
+            console.debug("No anchorNode or focusNode", { selection });
+            return NoSelectors
+        }
+        const position = selection.anchorNode.compareDocumentPosition(selection.focusNode)
+        if (!position) {
+            console.debug("No position", { selection });
+            return NoSelectors
+        }
+        // if anchor is after of focus, exchange start and end
+        // https://developer.mozilla.org/ja/docs/Web/API/Node/compareDocumentPosition
+        const selectedDirection = (position & Node.DOCUMENT_POSITION_PRECEDING) ? "anchor-is-last" : "normal-order";
+        const anchorSelector = getSelectorFromElement(selection.anchorNode.nodeName === "#text" ? selection.anchorNode.parentNode : selection.anchorNode, window) ?? undefined;
+        const focusSelector = getSelectorFromElement(selection.focusNode.nodeName === "#text" ? selection.focusNode.parentNode : selection.focusNode, window) ?? undefined;
+        return {
+            start: selectedDirection === "anchor-is-last" ? focusSelector : anchorSelector,
+            end: selectedDirection === "anchor-is-last" ? anchorSelector : focusSelector
+        };
+    }
+    /**
+     * Get Current Iframe contentWindow
+     * @returns {Window|undefined}
+     */
+    const getCurrentSelectedIframeWindow = () => {
+        const iframes = Array.from(R.Current.Pages, Page => Page.Item);
+        if (iframes.length === 0) {
+            throw new Error("Can not find iframe");
+        }
+        // activeElement can not be used in function
+        // because activeElement's pointer to button on the timing
+        // use selected range count
+        const selectedIframe = iframes.find(iframe => {
+            return iframe.contentWindow.getSelection().rangeCount > 0;
+        });
+        console.debug("selected iframe", selectedIframe);
+        if (!selectedIframe) {
+            return;
+        }
+        return selectedIframe.contentWindow;
+    }
+    const createSelectionState = async () => {
+        await waitReady();
+        let currentIframeContentWindow = null;
+
+        function handleSelectStart(event) {
+            currentIframeContentWindow = event.view;
+        }
+
+        function handleSelectEnd(event) {
+            currentIframeContentWindow = event.view;
+        }
+        E.add("bibi:downs-pointer", handleSelectStart)
+        E.add("bibi:upped-pointer", handleSelectEnd)
+        return {
+            get current(){
+                return currentIframeContentWindow
+            },
+            dispose: function destroy() {
+                E.remove("bibi:downs-pointer", handleSelectStart)
+                E.remove("bibi:upped-pointer", handleSelectEnd)
+                currentIframeContentWindow = null;
+            }
+        };
+    }
+    /**
+     * @type {undefined | { current?: Window, dispose: () => void }}
+     */
+    let selectionRef;
+    window.addEventListener("load", async () => {
+        selectionRef = await createSelectionState();
+    })
+    window.addEventListener("beforeunload", () => selectionRef?.dispose());
     /**
      * @returns {Promise<{text: string, selectors: {start?: string, end?: string}}>}
      */
     const getSelectedText = async () => {
         await waitReady();
-        const iframe = document.querySelector(".current iframe");
-        if (!iframe) {
-            throw new Error("Can not find iframe");
+        // Maybe, Bibi does not return Current iframe in sometimes(two pages are displayed, but return only one iframe)
+        // As a fallback, preserve selected iframe content and use it
+        const selectedIframeWindow = getCurrentSelectedIframeWindow() ?? selectionRef?.current;
+        if (!selectedIframeWindow) {
+            console.debug("selected iframe window cannot found");
+            return { text: "", selectors: undefined };
         }
-        const selection = iframe.contentWindow.getSelection();
+        const selection = selectedIframeWindow.getSelection();
+        const selectors = getSelectorFromSelection(selection, selectedIframeWindow);
         const text = selection.toString();
-        const position = (selection.anchorNode && selection.focusNode) ? selection.anchorNode.compareDocumentPosition(selection.focusNode) : undefined
-        // if anchor is after of focus, exchange start and end
-        // https://developer.mozilla.org/ja/docs/Web/API/Node/compareDocumentPosition
-        const selectedDirection = (position && position & Node.DOCUMENT_POSITION_PRECEDING) ? "anchor-is-last" : "normal-order";
-        const anchorSelector = getSelectorFromElement(selection.anchorNode.nodeName === "#text" ? selection.anchorNode.parentNode : selection.anchorNode, iframe.contentWindow) ?? undefined;
-        const focusSelector = getSelectorFromElement(selection.focusNode.nodeName === "#text" ? selection.focusNode.parentNode : selection.focusNode, iframe.contentWindow) ?? undefined;
-        const selectors = {
-            start: selectedDirection === "anchor-is-last" ? focusSelector : anchorSelector,
-            end: selectedDirection === "anchor-is-last" ? anchorSelector : focusSelector
-        }
         return {
             text,
             selectors,

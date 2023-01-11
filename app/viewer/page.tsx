@@ -445,22 +445,26 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         console.log("bookUrl", url.toString());
         return url.toString();
     }, [bookId, props.initialPage]);
-    const memo = useCallback(async () => {
-        if (bibiFrame.current) {
-            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-            const selected = await contentWindow.viewerController.getSelectedText();
-            const currentPage = await contentWindow.viewerController.getCurrentPage();
-            const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-            await addMemo({
-                memo: selected.text,
-                currentPage,
-                marker: {
-                    ...currentMarker,
-                    highlightSelectors: selected.selectors
-                }
-            });
-        }
-    }, [addMemo]);
+    const onClickMemo = useCallback(
+        async (event: React.MouseEvent<HTMLButtonElement>) => {
+            if (bibiFrame.current) {
+                const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+                const selected = await contentWindow.viewerController.getSelectedText();
+                const currentPage = await contentWindow.viewerController.getCurrentPage();
+                const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                console.log("selected texts", selected);
+                await addMemo({
+                    memo: selected.text,
+                    currentPage,
+                    marker: {
+                        ...currentMarker,
+                        highlightSelectors: selected.selectors
+                    }
+                });
+            }
+        },
+        [addMemo]
+    );
     if (!isReady) {
         return <></>;
     }
@@ -476,7 +480,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     padding: "1rem",
                     borderRadius: "4px"
                 }}
-                onClick={memo}
+                onClick={onClickMemo}
             >
                 Memo
             </button>

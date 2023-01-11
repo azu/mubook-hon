@@ -334,7 +334,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 // @ts-ignore
                 properties: properties
             })) as PageObjectResponse;
-            console.log("create new memo", result);
+            console.log("created new memo", result);
         }
     );
     return {
