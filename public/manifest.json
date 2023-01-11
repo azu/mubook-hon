@@ -1,0 +1,10 @@
+{
+  "name": "mubook-hon",
+  "short_name": "mubook-hon",
+  "theme_color": "#fff",
+  "background_color": "#fff",
+  "display": "fullScreen",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/"
+}
