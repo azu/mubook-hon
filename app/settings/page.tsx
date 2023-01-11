@@ -1,18 +1,25 @@
 "use client";
+import "../sakura.css";
 import { useNotionSetting } from "../notion/useNotion";
 import { useDropbox } from "../dropbox/useDropbox";
+import { useMemo } from "react";
 
 export default function Page() {
     const { notionSetting, updateNotionSettings } = useNotionSetting();
     const { hasValidAccessToken, AuthUrl } = useDropbox();
+    const DropboxyFilePath = useMemo(() => {
+        return navigator.languages.includes("ja") ? (
+            <b>~/Dropbox/アプリ/mubook-hon</b>
+        ) : (
+            <b>~/Dropbox/Apps/mubook-hon</b>
+        );
+    }, []);
     return (
-        <div style={{ display: "flex", flexDirection: "column", maxWidth: "38rem", padding: "2rem", margin: "auto" }}>
+        <div>
             <h1>Settings</h1>
             <div>
                 <h2>Dropbox</h2>
-                <p>
-                    You can put books into <i>~/Dropbox/Apps/mubook-hon</i> or <i>~/Dropbox/アプリ/mubook-hon</i>
-                </p>
+                <p>You can put books into {DropboxyFilePath}</p>
                 <div>
                     <p>{hasValidAccessToken ? "Logged in" : "Not logged in"}</p>
                     <AuthUrl />

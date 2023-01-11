@@ -1,5 +1,5 @@
 "use client";
-import type { NextPage } from "next";
+import "./sakura.css";
 import { Dropbox, DropboxResponse } from "dropbox";
 import { FC, Suspense, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import useSWR, { Fetcher } from "swr";
