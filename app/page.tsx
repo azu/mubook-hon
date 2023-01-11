@@ -76,9 +76,23 @@ const Home: FC = () => {
     }
     return (
         <div>
-            <aside>
-                <Link href={"/settings"}>Settings</Link>
-            </aside>
+            <header>
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "flex-end"
+                    }}
+                >
+                    <Link
+                        href={"/settings"}
+                        style={{
+                            fontSize: "1.2em"
+                        }}
+                    >
+                        ⚙️Settings
+                    </Link>
+                </div>
+            </header>
             <h2>Book List</h2>
             <ul>
                 {epubItems.map((item) => {
