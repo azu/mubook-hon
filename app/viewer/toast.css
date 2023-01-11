@@ -16,7 +16,7 @@
     padding: var(--viewport-padding);
     gap: 10px;
     width: 390px;
-    max-width: 100vw;
+    max-width: 100dvw;
     margin: 0;
     list-style: none;
     z-index: 2147483647;
