@@ -241,7 +241,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     page_id: currentBook.pageId,
                     properties: properties
                 })) as PageObjectResponse;
-                console.trace("⭐ Update book 📚", result);
+                console.log("⭐ Update book 📚", result);
                 await mutateCurrentBook(
                     {
                         pageId: result.id,

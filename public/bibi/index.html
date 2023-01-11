@@ -184,6 +184,9 @@
 
     const movePrevPage = async () => {
         await waitReady();
+
+        // Just tap arrow
+        // https://github.com/satorumurmur/bibi/blob/022672550044ca145c355943cca6fe4f9bc21307/__src/bibi/resources/scripts/bibi.heart.js#L3806-L3813
         E.dispatch("bibi:commands:move-by", -1)
     };
     const moveNextPage = async () => {
@@ -343,9 +346,10 @@
             const currentPage = await getCurrentPage();
             debouncedFn(currentPage);
         };
-        E.add("bibi:scrolled", onScroll);
+        // https://github.com/satorumurmur/bibi/blob/9edd8ca77f3ef85c8fc9b824e937b41715e618fa/__src/bibi-demo/embedding/index.html#L61
+        E.add("bibi:flipped", onScroll);
         return () => {
-            E.remove("bibi:scrolled", onScroll)
+            E.remove("bibi:flipped", onScroll)
         };
     }
 
