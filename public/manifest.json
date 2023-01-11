@@ -3,7 +3,7 @@
   "short_name": "mubook-hon",
   "theme_color": "#fff",
   "background_color": "#fff",
-  "display": "standalone",
+  "display": "minimal-ui",
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/"
