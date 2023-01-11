@@ -22,6 +22,7 @@ export default function Page() {
                 <p>You can put books into {DropboxyFilePath}</p>
                 <div>
                     <p>{hasValidAccessToken ? "✅ Already Logged in" : "❌ Not logged in"}</p>
+                    <span>➡️️</span>
                     <AuthUrl />
                 </div>
             </div>
