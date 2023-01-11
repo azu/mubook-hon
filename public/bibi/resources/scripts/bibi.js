@@ -3404,7 +3404,7 @@
                             : (e.style.padding = ""),
                         U.Scrollbars.Height && "vertical" == F.SLA && "vertical" != F.ARA
                             ? ((r.style.minHeight =
-                                  "paged" == F.RVM ? "calc(100dvh - " + U.Scrollbars.Height + "px)" : ""),
+                                  "paged" == F.RVM ? "calc(100vh - " + U.Scrollbars.Height + "px)" : ""),
                               (r.style.marginBottom =
                                   e.Index == _.Spreads.length - 1 ? U.Scrollbars.Height + "px" : ""))
                             : (r.style.minHeight = r.style.marginBottom = ""),
@@ -3519,8 +3519,8 @@
                                         "px"
                                 ),
                                 d(n, z.L_SIZE_l, "auto"),
-                                d(n, "maxWidth", "100dvw"),
-                                d(n, "maxHeight", "100dvh"),
+                                d(n, "maxWidth", "100vw"),
+                                d(n, "maxHeight", "100vh"),
                                 n)
                             );
                     }

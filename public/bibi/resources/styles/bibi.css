@@ -649,10 +649,10 @@ html.spread-vertical div.spread-box {
     width: 100%;
 }
 html.book-pre-paginated.view-paged.spread-horizontal div.spread-box {
-    min-width: 100dvw;
+    min-width: 100vw;
 }
 html.view-paged.spread-vertical div.spread-box {
-    min-height: 100dvh;
+    min-height: 100vh;
 }
 div.spread {
     -webkit-box-sizing: border-box;
@@ -2432,7 +2432,7 @@ html.appearance-horizontal div.bibi-arrow:after {
 }
 html.appearance-horizontal.book-full-height:not(.slider-opened) div.bibi-arrow {
     top: 0;
-    height: 100dvh;
+    height: 100vh;
 }
 html.appearance-vertical div.bibi-arrow {
     left: 0;
@@ -2449,7 +2449,7 @@ html.appearance-vertical div.bibi-arrow:after {
     width: 100%;
 }
 html.appearance-vertical:not(.slider-opened) div.bibi-arrow {
-    width: 100dvw;
+    width: 100vw;
 }
 html.busy div.bibi-arrow:after,
 html.busy div.bibi-arrow:before {

@@ -799,12 +799,12 @@ div#bibi-panel-bookinfo-cover.without-cover-image .book-icon span:before {
 html.nav-ttb div#bibi-panel-bookinfo-cover {
     margin-top: 20px;
     padding-top: 20px;
-    max-width: calc(100dvw - 40px);
+    max-width: calc(100vw - 40px);
 }
 html.nav-rtl div#bibi-panel-bookinfo-cover {
     margin-right: 20px;
     padding-right: 20px;
-    max-width: calc(100dvw - 40px);
+    max-width: calc(100vw - 40px);
 }
 div.bibi-subpanel {
     top: 43px;
@@ -1837,17 +1837,17 @@ html.appearance-horizontal:not(.book-full-height) div.bibi-arrow {
     top: 39px;
 }
 html.appearance-horizontal:not(.book-full-height):not(.slider-opened) div.bibi-arrow {
-    height: calc(100dvh - 39px);
+    height: calc(100vh - 39px);
 }
 html.appearance-horizontal.book-full-height.slider-opened div.bibi-arrow,
 html.appearance-horizontal:not(.book-full-height).slider-opened div.bibi-arrow {
-    height: calc(100dvh - 103px);
+    height: calc(100vh - 103px);
 }
 html.appearance-vertical div.bibi-arrow:after {
     height: 40px;
 }
 html.appearance-vertical.slider-opened div.bibi-arrow {
-    width: calc(100dvw - 64px);
+    width: calc(100vw - 64px);
 }
 html.appearance-ttb.book-full-height.slider-opened div#bibi-arrow-back:before,
 html.appearance-ttb:not(.book-full-height) div#bibi-arrow-back:before {
