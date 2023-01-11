@@ -17,6 +17,8 @@ const useReady = () => {
 };
 
 const useDropboxAPI = (dropboxClient: Dropbox | null) => {
+    const searchParams = useSearchParams();
+    const isDemo = searchParams.has("demo");
     const listFetcher: Fetcher<DropboxResponse<files.ListFolderResult>> = async () => {
         if (!dropboxClient) {
             throw new Error("no dropbox client");
@@ -42,8 +44,10 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
             itemLists?.result.entries.filter((entry) => {
                 return entry?.path_lower?.endsWith(".epub");
             }) ?? []
-        );
-    }, [itemLists]);
+        ).filter((item) => {
+            return item.name?.includes("demo") === isDemo;
+        });
+    }, [isDemo, itemLists?.result.entries]);
     return {
         epubItems
     } as const;
@@ -55,9 +59,6 @@ const Home: FC = () => {
         code: searchParams.get("code") ?? undefined
     });
     const { epubItems } = useDropboxAPI(dropboxClient);
-    console.log({
-        epubItems
-    });
     if (!ready) {
         return null;
     }
