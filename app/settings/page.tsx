@@ -21,7 +21,7 @@ export default function Page() {
                 <h2>Dropbox</h2>
                 <p>You can put books into {DropboxyFilePath}</p>
                 <div>
-                    <p>{hasValidAccessToken ? "Logged in" : "Not logged in"}</p>
+                    <p>{hasValidAccessToken ? "✅ Already Logged in" : "❌ Not logged in"}</p>
                     <AuthUrl />
                 </div>
             </div>
@@ -33,6 +33,7 @@ export default function Page() {
                         id="notion-api-key"
                         type="password"
                         value={notionSetting?.apiKey}
+                        style={{ width: "100%" }}
                         onChange={(e) => {
                             updateNotionSettings({
                                 ...notionSetting,
@@ -47,6 +48,7 @@ export default function Page() {
                         id="notion-book-list-id"
                         type="text"
                         value={notionSetting?.bookListDatabaseId}
+                        style={{ width: "100%" }}
                         onChange={(e) => {
                             updateNotionSettings({
                                 ...notionSetting,
@@ -61,6 +63,7 @@ export default function Page() {
                         id="notion-memo-id"
                         type="text"
                         value={notionSetting?.bookMemoDatabaseId}
+                        style={{ width: "100%" }}
                         onChange={(e) => {
                             updateNotionSettings({
                                 ...notionSetting,
