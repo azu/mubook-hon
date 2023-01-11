@@ -5,7 +5,15 @@ import { Dropbox, DropboxResponse } from "dropbox";
 import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
-import { BibiPositionMaker, BookMarker, decodeBookMarker, NO_BOOK_DATA, useNotion } from "../notion/useNotion";
+import {
+    BibiPositionMaker,
+    BookItem,
+    BookMarker,
+    decodeBookMarker,
+    hasDataBook,
+    NO_BOOK_DATA,
+    useNotion
+} from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 import "./toast.css";
 import { useSearchParams } from "next/navigation";
@@ -198,6 +206,9 @@ type ViewerContentMethod = {
     }>;
     onChangePage: (fn: (page: number) => void) => Promise<() => void>;
 };
+type ContentWindow = WindowProxy & {
+    viewerController: ViewerContentMethod;
+};
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
     const { currentBook, updateBookStatus, addMemo } = useNotion({
@@ -207,7 +218,29 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement>();
-    const restoreLastPositionAtFirst = useCallback(async () => {
+    const restoreLastPosition = useCallback(
+        async (contentWindow: ContentWindow, currentBook: BookItem) => {
+            const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+            if (currentMarker == null || currentBook.lastMarker == null) {
+                isInitialized.current = true;
+                return;
+            }
+            const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
+            console.log("last restore position check", {
+                currentMarker: currentMarker,
+                lastMarker: currentBook.lastMarker,
+                isDifferencePage
+            });
+            if (isDifferencePage) {
+                showToast({
+                    current: currentMarker,
+                    lastRead: currentBook.lastMarker
+                });
+            }
+        },
+        [showToast]
+    );
+    const tryToRestoreLastPositionAtFirst = useCallback(async () => {
         // execute once
         if (isInitialized.current) {
             return;
@@ -220,9 +253,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         }
         console.log("new load book 📚");
         await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for load content
-        const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
-            viewerController: ViewerContentMethod;
-        };
+        const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
         console.log("restoreLastPosition", {
             isInitialized: isInitialized.current,
             currentBook,
@@ -237,35 +268,17 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             if (marker) {
                 await contentWindow.viewerController.moveToPositionMarker(marker);
             }
-            isInitialized.current = true;
-        } else {
-            // restore last position
-            const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-            if (currentMarker == null || currentBook.lastMarker == null) {
-                isInitialized.current = true;
-                return;
-            }
-            const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
-            console.log("check restore position", {
-                currentMarker: currentMarker,
-                lastMarker: currentBook.lastMarker,
-                isDifferencePage
-            });
-            if (isDifferencePage) {
-                showToast({
-                    current: currentMarker,
-                    lastRead: currentBook.lastMarker
-                });
-            }
-            isInitialized.current = true;
+        } else if (hasDataBook(currentBook)) {
+            await restoreLastPosition(contentWindow, currentBook);
         }
-    }, [currentBook, props.initialMarker, showToast]);
+        isInitialized.current = true;
+    }, [currentBook, props.initialMarker, restoreLastPosition]);
     useEffect(() => {
         console.log("Updated Current Book", currentBook);
         if (!isInitialized.current && currentBook) {
-            restoreLastPositionAtFirst();
+            tryToRestoreLastPositionAtFirst();
         }
-    }, [currentBook, restoreLastPositionAtFirst]);
+    }, [currentBook, tryToRestoreLastPositionAtFirst]);
     useEffect(
         function registerNewBookStatusIfBookIsNotFoundOnDB() {
             const current = bibiFrame.current;
@@ -276,9 +289,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     current
                 });
                 (async function registerBook() {
-                    const contentWindow = current.contentWindow as WindowProxy & {
-                        viewerController: ViewerContentMethod;
-                    };
+                    const contentWindow = current.contentWindow as ContentWindow;
                     const bookInfo = await contentWindow.viewerController.getBookInfo();
                     const currentPage = await contentWindow.viewerController.getCurrentPage();
                     const totalPage = await contentWindow.viewerController.getTotalPage();
@@ -305,12 +316,10 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         async (frameElement: HTMLIFrameElement) => {
             bibiFrame.current = frameElement;
             if (bibiFrame.current && !isInitialized.current) {
-                await restoreLastPositionAtFirst();
+                await tryToRestoreLastPositionAtFirst();
             }
             if (bibiFrame.current) {
-                const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
-                    viewerController: ViewerContentMethod;
-                };
+                const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
                 await new Promise<void>((resolve) => {
                     if (contentWindow.document.readyState === "complete") {
                         setTimeout(() => resolve(), 1000);
@@ -352,19 +361,15 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 viewerControllerUnListen.current?.();
             }
         },
-        [currentBook, props.bookFileName, props.id, restoreLastPositionAtFirst, updateBookStatus]
+        [currentBook, props.bookFileName, props.id, tryToRestoreLastPositionAtFirst, updateBookStatus]
     );
-    const onClickJumpLastPage = useCallback(() => {
-        if (bibiFrame.current && currentBook?.currentPage != null && bookInfo?.lastRead) {
-            const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
-                viewerController: ViewerContentMethod;
-            };
+    const onClickJumpLastPage = useCallback(async () => {
+        if (bibiFrame.current && hasDataBook(currentBook) && bookInfo?.lastRead) {
+            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
             console.log("jump to Last marker", bookInfo?.lastRead);
-            contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead).catch((e) => {
-                console.error(e);
-            });
+            await contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead);
         }
-    }, [bookInfo?.lastRead, currentBook?.currentPage]);
+    }, [bookInfo?.lastRead, currentBook]);
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -438,9 +443,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     }, [props.id, props.initialPage]);
     const memo = useCallback(async () => {
         if (bibiFrame.current) {
-            const contentWindow = bibiFrame.current.contentWindow as WindowProxy & {
-                viewerController: ViewerContentMethod;
-            };
+            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
             const text = await contentWindow.viewerController.getCurrentTexts();
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();

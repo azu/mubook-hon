@@ -30,7 +30,12 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
                       cacheKey: "/dropbox/filesListFolder/"
                   }
                 : null,
-        listFetcher
+        listFetcher,
+        {
+            revalidateOnFocus: true,
+            revalidateIfStale: true,
+            revalidateOnMount: true
+        }
     );
     const epubItems = useMemo(() => {
         return (

@@ -68,7 +68,10 @@ const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
     }
     return o as T extends F["type"] ? Extract<F, { type: T }> : never;
 };
-export const NO_BOOK_DATA = null;
+export const NO_BOOK_DATA = Symbol("No Data YET");
+export const hasDataBook = (bookItem: unknown): bookItem is BookItem => {
+    return bookItem !== undefined && bookItem !== null && typeof bookItem === "object" && "fileId" in bookItem;
+};
 export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: string }) => {
     const { notionSetting } = useNotionSetting();
     const notionClient = useMemo(() => {
@@ -101,7 +104,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     }
                 }
             });
-            console.log("⭐Fetch book 📚", results[0]);
+            console.log("⭐ Fetch book 📚", results[0]);
             const result = results[0] as PageObjectResponse;
             if (!result) {
                 return NO_BOOK_DATA;
@@ -203,7 +206,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 }
             };
 
-            if (!currentBook) {
+            if (!hasDataBook(currentBook)) {
                 // create new book
                 const result = (await notionClient.pages.create({
                     parent: {
@@ -212,19 +215,27 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     properties: properties
                 })) as PageObjectResponse;
                 console.log("⭐ create new book 📚", result);
-                await mutateCurrentBook({
-                    pageId: result.id,
-                    fileId: prop(result.properties.FileId, "title").title[0].plain_text,
-                    fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
-                    title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
-                    authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
-                    publisher: prop(result.properties.Publisher, "select").select?.name,
-                    currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                    lastMarker: decodeBookMarker(
-                        prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                    )
-                });
+                await mutateCurrentBook(
+                    {
+                        pageId: result.id,
+                        fileId: prop(result.properties.FileId, "title").title[0].plain_text,
+                        fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
+                        title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
+                        authors: prop(result.properties.Author, "multi_select").multi_select.map(
+                            (select) => select.name
+                        ),
+                        publisher: prop(result.properties.Publisher, "select").select?.name,
+                        currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
+                        totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
+                        lastMarker: decodeBookMarker(
+                            prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                        )
+                    },
+                    {
+                        populateCache: true, // No revoke fetch again after mutate
+                        revalidate: false
+                    }
+                );
             } else {
                 // update item
                 const result = (await notionClient.pages.update({
@@ -267,7 +278,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             if (!notionClient || !notionSetting?.bookMemoDatabaseId) {
                 throw new Error("notion client is not initialized or book memo database id is not set");
             }
-            if (!currentBook) {
+            if (!hasDataBook(currentBook)) {
                 return;
             }
             const properties = {
