@@ -732,7 +732,7 @@ div#bibi-panel-bookinfo-cover {
     border-color: #e8e8e8;
 }
 div#bibi-panel-bookinfo-cover img {
-    max-height: calc(60dvh - 70.8px);
+    max-height: calc(60vh - 70.8px);
 }
 div#bibi-panel-bookinfo-cover p#bibi-panel-bookinfo-cover-info {
     color: #a0a0a0;

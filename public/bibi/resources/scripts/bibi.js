@@ -1889,8 +1889,8 @@
                     (H.Slider.Size = F["use-slider"] ? i.offsetWidth : 0),
                     (H.Menu.Height = F["use-menubar"] ? i.offsetHeight : 0),
                     document.body.removeChild(i),
-                    (U.Body.style.width = "101dvw"),
-                    (U.Body.style.height = "101dvh"),
+                    (U.Body.style.width = "101vw"),
+                    (U.Body.style.height = "101vh"),
                     (U.Scrollbars = {
                         Width: window.innerWidth - U.HTML.offsetWidth,
                         Height: window.innerHeight - U.HTML.offsetHeight
