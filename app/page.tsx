@@ -85,8 +85,7 @@ const Home: FC = () => {
                                     pathname: "/viewer",
                                     query: {
                                         // @ts-ignore
-                                        id: item.id,
-                                        name: item.path_display
+                                        id: item.id
                                     }
                                 }}
                                 target={"_blank"}
