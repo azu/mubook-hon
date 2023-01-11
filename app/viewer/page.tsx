@@ -353,7 +353,10 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                         fileName: props.bookFileName,
                         publisher: bookInfo.publisher,
                         title: bookInfo.title,
-                        authors: bookInfo.author.split(",").map((author) => author.trim()),
+                        authors: bookInfo.author
+                            .split(",")
+                            .map((author) => author.trim())
+                            .filter((author) => author !== ""),
                         currentPage,
                         totalPage,
                         lastMarker
@@ -372,6 +375,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             await contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead);
         }
     }, [bookInfo?.lastRead, currentBook]);
+    const bookId = props.id.replace("id:", "");
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -382,23 +386,20 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             // 1. /META-INF/container.xml
             // 2. /OEBPS/content.opf
             // Response epub content as /OEBPS/content.opf
-            rest.get(
-                "/bibi-bookshelf/" + props.id.replace("id:", "") + "/META-INF/container.xml",
-                async (_, res, ctx) => {
-                    return res(
-                        ctx.set("Content-Type", "application/xml"),
-                        // Respond with the "ArrayBuffer".
-                        ctx.body(`<?xml version="1.0" ?>
+            rest.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", async (_, res, ctx) => {
+                return res(
+                    ctx.set("Content-Type", "application/xml"),
+                    // Respond with the "ArrayBuffer".
+                    ctx.body(`<?xml version="1.0" ?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml" />
   </rootfiles>
 </container>
 `)
-                    );
-                }
-            ),
-            rest.get("/bibi-bookshelf/" + props.id.replace("id:", "") + "/OEBPS/package.opf", async (_, res, ctx) => {
+                );
+            }),
+            rest.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async (_, res, ctx) => {
                 const epub = await fetch(src).then((res) => res.arrayBuffer());
                 return res(
                     ctx.set("Content-Length", epub.byteLength.toString()),
@@ -406,7 +407,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     ctx.body(epub)
                 );
             }),
-            rest.get("/bibi-bookshelf/" + props.id.replace("id:", ""), async (_, res, ctx) => {
+            rest.get("/bibi-bookshelf/" + bookId, async (_, res, ctx) => {
                 const epub = await fetch(src).then((res) => res.arrayBuffer());
                 return res(
                     ctx.set("Content-Length", epub.byteLength.toString()),
@@ -430,19 +431,20 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         return () => {
             worker.stop();
         };
-    }, [props.bookFileName, props.id, props.src]);
+    }, [bookId, props.bookFileName, props.id, props.src]);
     const bookUrl = useMemo(() => {
         const url = new URL("/bibi/index.html", location.href);
-        // We can not use URLSearchParams because URLSearchParams encoding and encodeURIComponent is different
-        // https://kuma-emon.com/it/pc/2178/
-        const bookUrl =
-            url.toString() +
-            "?book=" +
-            props.id.replace("id:", "") +
-            (props.initialPage ? "&p=" + props.initialPage : "");
-        console.log("bookUrl", bookUrl);
-        return bookUrl;
-    }, [props.id, props.initialPage]);
+        url.search = new URLSearchParams({
+            book: bookId,
+            ...(props.initialPage
+                ? {
+                      p: props.initialPage
+                  }
+                : {})
+        }).toString();
+        console.log("bookUrl", url.toString());
+        return url.toString();
+    }, [bookId, props.initialPage]);
     const memo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
