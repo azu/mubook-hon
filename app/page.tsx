@@ -89,6 +89,7 @@ const Home: FC = () => {
                                         name: item.path_display
                                     }
                                 }}
+                                target={"_blank"}
                             >
                                 {item.path_display}
                             </Link>
