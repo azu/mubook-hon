@@ -188,10 +188,10 @@
         }
         const selection = iframe.contentWindow.getSelection();
         const text = selection.toString();
-        const position = selection.anchorNode && selection.focusNode ? selection.anchorNode ? compareDocumentPosition?.(selection.focusNode) : undefined;
+        const position = (selection.anchorNode && selection.focusNode) ? selection.anchorNode.compareDocumentPosition(selection.focusNode) : undefined
         // if anchor is after of focus, exchange start and end
         // https://developer.mozilla.org/ja/docs/Web/API/Node/compareDocumentPosition
-        const selectedDirection = position && position & Node.DOCUMENT_POSITION_PRECEDING ? "anchor-is-last" : "normal-order";
+        const selectedDirection = (position && position & Node.DOCUMENT_POSITION_PRECEDING) ? "anchor-is-last" : "normal-order";
         const anchorSelector = getSelectorFromElement(selection.anchorNode.nodeName === "#text" ? selection.anchorNode.parentNode : selection.anchorNode, iframe.contentWindow) ?? undefined;
         const focusSelector = getSelectorFromElement(selection.focusNode.nodeName === "#text" ? selection.focusNode.parentNode : selection.focusNode, iframe.contentWindow) ?? undefined;
         const selectors = {
