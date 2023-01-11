@@ -139,7 +139,6 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
-            console.log("update target currentBook", currentBook);
             const properties = {
                 FileId: {
                     title: [
@@ -242,20 +241,28 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     page_id: currentBook.pageId,
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("⭐ Update new book 📚", result);
-                await mutateCurrentBook({
-                    pageId: result.id,
-                    fileId: prop(result.properties.FileId, "title").title[0].plain_text,
-                    fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
-                    title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
-                    authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
-                    publisher: prop(result.properties.Publisher, "select").select?.name,
-                    currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                    lastMarker: decodeBookMarker(
-                        prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                    )
-                });
+                console.trace("⭐ Update book 📚", result);
+                await mutateCurrentBook(
+                    {
+                        pageId: result.id,
+                        fileId: prop(result.properties.FileId, "title").title[0].plain_text,
+                        fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
+                        title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
+                        authors: prop(result.properties.Author, "multi_select").multi_select.map(
+                            (select) => select.name
+                        ),
+                        publisher: prop(result.properties.Publisher, "select").select?.name,
+                        currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
+                        totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
+                        lastMarker: decodeBookMarker(
+                            prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                        )
+                    },
+                    {
+                        populateCache: true, // No revoke fetch again after mutate
+                        revalidate: false
+                    }
+                );
             }
             return;
         }

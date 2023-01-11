@@ -55,6 +55,9 @@ const Home: FC = () => {
         code: searchParams.get("code") ?? undefined
     });
     const { epubItems } = useDropboxAPI(dropboxClient);
+    console.log({
+        epubItems
+    });
     if (!ready) {
         return null;
     }

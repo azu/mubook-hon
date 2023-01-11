@@ -329,6 +329,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                         });
                     }
                 });
+                viewerControllerUnListen.current?.(); // avoid register twice
                 viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
                     if (!isInitialized.current) {
                         console.log("not yet initialized");
