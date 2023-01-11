@@ -197,6 +197,7 @@ type ViewerContentMethod = {
     getCurrentPage: () => Promise<number>;
     getCurrentPositionMaker: () => Promise<BibiPositionMaker>;
     getCurrentTexts: () => Promise<{ text: string; selectedText: string }>;
+    getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
     getBookInfo: () => Promise<{
         type: "EPUB";
         title: string;
@@ -445,13 +446,16 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     const memo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-            const text = await contentWindow.viewerController.getCurrentTexts();
+            const selected = await contentWindow.viewerController.getSelectedText();
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             await addMemo({
-                memo: text.selectedText,
+                memo: selected.text,
                 currentPage,
-                marker: currentMarker
+                marker: {
+                    ...currentMarker,
+                    highlightSelectors: selected.selectors
+                }
             });
         }
     }, [addMemo]);

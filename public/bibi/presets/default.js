@@ -84,8 +84,8 @@ Bibi.preset({
     // "src" is relative path from this preset file to the JavaScript file of the extension.
     // "id" must be defined in each extension file.
     extensions: [
-        { src: "../extensions/epubcfi.js" }, // <THIS LINE IS AN EXAMPLE>
-        { src: "../extensions/extension.js" }, // <THIS LINE IS AN EXAMPLE>
+        // { src: "../extensions/epubcfi.js" }, // <THIS LINE IS AN EXAMPLE>
+        // { src: "../extensions/extension.js" }, // <THIS LINE IS AN EXAMPLE>
         ""
     ],
 
@@ -93,9 +93,9 @@ Bibi.preset({
     //-- Extra
     //----------------------------------------------------------------------------------------------------------------------------------------------
 
-    "website-name-in-title": "", // "" or name of your website replaces string "Bibi" in <title>.
-    "website-name-in-menu": "", // "" or name of your website appears in setting-menu as a link. (Requires "website-href")
-    "website-href": "", // "" or URL of your website to be used for the link in setting-menu. (Requires "website-name-in-menu")
+    "website-name-in-title": "mubook-hon", // "" or name of your website replaces string "Bibi" in <title>.
+    "website-name-in-menu": "mubook-hon", // "" or name of your website appears in setting-menu as a link. (Requires "website-href")
+    "website-href": "https://mubook-hon.vercel.app/", // "" or URL of your website to be used for the link in setting-menu. (Requires "website-name-in-menu")
     "remove-bibi-website-link": false, // true or false (if true, the link to Bibi Website is not to be added in setting-menu)
 
     //==============================================================================================================================================

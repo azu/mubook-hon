@@ -88,9 +88,9 @@
     }
 
     /**
-     * 指定された要素と同一階層、同名の要素コレクション内におけるインデックスを取得します。
+     * 指定された要素と同一階層、同名の要素コレクション内におけるインデックスを取得
      */
-    function getSiblingElemetsIndex(el, name) {
+    function getSiblingElementsIndex(el, name) {
         let index = 1;
         let sib = el;
         while ((sib = sib.previousElementSibling)) {
@@ -114,14 +114,14 @@
         while (el.nodeType === Node.ELEMENT_NODE) {
             let name = el.nodeName.toLowerCase();
 
-            const index = getSiblingElemetsIndex(el, name);
+            const index = getSiblingElementsIndex(el, name);
             if (1 < index) {
                 name += ':nth-of-type(' + index + ')';
             }
             names.unshift(name);
             el = el.parentNode;
         }
-        return names;
+        return names.join(" > ");
     }
 
     const findChildren = (parentElement) => {
@@ -143,13 +143,10 @@
             return elementInViewport(element);
         });
         if (!foundElement) {
-            console.log("Not Found", { contentWindow })
+            console.log("Not Found element in visible area", { contentWindow })
             return undefined;
         }
-        const cssSelector = getSelectorFromElement(foundElement, contentWindow).join(" > ");
-        console.log({
-            cssSelector
-        })
+        const cssSelector = getSelectorFromElement(foundElement, contentWindow);
         return {
             element: foundElement,
             cssSelector: cssSelector
@@ -174,11 +171,36 @@
         };
         const children = findChildren(iframe.contentWindow.document.body);
         const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
-        const selectedText = iframe.contentWindow.getSelection().toString();
+        const selection = iframe.contentWindow.getSelection();
         return {
-            selectedText,
             text: visibleChildren.map(el => el.textContent ?? "").join("\n"),
             lastText: visibleChildren.at(-1)?.textContent ?? "",
+        };
+    }
+    /**
+     * @returns {Promise<{text: string, selectors: {start?: string, end?: string}}>}
+     */
+    const getSelectedText = async () => {
+        await waitReady();
+        const iframe = document.querySelector(".current iframe");
+        if (!iframe) {
+            throw new Error("Can not find iframe");
+        }
+        const selection = iframe.contentWindow.getSelection();
+        const text = selection.toString();
+        const position = selection.anchorNode.compareDocumentPosition(selection.focusNode);
+        // if anchor is after of focus, exchange start and end
+        // https://developer.mozilla.org/ja/docs/Web/API/Node/compareDocumentPosition
+        const selectedDirection = position & Node.DOCUMENT_POSITION_PRECEDING ? "anchor-is-last" : "normal-order";
+        const anchorSelector = getSelectorFromElement(selection.anchorNode.nodeName === "#text" ? selection.anchorNode.parentNode : selection.anchorNode, iframe.contentWindow) ?? undefined;
+        const focusSelector = getSelectorFromElement(selection.focusNode.nodeName === "#text" ? selection.focusNode.parentNode : selection.focusNode, iframe.contentWindow) ?? undefined;
+        const selectors = {
+            start: selectedDirection === "anchor-is-last" ? focusSelector : anchorSelector,
+            end: selectedDirection === "anchor-is-last" ? anchorSelector : focusSelector
+        }
+        return {
+            text,
+            selectors,
         };
     }
 
@@ -216,7 +238,7 @@
     };
 
     /**
-     * @param {{ ElementSelector:string, ItemIndex:number }} positionMarker
+     * @param {{ ElementSelector:string, ItemIndex:number; highlightSelectors?: { start?: string; end?: string;} }} positionMarker
      * @returns {Promise<void>}
      */
     const moveToPositionMarker = async (positionMarker) => {
@@ -247,14 +269,54 @@
             }
             // FIXME: shake and correct position!!
             MoveToItem.contentWindow.document.body.style.opacity = "0.1";
-            MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector).scrollIntoViewIfNeeded()
+            const scrollElement = MoveToItem.contentWindow.document.querySelector(positionMarker.ElementSelector);
+            scrollElement.scrollIntoViewIfNeeded();
+
+            function* iterateNodes(rootElement) {
+                const walker = document.createTreeWalker(rootElement, NodeFilter.SHOW_ELEMENT);
+                while (walker.nextNode()) {
+                    yield walker.currentNode;
+                }
+            }
+
             requestAnimationFrame(async () => {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 await movePrevPage();
                 await new Promise(resolve => setTimeout(resolve, 100))
                 await moveNextPage();
                 MoveToItem.contentWindow.document.body.style.opacity = "";
+                if (positionMarker.highlightSelectors) {
+                    const startElement = positionMarker.highlightSelectors?.start && MoveToItem.contentWindow.document.querySelector(positionMarker.highlightSelectors.start);
+                    const endElement = positionMarker.highlightSelectors?.end && MoveToItem.contentWindow.document.querySelector(positionMarker.highlightSelectors.end);
+                    // highlight elements between start and end
+                    if (startElement && endElement) {
+                        let betweenElements = false;
+                        for (const element of iterateNodes(MoveToItem.contentWindow.document.body)) {
+                            console.log(element);
+                            if (element === startElement) {
+                                betweenElements = true;
+                            }
+                            if (betweenElements) {
+                                highlightElement(element)
+                            }
+                            if (element === endElement) {
+                                betweenElements = false;
+                                break;
+                            }
+                        }
+                    } else if (startElement) {
+                        highlightElement(startElement);
+                    } else if (endElement) {
+                        highlightElement(endElement)
+                    }
+
+                }
             });
+
+            function highlightElement(element) {
+                element.style.backgroundColor = "yellow";
+            }
+
             // R.focusOn({
             //     Destination: {
             //         ElementSelector: positionMarker.ElementSelector,
@@ -374,6 +436,7 @@
         getCurrentPage,
         getCurrentIIPP,
         getCurrentTexts,
+        getSelectedText,
         getBookInfo,
         onChangePage,
         // utils.

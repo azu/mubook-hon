@@ -30,6 +30,13 @@ export const useNotionSetting = () => {
 export type BibiPositionMaker = {
     ItemIndex: number; // iframe index
     ElementSelector: string; // css selector of Item(iframe)
+    /**
+     * Highlight Selectors
+     */
+    highlightSelectors?: {
+        start?: string;
+        end?: string;
+    };
 };
 export type BookMarker = BibiPositionMaker;
 
