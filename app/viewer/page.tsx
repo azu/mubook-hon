@@ -240,7 +240,7 @@ type ViewerContentMethod = {
 };
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
-    const { currentBook, updateBookStatus, addMemo } = useNotion({
+    const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
         fileName: props.bookFileName
     });
@@ -511,6 +511,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             <button
                 className="Button small violet"
                 style={{
+                    display: hasCompletedNotionSettings ? "inline-block" : "none",
                     position: "fixed",
                     right: 0,
                     bottom: 0,

@@ -27,7 +27,15 @@ export const useNotionSetting = () => {
         },
         [setNotionSettings]
     );
+    const hasCompleteNotionSettings = useMemo(() => {
+        return (
+            notionSetting?.apiKey !== undefined &&
+            notionSetting?.bookListDatabaseId !== undefined &&
+            notionSetting?.bookMemoDatabaseId !== undefined
+        );
+    }, [notionSetting?.apiKey, notionSetting?.bookListDatabaseId, notionSetting?.bookMemoDatabaseId]);
     return {
+        hasCompleteNotionSettings,
         notionSetting,
         updateNotionSettings
     } as const;
@@ -97,7 +105,7 @@ export const hasDataBook = (bookItem: unknown): bookItem is BookItem => {
     return bookItem !== undefined && bookItem !== null && typeof bookItem === "object" && "fileId" in bookItem;
 };
 export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: string }) => {
-    const { notionSetting } = useNotionSetting();
+    const { notionSetting, hasCompleteNotionSettings: hasCompletedNotionSettings } = useNotionSetting();
     const notionClient = useMemo(() => {
         if (!notionSetting?.apiKey) {
             return;
@@ -376,6 +384,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
         }
     );
     return {
+        hasCompletedNotionSettings,
         currentBook,
         updateBookStatus,
         addMemo

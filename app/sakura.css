@@ -34,12 +34,18 @@ body {
     }
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+.main {
+    /* Pre and Code */
+    /* Tables */
+    /* Buttons, forms and input */
+}
+
+.main h1,
+.main h2,
+.main h3,
+.main h4,
+.main h5,
+.main h6 {
     line-height: 1.1;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
     font-weight: 700;
@@ -51,70 +57,70 @@ h6 {
     word-break: break-word;
 }
 
-h1 {
+.main h1 {
     font-size: 2.35em;
 }
 
-h2 {
+.main h2 {
     font-size: 2em;
 }
 
-h3 {
+.main h3 {
     font-size: 1.75em;
 }
 
-h4 {
+.main h4 {
     font-size: 1.5em;
 }
 
-h5 {
+.main h5 {
     font-size: 1.25em;
 }
 
-h6 {
+.main h6 {
     font-size: 1em;
 }
 
-p {
+.main p {
     margin-top: 0px;
     margin-bottom: 2.5rem;
 }
 
-small,
-sub,
-sup {
+.main small,
+.main sub,
+.main sup {
     font-size: 75%;
 }
 
-hr {
+.main hr {
     border-color: #1d7484;
 }
 
-a {
+.main a {
     text-decoration: none;
     color: #1d7484;
 }
 
-a:visited {
+.main a:visited {
     color: #144f5a;
 }
 
-a:hover {
+.main a:hover {
     color: #982c61;
     border-bottom: 2px solid #4a4a4a;
 }
 
-ul {
+.main ul {
     padding-left: 1.4em;
     margin-top: 0px;
     margin-bottom: 2.5rem;
 }
 
-li {
+.main li {
     margin-bottom: 0.4em;
 }
 
-blockquote {
+.main blockquote {
     margin-left: 0px;
     margin-right: 0px;
     padding-left: 1em;
@@ -126,20 +132,19 @@ blockquote {
     background-color: #f1f1f1;
 }
 
-blockquote p {
+.main blockquote p {
     margin-bottom: 0;
 }
 
-img,
-video {
+.main img,
+.main video {
     height: auto;
     max-width: 100%;
     margin-top: 0px;
     margin-bottom: 2.5rem;
 }
 
-/* Pre and Code */
-pre {
+.main pre {
     background-color: #f1f1f1;
     display: block;
     padding: 1em;
@@ -149,55 +154,53 @@ pre {
     font-size: 0.9em;
 }
 
-code,
-kbd,
-samp {
+.main code,
+.main kbd,
+.main samp {
     font-size: 0.9em;
     padding: 0 0.5em;
     background-color: #f1f1f1;
     white-space: pre-wrap;
 }
 
-pre > code {
+.main pre > code {
     padding: 0;
     background-color: transparent;
     white-space: pre;
     font-size: 1em;
 }
 
-/* Tables */
-table {
+.main table {
     text-align: justify;
     width: 100%;
     border-collapse: collapse;
 }
 
-td,
-th {
+.main td,
+.main th {
     padding: 0.5em;
     border-bottom: 1px solid #f1f1f1;
 }
 
-/* Buttons, forms and input */
-input,
-textarea {
+.main input,
+.main textarea {
     border: 1px solid #4a4a4a;
 }
 
-input:focus,
-textarea:focus {
+.main input:focus,
+.main textarea:focus {
     border: 1px solid #1d7484;
 }
 
-textarea {
+.main textarea {
     width: 100%;
 }
 
-.button,
-button,
-input[type="submit"],
-input[type="reset"],
-input[type="button"] {
+.main .button,
+.main button,
+.main input[type="submit"],
+.main input[type="reset"],
+.main input[type="button"] {
     display: inline-block;
     padding: 5px 10px;
     text-align: center;
@@ -211,36 +214,37 @@ input[type="button"] {
     box-sizing: border-box;
 }
 
-.button[disabled],
-button[disabled],
-input[type="submit"][disabled],
-input[type="reset"][disabled],
-input[type="button"][disabled] {
+.main .button[disabled],
+.main button[disabled],
+.main input[type="submit"][disabled],
+.main input[type="reset"][disabled],
+.main input[type="button"][disabled] {
     cursor: default;
     opacity: 0.5;
 }
 
-.button:focus:enabled,
-.button:hover:enabled,
-button:focus:enabled,
-button:hover:enabled,
-input[type="submit"]:focus:enabled,
-input[type="submit"]:hover:enabled,
-input[type="reset"]:focus:enabled,
-input[type="reset"]:hover:enabled,
-input[type="button"]:focus:enabled,
-input[type="button"]:hover:enabled {
+.main .button:focus:enabled,
+.main .button:hover:enabled,
+.main button:focus:enabled,
+.main button:hover:enabled,
+.main input[type="submit"]:focus:enabled,
+.main input[type="submit"]:hover:enabled,
+.main input[type="reset"]:focus:enabled,
+.main input[type="reset"]:hover:enabled,
+.main input[type="button"]:focus:enabled,
+.main input[type="button"]:hover:enabled {
     background-color: #982c61;
     border-color: #982c61;
     color: #f9f9f9;
     outline: 0;
 }
 
-textarea,
-select,
-input {
+.main textarea,
+.main select,
+.main input {
     color: #4a4a4a;
-    padding: 6px 10px; /* The 6px vertically centers text on FF, ignored by Webkit */
+    padding: 6px 10px;
+    /* The 6px vertically centers text on FF, ignored by Webkit */
     margin-bottom: 10px;
     background-color: #f1f1f1;
     border: 1px solid #f1f1f1;
@@ -249,20 +253,20 @@ input {
     box-sizing: border-box;
 }
 
-textarea:focus,
-select:focus,
-input:focus {
+.main textarea:focus,
+.main select:focus,
+.main input:focus {
     border: 1px solid #1d7484;
     outline: 0;
 }
 
-input[type="checkbox"]:focus {
+.main input[type="checkbox"]:focus {
     outline: 1px dotted #1d7484;
 }
 
-label,
-legend,
-fieldset {
+.main label,
+.main legend,
+.main fieldset {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
