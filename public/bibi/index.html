@@ -54,7 +54,6 @@
                 throw new Error('waitReady timeout: ' + currentWaitTime + 'ms')
             }
             if (typeof R === "undefined" || !R?.Pages || R?.Pages.length === 0) {
-                console.debug("curren wait time", currentWaitTime);
                 currentWaitTime += 100;
                 await new Promise(resolve => setTimeout(resolve, 100));
             } else {
