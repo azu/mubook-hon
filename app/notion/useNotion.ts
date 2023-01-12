@@ -131,7 +131,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 database_id: notionSetting.bookListDatabaseId,
                 filter: {
                     property: "FileId",
-                    title: {
+                    rich_text: {
                         equals: fileId
                     }
                 }
@@ -148,8 +148,8 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             const currentBook: BookItem = {
                 viewer: viewerType,
                 pageId: result.id,
-                fileId: prop(result.properties.FileId, "title").title[0].plain_text,
-                fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
+                fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
+                fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                 title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                 authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
                 publisher: prop(result.properties.Publisher, "select").select?.name,
@@ -179,7 +179,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             }
             const properties = {
                 FileId: {
-                    title: [
+                    rich_text: [
                         {
                             text: {
                                 content: fileId
@@ -193,7 +193,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     }
                 },
                 FileName: {
-                    rich_text: [
+                    title: [
                         {
                             text: {
                                 content: fileName
@@ -265,8 +265,8 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     {
                         viewer: viewerType,
                         pageId: result.id,
-                        fileId: prop(result.properties.FileId, "title").title[0].plain_text,
-                        fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
+                        fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
+                        fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                         title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                         authors: prop(result.properties.Author, "multi_select").multi_select.map(
                             (select) => select.name
@@ -298,8 +298,8 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     {
                         viewer: viewerType,
                         pageId: result.id,
-                        fileId: prop(result.properties.FileId, "title").title[0].plain_text,
-                        fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
+                        fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
+                        fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                         title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
                         authors: prop(result.properties.Author, "multi_select").multi_select.map(
                             (select) => select.name
