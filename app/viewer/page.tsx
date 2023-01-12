@@ -333,7 +333,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                         });
                     }
                 });
-                const watchChangePage = async () => {
+                const watchChangePage = async ({ attempts }: { attempts: number }) => {
+                    console.debug("Try to add listener to page. attempts: " + attempts);
                     viewerControllerUnListen.current?.(); // avoid register twice
                     viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
                         if (!isInitialized.current) {
@@ -369,9 +370,9 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     });
                 };
                 const backoff = generateBackoff();
-                for (const { sleep } of backoff) {
+                for (const { sleep, attempts } of backoff) {
                     try {
-                        return await watchChangePage();
+                        return await watchChangePage({ attempts });
                     } catch (error) {
                         await sleep(); // wait 100ms, 200ms, 400ms, 800ms ...
                     }
