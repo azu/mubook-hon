@@ -7,7 +7,7 @@ epub reader + Notion Sync + Memo.
 ## Usage
 
 - WebSite: <https://mubook-hon.vercel.app/>
-- Document: <https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6>>
+- Document: <https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6>
 
 You need to set up Notion before using memo features.
 
