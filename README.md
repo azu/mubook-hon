@@ -2,7 +2,7 @@
 
 [![mubook-hon](https://mubook-hon.vercel.app/icons/icon-256x256.png)](https://mubook-hon.vercel.app)
 
-epub reader + Notion Sync + Memo.
+mubook-hon is epub reader + Notion Sync + Memo.
 
 ![img.png](img.png)
 
