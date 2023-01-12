@@ -4,7 +4,7 @@
 
 mubook-hon is epub reader + Notion Sync + Memo.
 
-![viewer](docs/viewer.png)
+![viewer: Ruth A. Shapiro, Manisha Mirchandani and Heesu Jang Pragmatic Philanthropy Asian Charity Explained](docs/viewer.png)
 
 > Beautiful viewer by [Bibi](https://bibi.epub.link/)
 
