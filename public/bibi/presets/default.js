@@ -59,7 +59,7 @@ Bibi.preset({
 
     "ui-font-family": "", // CSS font-family value as "'Helvetica', sans-serif" or ""
 
-    "flipper-width": 0.3, // Number of ratio (lower than 1) or pixel (1 or higher)
+    "flipper-width": isMobile ? 0.3 : 0.2, // Number of ratio (lower than 1) or pixel (1 or higher)
 
     // 4^n
     "item-padding-left": isMobile ? 56 : 84, // Number of pixel (It is used only if the book is reflowable.)
