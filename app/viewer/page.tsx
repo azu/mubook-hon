@@ -101,11 +101,14 @@ export default Page;
 
 const App = (props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker">) => {
     const id = props.id;
-    const { dropboxClient, hasValidAccessToken, AuthUrl } = useDropbox({});
+    const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({});
     const { fileBlobUrl, fileDisplayName } = useDropboxAPI(dropboxClient, {
         fileId: id
     });
-    if (!hasValidAccessToken) {
+    if (accessTokenStatus === "none") {
+        return null;
+    }
+    if (accessTokenStatus === "invalid") {
         return (
             <div>
                 <Suspense fallback={<div>loading...</div>}>
