@@ -4,7 +4,13 @@
 
 mubook-hon is epub reader + Notion Sync + Memo.
 
-![img.png](img.png)
+![viewer](docs/viewer.png)
+
+> Beautiful viewer by [Bibi](https://bibi.epub.link/)
+
+![notion-database.png](docs/notion-database.png)
+
+> Notion Database is created by mubook-hon
 
 ## Usage
 
