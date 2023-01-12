@@ -78,7 +78,7 @@ const Page: FC<PageProps> = ({ params }) => {
         storeName: "mubook-book"
     });
     if (!cacheProvider) {
-        return <div>Initializing cache…</div>;
+        return <div>Loading...</div>;
     }
     const initialPage = searchParams.get("page") ?? undefined;
     const initialMarker = searchParams.get("marker") ?? undefined;
@@ -184,6 +184,33 @@ const useToast = () => {
     } as const;
 };
 
+type ContentWindow = WindowProxy & {
+    viewerController: ViewerContentMethod;
+};
+const waitContentWindowLoad = async (contentWindow: ContentWindow) => {
+    // lazy initialized
+    await new Promise<void>(async (resolve) => {
+        if (contentWindow.document.readyState === "complete") {
+            const backoff = generateBackoff();
+            for (const { sleep } of backoff) {
+                try {
+                    if (typeof contentWindow.viewerController !== "object") {
+                        return resolve();
+                    } else {
+                        throw new Error("contentWindow.viewerController is not defined");
+                    }
+                } catch (error) {
+                    await sleep(); // wait 100ms, 200ms, 400ms, 800ms ...
+                }
+            }
+            throw new Error("waitContentWindowLoad failed at all");
+        } else {
+            contentWindow.addEventListener("load", () => {
+                resolve();
+            });
+        }
+    });
+};
 type BibiReaderProps = {
     id: string;
     bookFileName: string;
@@ -210,9 +237,6 @@ type ViewerContentMethod = {
         id: string;
     }>;
     onChangePage: (fn: (page: number) => void) => Promise<() => void>;
-};
-type ContentWindow = WindowProxy & {
-    viewerController: ViewerContentMethod;
 };
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
@@ -271,6 +295,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 marker: marker
             });
             if (marker) {
+                await waitContentWindowLoad(contentWindow);
                 await contentWindow.viewerController.moveToPositionMarker(marker);
             }
         } else if (hasDataBook(currentBook)) {
@@ -327,15 +352,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             if (bibiFrame.current) {
                 const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
                 // lazy initialized
-                await new Promise<void>((resolve) => {
-                    if (contentWindow.document.readyState === "complete") {
-                        setTimeout(() => resolve(), 5000);
-                    } else {
-                        contentWindow.addEventListener("load", () => {
-                            resolve();
-                        });
-                    }
-                });
+                await waitContentWindowLoad(contentWindow);
                 const watchChangePage = async ({ attempts }: { attempts: number }) => {
                     console.debug("Try to add listener to page. attempts: " + attempts);
                     viewerControllerUnListen.current?.(); // avoid register twice

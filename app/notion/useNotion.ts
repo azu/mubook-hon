@@ -1,5 +1,5 @@
 import { useLocalStorage } from "react-use";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Client } from "@notionhq/client";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
