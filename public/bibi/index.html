@@ -40,6 +40,8 @@
 <div id="bibi-book-data" data-bibi-book-mimetype="application/epub+zip" hidden="hidden">
 </div>
 <script>
+    // Note: This wait time is load complete limit
+    // Very large book take time to load
     const MAX_WAIT_TIME_MS = 120 * 1000;
     const waitReady = async () => {
         if (typeof R === "object " && R?.Pages && R?.Pages.length > 0) {
@@ -234,10 +236,11 @@
         function handleSelectEnd(event) {
             currentIframeContentWindow = event.view;
         }
+
         E.add("bibi:downs-pointer", handleSelectStart)
         E.add("bibi:upped-pointer", handleSelectEnd)
         return {
-            get current(){
+            get current() {
                 return currentIframeContentWindow
             },
             dispose: function destroy() {
