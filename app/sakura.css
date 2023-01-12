@@ -9,7 +9,7 @@ html {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
-body {
+.main {
     font-size: 1.8rem;
     line-height: 1.618;
     max-width: 38em;

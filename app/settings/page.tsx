@@ -18,7 +18,7 @@ export default function Page() {
         );
     }, []);
     return (
-        <div>
+        <div className={"main"}>
             <h1>Settings</h1>
             <div>
                 <h2>Dropbox</h2>

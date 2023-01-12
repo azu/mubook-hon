@@ -75,7 +75,7 @@ const Home: FC = () => {
         );
     }
     return (
-        <div>
+        <div className={"main"}>
             <header>
                 <div
                     style={{

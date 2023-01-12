@@ -380,9 +380,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 console.error(new Error("Fail to initialized book viewer"), {
                     current: bibiFrame.current
                 });
-                if (confirm("Fail to initialize book viewer. Please reload page")) {
-                    location.reload();
-                }
+                alert("Fail to initialize book viewer. Please reload page");
             } else {
                 viewerControllerUnListen.current?.();
             }
