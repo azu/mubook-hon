@@ -501,6 +501,25 @@
         };
     }
 
+    /**
+     *
+     * @param {(state: "open"| "closed") => void} fn
+     * @returns {(function(): void)|*}
+     */
+    const onChangeMenuState = (fn) => {
+        const onMenuOpen = () => {
+            fn("open");
+        };
+        const onMenuClosed = () => {
+            fn("closed");
+        };
+        E.add("bibi:opened-menu", onMenuOpen);
+        E.add("bibi:closed-menu", onMenuClosed);
+        return () => {
+            E.remove("bibi:opened-menu", onMenuOpen)
+            E.remove("bibi:closed-menu", onMenuClosed)
+        };
+    }
     window.viewerController = {
         movePrevPage,
         moveNextPage,
@@ -514,6 +533,7 @@
         getSelectedText,
         getBookInfo,
         onChangePage,
+        onChangeMenuState,
         // utils.
         findFirstVisibleElement
     };

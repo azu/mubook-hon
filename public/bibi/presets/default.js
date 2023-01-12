@@ -85,7 +85,7 @@ Bibi.preset({
     // "id" must be defined in each extension file.
     extensions: [
         // { src: "../extensions/epubcfi.js" }, // <THIS LINE IS AN EXAMPLE>
-        // { src: "../extensions/extension.js" }, // <THIS LINE IS AN EXAMPLE>
+        { src: "../extensions/extension.js" }, // <THIS LINE IS AN EXAMPLE>
         ""
     ],
 

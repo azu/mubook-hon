@@ -234,9 +234,11 @@ type ViewerContentMethod = {
         id: string;
     }>;
     onChangePage: (fn: (page: number) => void) => Promise<() => void>;
+    onChangeMenuState: (fn: (state: "open" | "closed") => void) => Promise<() => void>;
 };
 const BibiReader: FC<BibiReaderProps> = (props) => {
     const [isReady, setIsReady] = useState(false);
+    const [menuState, setMenuState] = useState<"open" | "closed">("closed");
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
         fileName: props.bookFileName
@@ -340,7 +342,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         [currentBook, props.bookFileName, props.id, updateBookStatus]
     );
 
-    const viewerControllerUnListen = useRef<() => void>();
+    const viewerControllerOnChangePageRef = useRef<() => void>();
+    const viewerControllerONChangeMenuRef = useRef<() => void>();
     const onInitializeIframeRef = useCallback(
         async (frameElement: HTMLIFrameElement) => {
             bibiFrame.current = frameElement;
@@ -353,39 +356,50 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 await waitContentWindowLoad(contentWindow);
                 const watchChangePage = async ({ attempts }: { attempts: number }) => {
                     console.debug("Try to add listener to page. attempts: " + attempts);
-                    viewerControllerUnListen.current?.(); // avoid register twice
-                    viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
-                        if (!isInitialized.current) {
-                            console.debug("not yet initialized");
-                            return;
+                    viewerControllerONChangeMenuRef.current?.();
+                    viewerControllerONChangeMenuRef.current = await contentWindow.viewerController.onChangeMenuState(
+                        (state) => {
+                            console.debug("{menu", {
+                                state
+                            });
+                            setMenuState(state);
                         }
-                        const bookInfo = await contentWindow.viewerController.getBookInfo();
-                        const currentPage = await contentWindow.viewerController.getCurrentPage();
-                        const totalPage = await contentWindow.viewerController.getTotalPage();
-                        const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-                        console.debug("onChangePage", {
-                            bookInfo,
-                            currentBook,
-                            lastMarker,
-                            currentPage,
-                            totalPage
-                        });
-                        return updateBookStatus({
-                            viewer: "epub:bibi", // TODO: currently, only support bibi
-                            pageId: bookInfo.id,
-                            fileId: props.id,
-                            fileName: props.bookFileName,
-                            publisher: bookInfo.publisher,
-                            title: bookInfo.title,
-                            authors: bookInfo.author
-                                .split(",")
-                                .map((author) => author.trim())
-                                .filter((author) => author !== ""),
-                            currentPage,
-                            totalPage,
-                            lastMarker
-                        });
-                    });
+                    );
+                    viewerControllerOnChangePageRef.current?.(); // avoid register twice
+                    viewerControllerOnChangePageRef.current = await contentWindow.viewerController.onChangePage(
+                        async () => {
+                            if (!isInitialized.current) {
+                                console.debug("not yet initialized");
+                                return;
+                            }
+                            const bookInfo = await contentWindow.viewerController.getBookInfo();
+                            const currentPage = await contentWindow.viewerController.getCurrentPage();
+                            const totalPage = await contentWindow.viewerController.getTotalPage();
+                            const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                            console.debug("onChangePage", {
+                                bookInfo,
+                                currentBook,
+                                lastMarker,
+                                currentPage,
+                                totalPage
+                            });
+                            return updateBookStatus({
+                                viewer: "epub:bibi", // TODO: currently, only support bibi
+                                pageId: bookInfo.id,
+                                fileId: props.id,
+                                fileName: props.bookFileName,
+                                publisher: bookInfo.publisher,
+                                title: bookInfo.title,
+                                authors: bookInfo.author
+                                    .split(",")
+                                    .map((author) => author.trim())
+                                    .filter((author) => author !== ""),
+                                currentPage,
+                                totalPage,
+                                lastMarker
+                            });
+                        }
+                    );
                 };
                 const backoff = generateBackoff();
                 for (const { sleep, attempts } of backoff) {
@@ -400,7 +414,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                 });
                 alert("Fail to initialize book viewer. Please reload page");
             } else {
-                viewerControllerUnListen.current?.();
+                viewerControllerONChangeMenuRef.current?.();
+                viewerControllerOnChangePageRef.current?.();
             }
         },
         [currentBook, props.bookFileName, props.id, tryToRestoreLastPositionAtFirst, updateBookStatus]
@@ -508,7 +523,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         <>
             <button
                 className="Button small violet"
-                hidden={!hasCompletedNotionSettings}
+                hidden={!hasCompletedNotionSettings || menuState === "open"}
                 style={{
                     position: "fixed",
                     right: 0,
