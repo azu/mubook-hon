@@ -249,6 +249,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
     const bibiFrame = useRef<HTMLIFrameElement>();
     const restoreLastPosition = useCallback(
         async (contentWindow: ContentWindow, currentBook: BookItem) => {
+            await waitContentWindowLoad(contentWindow);
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             if (currentMarker == null || currentBook.lastMarker == null) {
                 isInitialized.current = true;
