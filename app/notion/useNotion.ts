@@ -7,10 +7,16 @@ import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoint
 import { Fetcher } from "swr/_internal";
 
 export type NotionSetting = { apiKey: string; bookListDatabaseId: string; bookMemoDatabaseId: string };
-const NOTION_API_BASE_URL =
-    process.env.NODE_ENV === "production"
-        ? "https://mubook-hon.vercel.app/api/notion-proxy"
-        : "http://localhost:3000/api/notion-proxy";
+// User can define own proxy url
+
+const USER_DEFINED_NOTION_BASE_URL =
+    typeof localStorage !== "undefined" && localStorage.getItem("mubook-hon-NOTION_API_BASE_URL");
+const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
+    ? USER_DEFINED_NOTION_BASE_URL
+    : process.env.NODE_ENV === "production"
+    ? "https://mubook-hon.vercel.app/api/notion-proxy"
+    : "http://localhost:3000/api/notion-proxy";
+
 export const useNotionSetting = () => {
     const [notionSetting, setNotionSettings] = useLocalStorage<Partial<NotionSetting>>("mubook-hon-notion");
     const updateNotionSettings = useCallback(
