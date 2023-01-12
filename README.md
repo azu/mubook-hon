@@ -1,21 +1,27 @@
 # mubook-hon
 
+epub reader + Notion Sync + Memo.
+
+## Usage
+
+- WebSite: <https://mubook-hon.vercel.app/>
+- Document: <https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6>>
+
+You need to set up Notion before using memo features.
+
+## Features
+
+- Read epub files on Dropbox
+- Add memo to Notion with selected text
+- Manage book list in Notion
+
 ## supported format
 
-- epub
+- [x] epub
   - bibi
-- pdf
+- [ ] pdf
   - pdf.js
 
-
-## Viewer Events
-
-- selectionend
-- save
-- add
-- sync
-
-## service worker
 
 ## LICENSE
 
