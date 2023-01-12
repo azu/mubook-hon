@@ -19,6 +19,7 @@ import "./toast.css";
 import { useSearchParams } from "next/navigation";
 import { files } from "dropbox/types/dropbox_types";
 import Head from "next/head";
+import { generateBackoff } from "exponential-backoff-generator";
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
     const fileFetcher: Fetcher<
@@ -332,8 +333,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                         });
                     }
                 });
-                viewerControllerUnListen.current?.(); // avoid register twice
-                try {
+                const watchChangePage = async () => {
+                    viewerControllerUnListen.current?.(); // avoid register twice
                     viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
                         if (!isInitialized.current) {
                             console.debug("not yet initialized");
@@ -366,11 +367,20 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                             lastMarker
                         });
                     });
-                } catch (error) {
-                    console.error(error);
-                    if (confirm("Failed to initialize viewer. Please Reload. ")) {
-                        location.reload();
+                };
+                const backoff = generateBackoff();
+                for (const { sleep } of backoff) {
+                    try {
+                        return await watchChangePage();
+                    } catch (error) {
+                        await sleep(); // wait 100ms, 200ms, 400ms, 800ms ...
                     }
+                }
+                console.error(new Error("Fail to initialized book viewer"), {
+                    current: bibiFrame.current
+                });
+                if (confirm("Fail to initialize book viewer. Please reload page")) {
+                    location.reload();
                 }
             } else {
                 viewerControllerUnListen.current?.();
