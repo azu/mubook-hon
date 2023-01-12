@@ -194,7 +194,7 @@ const waitContentWindowLoad = async (contentWindow: ContentWindow) => {
             const backoff = generateBackoff();
             for (const { sleep } of backoff) {
                 try {
-                    if (typeof contentWindow.viewerController !== "object") {
+                    if (typeof contentWindow.viewerController === "object") {
                         return resolve();
                     } else {
                         throw new Error("contentWindow.viewerController is not defined");
@@ -221,13 +221,10 @@ type BibiReaderProps = {
 type ViewerContentMethod = {
     movePrevPage: () => Promise<void>;
     moveNextPage: () => Promise<void>;
-    moveToIIPP: (page: Number) => Promise<void>;
     moveToPositionMarker: (marker: BibiPositionMaker) => Promise<void>;
     getTotalPage: () => Promise<number>;
-    getCurrentIIPP: () => Promise<number>;
     getCurrentPage: () => Promise<number>;
     getCurrentPositionMaker: () => Promise<BibiPositionMaker>;
-    getCurrentTexts: () => Promise<{ text: string; selectedText: string }>;
     getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
     getBookInfo: () => Promise<{
         type: "EPUB";
@@ -282,7 +279,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             return;
         }
         console.debug("new load book 📚");
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for load content
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // wait for load window
         const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
         console.debug("restoreLastPosition", {
             isInitialized: isInitialized.current,
@@ -511,8 +508,8 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         <>
             <button
                 className="Button small violet"
+                hidden={!hasCompletedNotionSettings}
                 style={{
-                    display: hasCompletedNotionSettings ? "inline-block" : "none",
                     position: "fixed",
                     right: 0,
                     bottom: 0,

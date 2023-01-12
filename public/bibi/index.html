@@ -128,6 +128,7 @@
         return names.join(" > ");
     }
 
+    // いい感じにchildrenをとるヒューリスティック
     const findChildren = (parentElement) => {
         const rootChildren = parentElement.children;
         return Array.from(rootChildren).flatMap(child => {
@@ -157,28 +158,22 @@
         }
     };
 
-    const getCurrentTexts = async () => {
+    const getCurrentPageTexts = async () => {
         await waitReady();
         const iframe = document.querySelector(".current iframe");
         if (!iframe) {
             throw new Error("Can not find iframe");
         }
-        // いい感じにchildrenをとるヒューリスティック
-        const findChildren = (parentElement) => {
-            const rootChildren = parentElement.children;
-            return Array.from(rootChildren).flatMap(child => {
-                if (child.tagName === "DIV") {
-                    return findChildren(child);
-                }
-                return [child];
-            });
-        };
         const children = findChildren(iframe.contentWindow.document.body);
         const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
-        const selection = iframe.contentWindow.getSelection();
+        const selectors = {
+            start: getSelectorFromElement(visibleChildren.at(0), iframe.contentWindow),
+            end: getSelectorFromElement(visibleChildren.at(-1), iframe.contentWindow)
+        }
         return {
             text: visibleChildren.map(el => el.textContent ?? "").join("\n"),
-            lastText: visibleChildren.at(-1)?.textContent ?? "",
+            visibleChildren,
+            selectors,
         };
     }
     const getSelectorFromSelection = (selection, window) => {
@@ -267,11 +262,16 @@
         // Maybe, Bibi does not return Current iframe in sometimes(two pages are displayed, but return only one iframe)
         // As a fallback, preserve selected iframe content and use it
         const selectedIframeWindow = getCurrentSelectedIframeWindow() ?? selectionRef?.current;
-        if (!selectedIframeWindow) {
+        const selection = selectedIframeWindow ? selectedIframeWindow.getSelection() : undefined;
+        if (!selection) {
+            const currentPageText = await getCurrentPageTexts();
+            if (currentPageText.text && currentPageText.selectors) {
+                console.debug("return current page text instead of selected text", currentPageText);
+                return { text: currentPageText.text, selectors: currentPageText.selectors }
+            }
             console.debug("selected iframe window cannot found");
             return { text: "", selectors: undefined };
         }
-        const selection = selectedIframeWindow.getSelection();
         const selectors = getSelectorFromSelection(selection, selectedIframeWindow);
         const text = selection.toString();
         return {
@@ -510,7 +510,7 @@
         getCurrentPositionMaker,
         getCurrentPage,
         getCurrentIIPP,
-        getCurrentTexts,
+        getCurrentPageTexts,
         getSelectedText,
         getBookInfo,
         onChangePage,
