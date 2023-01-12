@@ -2,11 +2,19 @@
 import "../sakura.css";
 import { useNotionSetting } from "../notion/useNotion";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+const useReady = () => {
+    const [ready, setReady] = useState(false);
+    useEffect(() => {
+        setReady(true);
+    }, []);
+    return ready;
+};
 export default function Page() {
+    const ready = useReady();
     const { notionSetting, updateNotionSettings } = useNotionSetting();
-    const { hasValidAccessToken, AuthUrl } = useDropbox();
+    const { accessTokenStatus, AuthUrl } = useDropbox();
     const DropboxFilePath = useMemo(() => {
         if (typeof navigator === "undefined") {
             return <b>~/Dropbox/Apps/mubook-hon</b>;
@@ -17,6 +25,9 @@ export default function Page() {
             <b>~/Dropbox/Apps/mubook-hon</b>
         );
     }, []);
+    if (!ready) {
+        return <div className={"main"}></div>;
+    }
     return (
         <div className={"main"}>
             <h1>Settings</h1>
@@ -24,7 +35,7 @@ export default function Page() {
                 <h2>Dropbox</h2>
                 <p>You can put books into {DropboxFilePath}</p>
                 <div>
-                    <p>{hasValidAccessToken ? "✅ Already Logged in" : "❌ Not logged in"}</p>
+                    <p>{accessTokenStatus === "valid" ? "✅ Already Logged in" : "❌ Not logged in"}</p>
                     <span>➡️️</span>
                     <AuthUrl />
                 </div>

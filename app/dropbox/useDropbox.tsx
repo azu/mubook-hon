@@ -13,7 +13,7 @@ const DROPBOX_AUTH_REDIRECT_URI =
 export const useDropbox = (props: { code?: string } = {}) => {
     const router = useRouter();
     const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
-    const [hasValidAccessToken, setHasValidAccessToken] = useState(false);
+    const [accessTokenStatus, setAccessTokenStatus] = useState<"none" | "valid" | "invalid">("none");
     const dropboxAuth = useMemo(() => {
         console.debug("create dropbox auth");
         return new DropboxAuth({
@@ -24,7 +24,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
         });
     }, [tokens?.refreshToken, tokens?.accessToken, tokens?.accessTokenExpiresAt]);
     const dropboxClient = useMemo(() => {
-        if (!hasValidAccessToken) return null;
+        if (!accessTokenStatus) return null;
         console.debug("new dropbox client");
         return new Dropbox({
             clientId: "gzx6eue9upkkcow",
@@ -32,7 +32,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
             refreshToken: tokens?.refreshToken,
             accessTokenExpiresAt: tokens ? new Date(tokens.accessTokenExpiresAt) : undefined
         });
-    }, [tokens, hasValidAccessToken]);
+    }, [tokens, accessTokenStatus]);
     useEffect(() => {
         dropboxAuth
             .checkAndRefreshAccessToken()
@@ -42,7 +42,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
                 const refreshToken = dropboxAuth.getRefreshToken();
                 const accessTokenExpiresAt = dropboxAuth.getAccessTokenExpiresAt();
                 const b = Boolean(accessToken && refreshToken);
-                setHasValidAccessToken(b);
+                setAccessTokenStatus(b ? "valid" : "invalid");
                 console.debug("checkAndRefreshAccessToken", b);
                 setTokens({
                     accessToken,
@@ -107,7 +107,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
     }, [dropboxAuth]);
     return {
         dropboxClient,
-        hasValidAccessToken,
+        accessTokenStatus,
         AuthUrl
     } as const;
 };

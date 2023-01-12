@@ -58,19 +58,36 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
 const Home: FC = () => {
     const ready = useReady();
     const searchParams = useSearchParams();
-    const { dropboxClient, hasValidAccessToken, AuthUrl } = useDropbox({
+    const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
         code: searchParams.get("code") ?? undefined
     });
     const { epubItems } = useDropboxAPI(dropboxClient);
     if (!ready) {
-        return null;
+        return <div className={"main"}>Loading...</div>;
     }
-    if (!hasValidAccessToken) {
+    if (accessTokenStatus === "none") {
+        return <div className={"main"}>Loading...</div>;
+    }
+    if (accessTokenStatus === "invalid") {
         return (
-            <div>
+            <div className={"main"}>
+                <h1>mubook-hon</h1>
+                <p>mubook-hon require to access your dropbox account.</p>
                 <Suspense fallback={<div>loading...</div>}>
-                    <AuthUrl />
+                    ➡️ <AuthUrl />
                 </Suspense>
+                <div>
+                    <h3>Why need to access Dropbox?</h3>
+                    <ul>
+                        <li>Download epub files from your dropbox account from browser</li>
+                    </ul>
+                </div>
+                <div>
+                    <p>
+                        For more details, please see{" "}
+                        <a href={"https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6"}>Document</a>
+                    </p>
+                </div>
             </div>
         );
     }
