@@ -106,8 +106,8 @@ const Home: FC = () => {
                                         id: item.id
                                     }
                                 }}
-                                target={"_blank"}
-                                rel="noopener"
+                                // target={"_blank"}
+                                // rel="noopener"
                             >
                                 {item.path_display}
                             </Link>
