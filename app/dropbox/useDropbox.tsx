@@ -15,7 +15,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
     const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
     const [hasValidAccessToken, setHasValidAccessToken] = useState(false);
     const dropboxAuth = useMemo(() => {
-        console.log("create auth");
+        console.debug("create dropbox auth");
         return new DropboxAuth({
             clientId: "gzx6eue9upkkcow",
             accessToken: tokens?.accessToken,
@@ -25,7 +25,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
     }, [tokens?.refreshToken, tokens?.accessToken, tokens?.accessTokenExpiresAt]);
     const dropboxClient = useMemo(() => {
         if (!hasValidAccessToken) return null;
-        console.log("new client");
+        console.debug("new dropbox client");
         return new Dropbox({
             clientId: "gzx6eue9upkkcow",
             accessToken: tokens?.accessToken,
@@ -43,7 +43,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
                 const accessTokenExpiresAt = dropboxAuth.getAccessTokenExpiresAt();
                 const b = Boolean(accessToken && refreshToken);
                 setHasValidAccessToken(b);
-                console.log("checkAndRefreshAccessToken", b);
+                console.debug("checkAndRefreshAccessToken", b);
                 setTokens({
                     accessToken,
                     refreshToken,
@@ -59,14 +59,14 @@ export const useDropbox = (props: { code?: string } = {}) => {
         if (!props.code) return;
         const codeVerifier = window.sessionStorage.getItem("codeVerifier");
         if (!codeVerifier) {
-            console.log("No codeVerifier");
+            console.debug("No codeVerifier");
             return;
         }
         dropboxAuth.setCodeVerifier(codeVerifier);
         dropboxAuth
             .getAccessTokenFromCode(DROPBOX_AUTH_REDIRECT_URI, props.code)
             .then((response) => {
-                console.log("getAccessTokenFromCode", response);
+                console.debug("getAccessTokenFromCode", response);
                 const result = response.result;
                 setTokens({
                     // @ts-ignore

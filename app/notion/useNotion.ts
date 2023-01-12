@@ -122,7 +122,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     }
                 }
             });
-            console.log("⭐ Fetch book 📚", results[0]);
+            console.debug("⭐ Fetch book 📚", results[0]);
             const result = results[0] as PageObjectResponse;
             if (!result) {
                 return NO_BOOK_DATA;
@@ -242,7 +242,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     },
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("⭐ create new book 📚", result);
+                console.debug("⭐ create new book 📚", result);
                 const viewerType = prop(result.properties.Viewer, "select").select?.name;
                 if (!supportedViewerType(viewerType)) {
                     throw new Error("not supported viewer type:" + viewerType);
@@ -275,7 +275,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     page_id: currentBook.pageId,
                     properties: properties
                 })) as PageObjectResponse;
-                console.log("⭐ Update book 📚", result);
+                console.debug("⭐ Update book 📚", result);
                 const viewerType = prop(result.properties.Viewer, "select").select?.name;
                 if (!supportedViewerType(viewerType)) {
                     throw new Error("not supported viewer type:" + viewerType);
@@ -357,7 +357,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     ]
                 }
             };
-            console.log("⭐ New Memo", properties);
+            console.debug("⭐ New Memo", properties);
             // create new book
             const result = (await notionClient.pages.create({
                 parent: {
@@ -366,7 +366,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 // @ts-ignore
                 properties: properties
             })) as PageObjectResponse;
-            console.log("created new memo", result);
+            console.debug("created new memo", result);
         }
     );
     return {

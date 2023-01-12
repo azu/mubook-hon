@@ -143,7 +143,7 @@
             return elementInViewport(element);
         });
         if (!foundElement) {
-            console.log("Not Found element in visible area", { contentWindow })
+            console.debug("Not Found element in visible area", { contentWindow })
             return undefined;
         }
         const cssSelector = getSelectorFromElement(foundElement, contentWindow);
@@ -315,7 +315,7 @@
     const moveToPositionMarker = async (positionMarker) => {
         await waitReady();
         // select item and query ElementSelector
-        console.log("Move to destination", positionMarker);
+        console.debug("Move to destination", positionMarker);
         // https://github.com/satorumurmur/bibi/issues/78
         // https://github.com/satorumurmur/bibi/issues/71
         // Use DOM API
@@ -363,7 +363,7 @@
                     if (startElement && endElement) {
                         let betweenElements = false;
                         for (const element of iterateNodes(MoveToItem.contentWindow.document.body)) {
-                            console.log(element);
+                            console.debug(element);
                             if (element === startElement) {
                                 betweenElements = true;
                             }

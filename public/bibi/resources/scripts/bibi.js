@@ -3862,7 +3862,7 @@
                     if (_.Moving) return n();
                     if ((("number" == typeof e || /^\d+$/.test(e)) && (e = { Destination: 1 * e }), !e)) return n();
                     var i = (e.Destination = _.hatchDestination(e.Destination));
-                    // console.log("focusOn Destination", i);
+                    // console.debug("focusOn Destination", i);
                     if (!i) return n();
                     W.dispatch("bibi:is-going-to:focus-on", e),
                         (_.Moving = !0),
@@ -9119,7 +9119,7 @@
                 Label: "bibi",
                 remember: function (e) {
                     var t = JSON.parse(sML.Cookies.read(U.Cookies.Label) || "{}");
-                    return console.log("Cookies:", t), "string" == typeof e && e ? t[e] : t;
+                    return console.debug("Cookies:", t), "string" == typeof e && e ? t[e] : t;
                 },
                 eat: function (e, t, n) {
                     if ("string" != typeof e || !e) return !1;
