@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 
 export default async function Handler(request: NextApiRequest, response: NextApiResponse) {
     try {
-        console.debug(request.method, request.url);
         const url = new URL(request.url!, "https://example.test");
         if (request.method === "OPTIONS") {
             return new Response(null, {
