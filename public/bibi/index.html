@@ -40,16 +40,18 @@
 <div id="bibi-book-data" data-bibi-book-mimetype="application/epub+zip" hidden="hidden">
 </div>
 <script>
+    const MAX_WAIT_TIME_MS = 120 * 1000;
     const waitReady = async () => {
         if (typeof R === "object " && R?.Pages && R?.Pages.length > 0) {
             return true
         }
-        let count = 0;
+        let currentWaitTime = 0;
         while (true) {
-            if (count > 100) {
-                throw new Error('waitReady timeout: ' + (100 * 100) + 'ms')
+            if (currentWaitTime > MAX_WAIT_TIME_MS) {
+                throw new Error('waitReady timeout: ' + currentWaitTime + 'ms')
             }
             if (typeof R === "undefined" || !R?.Pages || R?.Pages.length === 0) {
+                currentWaitTime += 100;
                 await new Promise(resolve => setTimeout(resolve, 100));
             } else {
                 return true;
