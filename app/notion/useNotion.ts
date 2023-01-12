@@ -56,7 +56,18 @@ export const decodeBookMarker = (markerString?: string): BookMarker | undefined 
         console.warn("Fail to parse marker string", markerString);
     }
 };
+export const supportedViewerType = (viewerType: unknown): viewerType is BookItem["viewer"] => {
+    if (!viewerType) {
+        return false;
+    }
+    if (typeof viewerType !== "string") {
+        return false;
+    }
+    return ["epub:bibi"].includes(viewerType as string);
+};
 export type BookItem = {
+    // Book Viewer type
+    viewer: "epub:bibi"; // TODO: current only support bibi
     pageId: string;
     fileId: string;
     fileName: string;
@@ -116,7 +127,12 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             if (!result) {
                 return NO_BOOK_DATA;
             }
+            const viewerType = prop(result.properties.Viewer, "select").select?.name;
+            if (!supportedViewerType(viewerType)) {
+                throw new Error("not supported viewer type:" + viewerType);
+            }
             const currentBook: BookItem = {
+                viewer: viewerType,
                 pageId: result.id,
                 fileId: prop(result.properties.FileId, "title").title[0].plain_text,
                 fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
@@ -142,6 +158,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 : null,
         async (param, { arg }: { arg: BookItem }) => {
             const { fileId, fileName, currentBook } = param;
+            // TODO: currently, only support bibi
             const bookItem = arg;
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
@@ -155,6 +172,11 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                             }
                         }
                     ]
+                },
+                Viewer: {
+                    select: {
+                        name: bookItem.viewer
+                    }
                 },
                 FileName: {
                     rich_text: [
@@ -221,8 +243,13 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     properties: properties
                 })) as PageObjectResponse;
                 console.log("⭐ create new book 📚", result);
+                const viewerType = prop(result.properties.Viewer, "select").select?.name;
+                if (!supportedViewerType(viewerType)) {
+                    throw new Error("not supported viewer type:" + viewerType);
+                }
                 await mutateCurrentBook(
                     {
+                        viewer: viewerType,
                         pageId: result.id,
                         fileId: prop(result.properties.FileId, "title").title[0].plain_text,
                         fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,
@@ -249,8 +276,13 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                     properties: properties
                 })) as PageObjectResponse;
                 console.log("⭐ Update book 📚", result);
+                const viewerType = prop(result.properties.Viewer, "select").select?.name;
+                if (!supportedViewerType(viewerType)) {
+                    throw new Error("not supported viewer type:" + viewerType);
+                }
                 await mutateCurrentBook(
                     {
+                        viewer: viewerType,
                         pageId: result.id,
                         fileId: prop(result.properties.FileId, "title").title[0].plain_text,
                         fileName: prop(result.properties.FileName, "rich_text").rich_text[0].plain_text,

@@ -296,6 +296,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     const totalPage = await contentWindow.viewerController.getTotalPage();
                     const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
                     return updateBookStatus({
+                        viewer: "epub:bibi",
                         pageId: bookInfo.id,
                         fileId: props.id,
                         fileName: props.bookFileName,
@@ -321,9 +322,10 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             }
             if (bibiFrame.current) {
                 const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+                // lazy initialized
                 await new Promise<void>((resolve) => {
                     if (contentWindow.document.readyState === "complete") {
-                        setTimeout(() => resolve(), 1000);
+                        setTimeout(() => resolve(), 5000);
                     } else {
                         contentWindow.addEventListener("load", () => {
                             resolve();
@@ -331,37 +333,45 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
                     }
                 });
                 viewerControllerUnListen.current?.(); // avoid register twice
-                viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
-                    if (!isInitialized.current) {
-                        console.log("not yet initialized");
-                        return;
+                try {
+                    viewerControllerUnListen.current = await contentWindow.viewerController.onChangePage(async () => {
+                        if (!isInitialized.current) {
+                            console.log("not yet initialized");
+                            return;
+                        }
+                        const bookInfo = await contentWindow.viewerController.getBookInfo();
+                        const currentPage = await contentWindow.viewerController.getCurrentPage();
+                        const totalPage = await contentWindow.viewerController.getTotalPage();
+                        const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                        console.log("onChangePage", {
+                            bookInfo,
+                            currentBook,
+                            lastMarker,
+                            currentPage,
+                            totalPage
+                        });
+                        return updateBookStatus({
+                            viewer: "epub:bibi", // TODO: currently, only support bibi
+                            pageId: bookInfo.id,
+                            fileId: props.id,
+                            fileName: props.bookFileName,
+                            publisher: bookInfo.publisher,
+                            title: bookInfo.title,
+                            authors: bookInfo.author
+                                .split(",")
+                                .map((author) => author.trim())
+                                .filter((author) => author !== ""),
+                            currentPage,
+                            totalPage,
+                            lastMarker
+                        });
+                    });
+                } catch (error) {
+                    console.error(error);
+                    if (confirm("Failed to initialize viewer. Please Reload. ")) {
+                        location.reload();
                     }
-                    const bookInfo = await contentWindow.viewerController.getBookInfo();
-                    const currentPage = await contentWindow.viewerController.getCurrentPage();
-                    const totalPage = await contentWindow.viewerController.getTotalPage();
-                    const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-                    console.log("onChangePage", {
-                        bookInfo,
-                        currentBook,
-                        lastMarker,
-                        currentPage,
-                        totalPage
-                    });
-                    return updateBookStatus({
-                        pageId: bookInfo.id,
-                        fileId: props.id,
-                        fileName: props.bookFileName,
-                        publisher: bookInfo.publisher,
-                        title: bookInfo.title,
-                        authors: bookInfo.author
-                            .split(",")
-                            .map((author) => author.trim())
-                            .filter((author) => author !== ""),
-                        currentPage,
-                        totalPage,
-                        lastMarker
-                    });
-                });
+                }
             } else {
                 viewerControllerUnListen.current?.();
             }
@@ -424,11 +434,13 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             })
             .then(() => {
                 setIsReady(true);
+                console.log("Service Worker is Ready!");
             })
             .catch((e) => {
                 console.error(e);
             });
         return () => {
+            console.log("Service Worker is stop");
             worker.stop();
         };
     }, [bookId, props.bookFileName, props.id, props.src]);
@@ -445,26 +457,23 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         console.log("bookUrl", url.toString());
         return url.toString();
     }, [bookId, props.initialPage]);
-    const onClickMemo = useCallback(
-        async (event: React.MouseEvent<HTMLButtonElement>) => {
-            if (bibiFrame.current) {
-                const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-                const selected = await contentWindow.viewerController.getSelectedText();
-                const currentPage = await contentWindow.viewerController.getCurrentPage();
-                const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-                console.log("selected texts", selected);
-                await addMemo({
-                    memo: selected.text,
-                    currentPage,
-                    marker: {
-                        ...currentMarker,
-                        highlightSelectors: selected.selectors
-                    }
-                });
-            }
-        },
-        [addMemo]
-    );
+    const onClickMemo = useCallback(async () => {
+        if (bibiFrame.current) {
+            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+            const selected = await contentWindow.viewerController.getSelectedText();
+            const currentPage = await contentWindow.viewerController.getCurrentPage();
+            const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+            console.log("selected texts", selected);
+            await addMemo({
+                memo: selected.text,
+                currentPage,
+                marker: {
+                    ...currentMarker,
+                    highlightSelectors: selected.selectors
+                }
+            });
+        }
+    }, [addMemo]);
     if (!isReady) {
         return <></>;
     }
