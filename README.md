@@ -32,12 +32,12 @@ You need to set up Notion before using memo features.
 - [ ] pdf
   - pdf.js
 
-## Privacy
+## Privacy Notices
 
 - Request/Response to Dropbox: No Proxy
 - Request/Response to Notion: CORS Proxy
   - Notion API does not support CORS
-  - The default CORS Proxy use defined in [pages/api/notion-proxy](pages/api/notion-proxy)
+  - The default CORS Proxy is defined in [pages/api/notion-proxy](pages/api/notion-proxy)
   - You can override it by `localStorage.setItem("USER_DEFINED_NOTION_BASE_URL", "https://your-proxy.test/")`
 
 ## LICENSE
