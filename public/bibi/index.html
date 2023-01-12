@@ -50,6 +50,7 @@
         let currentWaitTime = 0;
         while (true) {
             if (currentWaitTime > MAX_WAIT_TIME_MS) {
+                console.error("Bibi Wait time is over");
                 throw new Error('waitReady timeout: ' + currentWaitTime + 'ms')
             }
             if (typeof R === "undefined" || !R?.Pages || R?.Pages.length === 0) {
