@@ -499,6 +499,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
         console.debug("bookUrl", url.toString());
         return url.toString();
     }, [bookId, props.initialPage]);
+    const [isAddingMemo, setIsAddingMemo] = useState(false);
     const onClickMemo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
@@ -506,14 +507,19 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             console.debug("selected texts", selected);
-            await addMemo({
-                memo: selected.text,
-                currentPage,
-                marker: {
-                    ...currentMarker,
-                    highlightSelectors: selected.selectors
-                }
-            });
+            setIsAddingMemo(true);
+            try {
+                await addMemo({
+                    memo: selected.text,
+                    currentPage,
+                    marker: {
+                        ...currentMarker,
+                        highlightSelectors: selected.selectors
+                    }
+                });
+            } finally {
+                setIsAddingMemo(false);
+            }
         }
     }, [addMemo]);
     if (!isReady) {
@@ -524,6 +530,7 @@ const BibiReader: FC<BibiReaderProps> = (props) => {
             <button
                 className="Button small violet"
                 hidden={!hasCompletedNotionSettings || menuState === "open"}
+                disabled={isAddingMemo}
                 style={{
                     position: "fixed",
                     right: 0,
