@@ -52,8 +52,15 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
         }
         return epubFiles;
     }, [filterQuery, itemLists?.result.entries]);
+    const sortedItems = useMemo(() => {
+        return epubItems.sort((a, b) => {
+            // @ts-expect-error: entry?.is_downloadable is not defined in the type
+            return a.client_modified < b.client_modified ? 1 : -1;
+        });
+    }, [epubItems]);
     return {
-        epubItems
+        epubItems,
+        sortedItems
     } as const;
 };
 const Home: FC = () => {
@@ -62,7 +69,7 @@ const Home: FC = () => {
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
         code: searchParams.get("code") ?? undefined
     });
-    const { epubItems } = useDropboxAPI(dropboxClient);
+    const { epubItems, sortedItems } = useDropboxAPI(dropboxClient);
     if (!ready) {
         return <div className={"main"}>Loading...</div>;
     }
@@ -113,7 +120,7 @@ const Home: FC = () => {
             </header>
             <h2>Book List</h2>
             <ul>
-                {epubItems.map((item) => {
+                {sortedItems.map((item) => {
                     return (
                         <li key={item.path_lower}>
                             <Link
