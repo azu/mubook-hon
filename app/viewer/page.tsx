@@ -80,7 +80,7 @@ const Page: FC<PageProps> = ({ params }) => {
         return <div>ID not found</div>;
     }
     if (viewerType !== "epub:bibi" && viewerType !== "pdf:pdfjs") {
-        return <div>Invalid viewer type</div>;
+        return <div>Invalid viewer type: {viewerType}</div>;
     }
     return (
         <SWRConfig
