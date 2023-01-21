@@ -4,12 +4,12 @@
  * Project: https://github.com/oxalorg/sakura/
  */
 /* Body */
-html {
+html:not(.full-app) {
     font-size: 62.5%;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
-body {
+body:not(.full-app) {
     font-size: 1.8rem;
     line-height: 1.618;
     color: #4a4a4a;
@@ -23,21 +23,15 @@ body {
 }
 
 @media (max-width: 684px) {
-    body {
+    body:not(.full-app) {
         font-size: 1.53rem;
     }
 }
 
 @media (max-width: 382px) {
-    body {
+    body:not(.full-app) {
         font-size: 1.35rem;
     }
-}
-
-.main {
-    /* Pre and Code */
-    /* Tables */
-    /* Buttons, forms and input */
 }
 
 .main h1,

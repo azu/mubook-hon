@@ -40,8 +40,10 @@ export const useNotionSetting = () => {
         updateNotionSettings
     } as const;
 };
-
-export type BibiPositionMaker = {
+export const isBibiPositionMaker = (marker: unknown): marker is BibiPositionMarker => {
+    return typeof marker === "object" && marker !== null && "ItemIndex" in marker;
+};
+export type BibiPositionMarker = {
     ItemIndex: number; // iframe index
     ElementSelector: string; // css selector of Item(iframe)
     /**
@@ -52,7 +54,10 @@ export type BibiPositionMaker = {
         end?: string;
     };
 };
-export type BookMarker = BibiPositionMaker;
+export type PdfJsPositionMarker = {
+    currentPage: number;
+};
+export type BookMarker = BibiPositionMarker | PdfJsPositionMarker;
 
 export const encodeBookMarker = (marker?: BookMarker): string => {
     if (!marker) {
@@ -60,7 +65,7 @@ export const encodeBookMarker = (marker?: BookMarker): string => {
     }
     return encodeURIComponent(JSON.stringify(marker));
 };
-export const decodeBookMarker = (markerString?: string): BookMarker | undefined => {
+export const decodeBookMarker = <T extends BookMarker>(markerString?: string): T | undefined => {
     if (!markerString) {
         return;
     }
@@ -77,11 +82,18 @@ export const supportedViewerType = (viewerType: unknown): viewerType is BookItem
     if (typeof viewerType !== "string") {
         return false;
     }
-    return ["epub:bibi"].includes(viewerType as string);
+    const SUPPORTED_TYPES: BookItem["viewer"][] = ["epub:bibi", "pdf:pdfjs"];
+    // @ts-expect-error: ok
+    return SUPPORTED_TYPES.includes(viewerType);
 };
-export type BookItem = {
-    // Book Viewer type
-    viewer: "epub:bibi"; // TODO: current only support bibi
+
+export const isBibiBookItem = (item: BibiBookItem | PdfJsBookItem): item is BibiBookItem => {
+    return item.viewer === "epub:bibi";
+};
+export const isPdfjsBookItem = (item: BibiBookItem | PdfJsBookItem): item is BibiBookItem => {
+    return item.viewer === "pdf:pdfjs";
+};
+export type CommonBookItemProps = {
     pageId: string;
     fileId: string;
     fileName: string;
@@ -90,8 +102,17 @@ export type BookItem = {
     totalPage: number;
     publisher?: string;
     authors: string[];
-    lastMarker?: BookMarker;
 };
+export type BibiBookItem = {
+    // Book Viewer type
+    viewer: "epub:bibi";
+    lastMarker?: BibiPositionMarker;
+} & CommonBookItemProps;
+export type PdfJsBookItem = {
+    viewer: "pdf:pdfjs";
+    lastMarker?: PdfJsPositionMarker;
+} & CommonBookItemProps;
+export type BookItem = BibiBookItem | PdfJsBookItem;
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
 const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
@@ -145,7 +166,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             if (!supportedViewerType(viewerType)) {
                 throw new Error("not supported viewer type:" + viewerType);
             }
-            const currentBook: BookItem = {
+            const currentBook = {
                 viewer: viewerType,
                 pageId: result.id,
                 fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
@@ -170,7 +191,8 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                       currentBook
                   }
                 : null,
-        async (param, { arg }: { arg: BookItem }) => {
+        // pageId is not required because it comes from the `currentBook`
+        async (param, { arg }: { arg: Omit<BookItem, "pageId"> | BookItem }) => {
             const { fileId, fileName, currentBook } = param;
             // TODO: currently, only support bibi
             const bookItem = arg;
@@ -261,28 +283,36 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 if (!supportedViewerType(viewerType)) {
                     throw new Error("not supported viewer type:" + viewerType);
                 }
-                await mutateCurrentBook(
-                    {
-                        viewer: viewerType,
-                        pageId: result.id,
-                        fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
-                        fileName: prop(result.properties.FileName, "title").title[0].plain_text,
-                        title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
-                        authors: prop(result.properties.Author, "multi_select").multi_select.map(
-                            (select) => select.name
-                        ),
-                        publisher: prop(result.properties.Publisher, "select").select?.name,
-                        currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                        totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                        lastMarker: decodeBookMarker(
-                            prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                        )
-                    },
-                    {
-                        populateCache: true, // No revoke fetch again after mutate
-                        revalidate: false
-                    }
-                );
+                const commonBookItem: CommonBookItemProps = {
+                    pageId: result.id,
+                    fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
+                    fileName: prop(result.properties.FileName, "title").title[0].plain_text,
+                    title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
+                    authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
+                    publisher: prop(result.properties.Publisher, "select").select?.name,
+                    currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
+                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0
+                };
+                const bookItem =
+                    viewerType === "epub:bibi"
+                        ? {
+                              ...commonBookItem,
+                              viewer: viewerType,
+                              lastMarker: decodeBookMarker<BibiPositionMarker>(
+                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                              )
+                          }
+                        : {
+                              ...commonBookItem,
+                              viewer: viewerType,
+                              lastMarker: decodeBookMarker<PdfJsPositionMarker>(
+                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                              )
+                          };
+                await mutateCurrentBook(bookItem, {
+                    populateCache: true, // No revoke fetch again after mutate
+                    revalidate: false
+                });
             } else {
                 // update item
                 const result = (await notionClient.pages.update({
@@ -294,28 +324,36 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                 if (!supportedViewerType(viewerType)) {
                     throw new Error("not supported viewer type:" + viewerType);
                 }
-                await mutateCurrentBook(
-                    {
-                        viewer: viewerType,
-                        pageId: result.id,
-                        fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
-                        fileName: prop(result.properties.FileName, "title").title[0].plain_text,
-                        title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
-                        authors: prop(result.properties.Author, "multi_select").multi_select.map(
-                            (select) => select.name
-                        ),
-                        publisher: prop(result.properties.Publisher, "select").select?.name,
-                        currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                        totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
-                        lastMarker: decodeBookMarker(
-                            prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                        )
-                    },
-                    {
-                        populateCache: true, // No revoke fetch again after mutate
-                        revalidate: false
-                    }
-                );
+                const commonBookItem: CommonBookItemProps = {
+                    pageId: result.id,
+                    fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
+                    fileName: prop(result.properties.FileName, "title").title[0].plain_text,
+                    title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
+                    authors: prop(result.properties.Author, "multi_select").multi_select.map((select) => select.name),
+                    publisher: prop(result.properties.Publisher, "select").select?.name,
+                    currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
+                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0
+                };
+                const bookItem =
+                    viewerType === "epub:bibi"
+                        ? {
+                              ...commonBookItem,
+                              viewer: viewerType,
+                              lastMarker: decodeBookMarker<BibiPositionMarker>(
+                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                              )
+                          }
+                        : {
+                              ...commonBookItem,
+                              viewer: viewerType,
+                              lastMarker: decodeBookMarker<PdfJsPositionMarker>(
+                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
+                              )
+                          };
+                await mutateCurrentBook(bookItem, {
+                    populateCache: true, // No revoke fetch again after mutate
+                    revalidate: false
+                });
             }
             return;
         }
