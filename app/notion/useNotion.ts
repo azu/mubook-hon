@@ -43,6 +43,9 @@ export const useNotionSetting = () => {
 export const isBibiPositionMaker = (marker: unknown): marker is BibiPositionMarker => {
     return typeof marker === "object" && marker !== null && "ItemIndex" in marker;
 };
+export const isPdfJsPositionMarker = (marker: unknown): marker is PdfJsPositionMarker => {
+    return typeof marker === "object" && marker !== null && "currentPage" in marker;
+};
 export type BibiPositionMarker = {
     ItemIndex: number; // iframe index
     ElementSelector: string; // css selector of Item(iframe)

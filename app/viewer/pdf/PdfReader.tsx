@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useRef, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 // Import the styles
 import { rest, setupWorker } from "msw";
 import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
@@ -8,12 +8,23 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 
-import { BookItem, hasDataBook, useNotion } from "../../notion/useNotion";
+import {
+    BookItem,
+    decodeBookMarker,
+    hasDataBook,
+    isPdfjsBookItem,
+    isPdfJsPositionMarker,
+    useNotion
+} from "../../notion/useNotion";
 // Import styles
 export type PdfReaderProps = {
     id: string;
     src?: string;
     bookFileName: string;
+
+    // TODO: not implemented yet
+    initialPage?: string;
+    initialMarker?: string;
 };
 
 function absoluteRect(el: HTMLElement) {
@@ -71,6 +82,17 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
     const { getVisibleText, getSelectedText } = usePdfText();
     const [isAddingMemo, setIsAddingMemo] = useState(false);
     const [isReady, setIsReady] = React.useState(false);
+    const initialPage = useMemo(() => {
+        if (props.initialMarker) {
+            const marker = decodeBookMarker(props.initialMarker);
+            if (isPdfJsPositionMarker(marker)) {
+                console.debug("initial page by marker", marker.currentPage);
+                return marker.currentPage;
+            }
+            console.warn("invalid marker", props.initialMarker);
+        }
+        return hasDataBook(currentBook) ? currentBook?.currentPage : 0;
+    }, [currentBook, props.initialMarker]);
     const bookId = props.id.replace("id:", "");
     useEffect(() => {
         const src = props.src;
@@ -116,9 +138,6 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         async (event: DocumentLoadEvent) => {
             const metadata = await event.doc.getMetadata();
             const totalPage = event.doc.numPages;
-            console.log({
-                metadata
-            });
             const runtimeBookInfo = {
                 viewer: "pdf:pdfjs",
                 fileId: props.id,
@@ -224,7 +243,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             </button>
             <Worker workerUrl={"https://unpkg.com/pdfjs-dist@3.1.81/build/pdf.worker.min.js"}>
                 <Viewer
-                    initialPage={hasDataBook(currentBook) ? currentBook?.currentPage : 0}
+                    initialPage={initialPage}
                     fileUrl={`/pdf/${bookId}`}
                     plugins={[defaultLayoutPluginInstance, fullScreenPluginInstance]}
                     characterMap={characterMap}
