@@ -2,11 +2,14 @@ import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 // Import the styles
 import { rest, setupWorker } from "msw";
 import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import { fullScreenPlugin } from "@react-pdf-viewer/full-screen";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
-import { BookItem, hasDataBook, useNotion } from "../../notion/useNotion";
+import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 
+import { BookItem, hasDataBook, useNotion } from "../../notion/useNotion";
+// Import styles
 export type PdfReaderProps = {
     id: string;
     src?: string;
@@ -188,6 +191,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         });
     }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
+    const fullScreenPluginInstance = fullScreenPlugin();
     const characterMap: CharacterMap = {
         isCompressed: true,
         url: "https://unpkg.com/pdfjs-dist@3.1.81/cmaps/"
@@ -217,7 +221,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                 <Viewer
                     initialPage={hasDataBook(currentBook) ? currentBook?.currentPage : 0}
                     fileUrl={`/pdf/${bookId}`}
-                    plugins={[defaultLayoutPluginInstance]}
+                    plugins={[defaultLayoutPluginInstance, fullScreenPluginInstance]}
                     characterMap={characterMap}
                     onDocumentLoad={onDocumentLoad}
                     onPageChange={onPageChange}
