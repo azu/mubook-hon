@@ -184,6 +184,16 @@ const Home: FC = () => {
                             📝
                         </Link>
                         <Link
+                            href={"https://github.com/sponsors/azu"}
+                            style={{
+                                fontSize: "1.2em"
+                            }}
+                            target={"_blank"}
+                            title={"GitHub Sponsors"}
+                        >
+                            ❤️
+                        </Link>
+                        <Link
                             href={"https://github.com/azu/mubook-hon"}
                             style={{
                                 fontSize: "1.2em"
