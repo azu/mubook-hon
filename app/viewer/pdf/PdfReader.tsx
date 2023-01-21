@@ -147,7 +147,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                 viewer: "pdf:pdfjs",
                 fileId: props.id,
                 fileName: props.bookFileName,
-                title: metadata.info.Title,
+                title: metadata.info.Title || props.bookFileName.replace(/\.pdf$/, ""),
                 authors:
                     metadata.info?.Author?.split(/[,、]/)
                         .map((author) => author.trim())
