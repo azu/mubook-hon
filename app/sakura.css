@@ -4,33 +4,29 @@
  * Project: https://github.com/oxalorg/sakura/
  */
 /* Body */
-.main {
-    max-width: 38em;
-    margin: auto;
-    padding: 13px;
-
+body:not(.full-app) {
     font-size: 1.15rem;
     line-height: 1.618;
     color: #4a4a4a;
     background-color: #f9f9f9;
 }
 
+.main {
+    max-width: 40em;
+    margin: auto;
+    padding: 13px;
+}
+
 @media (max-width: 684px) {
-    body {
+    body:not(.full-app) {
         font-size: 1.53rem;
     }
 }
 
 @media (max-width: 382px) {
-    body {
+    body:not(.full-app) {
         font-size: 1.35rem;
     }
-}
-
-.main {
-    /* Pre and Code */
-    /* Tables */
-    /* Buttons, forms and input */
 }
 
 .main h1,
