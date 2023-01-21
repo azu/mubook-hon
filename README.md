@@ -34,7 +34,7 @@ You need to set up Notion before using memo features.
 - [x] epub
   - [Bibi](https://bibi.epub.link/)
 - [x] pdf
-  - [PDF.js](https://mozilla.github.io/pdf.js/) + [react-pdf-viewer](https://react-pdf-viewer.dev/)
+  - [PDF.js](https://mozilla.github.io/pdf.js/) + [react-pdf-viewer](https://react-pdf-viewer.dev/)(use developer license)
 
 ## Privacy Notices
 
