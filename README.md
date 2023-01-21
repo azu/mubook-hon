@@ -2,7 +2,7 @@
 
 [![mubook-hon](https://mubook-hon.vercel.app/icons/icon-256x256.png)](https://mubook-hon.vercel.app)
 
-mubook-hon is epub reader + Notion Sync + Memo.
+mubook-hon is epub/PDF reader + Notion Sync + Memo.
 
 ![viewer: Ruth A. Shapiro, Manisha Mirchandani and Heesu Jang Pragmatic Philanthropy Asian Charity Explained](docs/viewer.png)
 
@@ -28,9 +28,9 @@ You need to set up Notion before using memo features.
 ## supported format
 
 - [x] epub
-  - bibi
-- [ ] pdf
-  - pdf.js
+  - [Bibi](https://bibi.epub.link/)
+- [x] pdf
+  - [PDF.js](https://mozilla.github.io/pdf.js/) + [react-pdf-viewer](https://react-pdf-viewer.dev/)
 
 ## Privacy Notices
 
