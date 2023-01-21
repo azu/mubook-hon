@@ -184,7 +184,7 @@ const Home: FC = () => {
                                     query: {
                                         // @ts-ignore
                                         id: item.id,
-                                        type: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
+                                        viewer: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
                                     }
                                 }}
                                 // target={"_blank"}
