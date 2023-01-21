@@ -131,22 +131,72 @@ const Home: FC = () => {
                 <div
                     style={{
                         display: "flex",
-                        justifyContent: "flex-end"
+                        flexDirection: "row",
+                        alignItems: "center"
                     }}
                 >
-                    <Link
-                        href={"/settings"}
+                    <div
                         style={{
-                            fontSize: "1.2em"
+                            flex: 1,
+                            justifyContent: "flex-start"
                         }}
                     >
-                        ⚙️Settings
-                    </Link>
+                        <h1 style={{ margin: 0 }}>
+                            <Link href={"/"}>
+                                <img
+                                    src={"/icons/icon-256x256.png"}
+                                    style={{
+                                        width: "1em",
+                                        height: "1em",
+                                        margin: "0"
+                                    }}
+                                    loading={"lazy"}
+                                    alt={"mubook-hon"}
+                                />
+                            </Link>
+                        </h1>
+                    </div>
+                    <div
+                        style={{
+                            flex: 1,
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            gap: "1em"
+                        }}
+                    >
+                        <Link
+                            href={"/settings"}
+                            style={{
+                                fontSize: "1.2em"
+                            }}
+                            title={"Settings"}
+                        >
+                            ⚙️Settings
+                        </Link>
+                        <Link
+                            href={"https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6"}
+                            style={{
+                                fontSize: "1.2em"
+                            }}
+                            target={"_blank"}
+                            title={"Document"}
+                        >
+                            📝
+                        </Link>
+                        <Link
+                            href={"https://github.com/azu/mubook-hon"}
+                            style={{
+                                fontSize: "1.2em"
+                            }}
+                            target={"_blank"}
+                            title={"Source Code"}
+                        >
+                            ℹ️
+                        </Link>
+                    </div>
                 </div>
             </header>
-            <h2>
-                <Link href={"/"}>Book List</Link>
-            </h2>
+            <h2>Book List</h2>
             <form style={{ display: "flex", flexDirection: "row" }} onSubmit={(event) => event.preventDefault()}>
                 <label htmlFor={"input-search"}>🔎</label>
                 <input
