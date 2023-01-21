@@ -73,7 +73,7 @@ const Page: FC<PageProps> = ({ params }) => {
         return <div>Loading...</div>;
     }
     const initialPage = searchParams.get("page") ?? undefined;
-    const viewerType = searchParams.get("type") ?? undefined;
+    const viewerType = searchParams.get("viewer") ?? undefined;
     const initialMarker = searchParams.get("marker") ?? undefined;
     const fileId = searchParams?.get("id");
     if (!fileId) {
