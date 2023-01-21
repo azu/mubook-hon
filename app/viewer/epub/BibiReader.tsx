@@ -31,6 +31,7 @@ export type ViewerContentMethod = {
     getCurrentPage: () => Promise<number>;
     getCurrentPositionMaker: () => Promise<BibiPositionMarker>;
     getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
+    removeSelection: () => Promise<void>;
     getBookInfo: () => Promise<{
         type: "EPUB";
         title: string;
@@ -356,6 +357,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                         ...currentMarker,
                         highlightSelectors: selected.selectors
                     }
+                }).then(() => {
+                    return contentWindow.viewerController.removeSelection();
                 });
             } finally {
                 setIsAddingMemo(false);

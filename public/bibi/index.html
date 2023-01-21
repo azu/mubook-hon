@@ -460,6 +460,14 @@
             id: B.ID,
         }
     }
+    //
+    const removeSelection = async () => {
+        await waitReady()
+        const selectedIframeWindow = getCurrentSelectedIframeWindow() ?? selectionRef?.current;
+        if (selectedIframeWindow) {
+            selectedIframeWindow.getSelection().removeAllRanges();
+        }
+    }
 
     window.addEventListener("DOMContentLoaded", async () => {
         // ?p does not work?
@@ -532,6 +540,7 @@
         getCurrentPageTexts,
         getSelectedText,
         getBookInfo,
+        removeSelection,
         onChangePage,
         onChangeMenuState,
         // utils.
