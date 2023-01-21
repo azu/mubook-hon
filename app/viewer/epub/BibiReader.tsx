@@ -263,6 +263,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         if (bibiFrame.current && hasDataBook(currentBook) && bookInfo?.lastRead) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
             console.debug("jump to Last marker", bookInfo?.lastRead);
+            // @ts-expect-error
             await contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead);
         }
     }, [bookInfo?.lastRead, currentBook]);

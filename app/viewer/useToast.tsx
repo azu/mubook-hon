@@ -1,11 +1,27 @@
-import { FC, useCallback, useEffect, useRef, useState } from "react";
-import { BookMarker } from "../notion/useNotion";
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BookMarker, isBibiBookItem, isBibiPositionMaker } from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 
 export const useToast = () => {
     const [open, setOpen] = useState(false);
     const timerRef = useRef(0);
     const [restoreMakers, setRestoreMakers] = useState<{ current: BookMarker; lastRead: BookMarker }>();
+    const current = useMemo(() => {
+        if (!restoreMakers?.current) {
+            return "<none>";
+        }
+        return isBibiPositionMaker(restoreMakers?.current)
+            ? restoreMakers?.current.ItemIndex
+            : restoreMakers?.current.currentPage;
+    }, [restoreMakers]);
+    const last = useMemo(() => {
+        if (!restoreMakers?.lastRead) {
+            return "<none>";
+        }
+        return isBibiPositionMaker(restoreMakers?.lastRead)
+            ? restoreMakers?.lastRead.ItemIndex
+            : restoreMakers?.lastRead.currentPage;
+    }, [restoreMakers]);
     useEffect(() => {
         return () => clearTimeout(timerRef.current);
     }, []);
@@ -28,8 +44,8 @@ export const useToast = () => {
                     <Toast.Title className="ToastTitle">Found last read page</Toast.Title>
                     <Toast.Description>
                         <ul>
-                            <li>Current: {restoreMakers?.current.ItemIndex}</li>
-                            <li>Last read: {restoreMakers?.lastRead.ItemIndex}</li>
+                            <li>Current: {current}</li>
+                            <li>Last read: {last}</li>
                         </ul>
                         <p>You can Jump to last read page.</p>
                     </Toast.Description>
