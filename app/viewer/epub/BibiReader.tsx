@@ -155,12 +155,12 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
                     return updateBookStatus({
                         viewer: "epub:bibi",
-                        pageId: bookInfo.id,
+                        // pageId: bookInfo.id, // first time
                         fileId: props.id,
                         fileName: props.bookFileName,
                         publisher: bookInfo.publisher,
                         title: bookInfo.title,
-                        authors: bookInfo.author.split(",").map((author) => author.trim()),
+                        authors: bookInfo.author.split(/[,、]/).map((author) => author.trim()),
                         currentPage,
                         totalPage,
                         lastMarker

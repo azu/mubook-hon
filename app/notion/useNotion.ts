@@ -52,7 +52,10 @@ export type BibiPositionMaker = {
         end?: string;
     };
 };
-export type BookMarker = BibiPositionMaker;
+export type PdfJsPositionMarker = {
+    currentPage: number;
+};
+export type BookMarker = BibiPositionMaker | PdfJsPositionMarker;
 
 export const encodeBookMarker = (marker?: BookMarker): string => {
     if (!marker) {
@@ -77,11 +80,13 @@ export const supportedViewerType = (viewerType: unknown): viewerType is BookItem
     if (typeof viewerType !== "string") {
         return false;
     }
-    return ["epub:bibi"].includes(viewerType as string);
+    const SUPPORTED_TYPES: BookItem["viewer"][] = ["epub:bibi", "pdf:pdfjs"];
+    // @ts-expect-error: ok
+    return SUPPORTED_TYPES.includes(viewerType);
 };
 export type BookItem = {
     // Book Viewer type
-    viewer: "epub:bibi"; // TODO: current only support bibi
+    viewer: "epub:bibi" | "pdf:pdfjs";
     pageId: string;
     fileId: string;
     fileName: string;
@@ -170,7 +175,8 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
                       currentBook
                   }
                 : null,
-        async (param, { arg }: { arg: BookItem }) => {
+        // pageId is not required because it comes from the `currentBook`
+        async (param, { arg }: { arg: Omit<BookItem, "pageId"> | BookItem }) => {
             const { fileId, fileName, currentBook } = param;
             // TODO: currently, only support bibi
             const bookItem = arg;

@@ -25,6 +25,7 @@
     "@radix-ui/react-toast": "^1.1.2",
     "@react-pdf-viewer/core": "^3.10.0",
     "@react-pdf-viewer/default-layout": "^3.10.0",
+    "@react-pdf-viewer/locales": "^1.0.0",
     "dropbox": "^10.34.0",
     "encoding": "^0.1.13",
     "exponential-backoff-generator": "^2.0.1",

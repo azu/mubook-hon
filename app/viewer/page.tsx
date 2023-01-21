@@ -135,7 +135,7 @@ const App = (
             )}
             {props.viewerType === "pdf:pdfjs" && (
                 <Suspense fallback={<div>Loading...</div>}>
-                    <PdfReader src={fileBlobUrl} id={id} key={fileBlobUrl} />
+                    <PdfReader src={fileBlobUrl} id={id} key={fileBlobUrl} bookFileName={fileDisplayName} />
                 </Suspense>
             )}
         </>

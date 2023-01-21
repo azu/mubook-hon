@@ -42,9 +42,9 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
     const epubItems = useMemo(() => {
         const epubFiles =
             itemLists?.result.entries.filter((entry) => {
-                // @ts-expect-error: entry?.is_downloadable is not defined in the type
                 return (
                     (entry?.path_lower?.endsWith(".epub") || entry?.path_lower?.endsWith(".pdf")) &&
+                    // @ts-expect-error: entry?.is_downloadable is not defined in the type
                     Boolean(entry?.is_downloadable)
                 );
             }) ?? [];
@@ -132,7 +132,7 @@ const Home: FC = () => {
                                     query: {
                                         // @ts-ignore
                                         id: item.id,
-                                        type: item.path_lower?.endsWith(".epub") ? "epub" : "pdf"
+                                        type: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
                                     }
                                 }}
                                 // target={"_blank"}
