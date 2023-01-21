@@ -366,7 +366,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         }
     }, [addMemo]);
     if (!isReady) {
-        return <></>;
+        return <div>Loading...</div>;
     }
     return (
         <div style={{ height: "100dvh" }} className={"full-page"}>
