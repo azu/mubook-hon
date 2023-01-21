@@ -37,7 +37,8 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; f
         () =>
             dropboxClient
                 ? {
-                      cacheKey: "/dropbox/filesListFolder/"
+                      cacheKey: "/dropbox/filesListFolder/",
+                      path: options.path
                   }
                 : null,
         listFetcher,
@@ -48,19 +49,31 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; f
         }
     );
     const bookItems = useMemo(() => {
-        const epubFiles =
+        const files =
             itemLists?.result.entries.filter((entry) => {
+                if (entry[".tag"] === "folder") {
+                    return true;
+                }
                 return entry?.path_lower?.endsWith(".epub") || entry?.path_lower?.endsWith(".pdf");
             }) ?? [];
         if (filterQuery) {
-            return epubFiles.filter((entry) => {
+            return files.filter((entry) => {
                 return entry?.path_lower?.includes(filterQuery);
             });
         }
-        return epubFiles;
+        return files;
     }, [filterQuery, itemLists?.result.entries]);
     const sortedItems = useMemo(() => {
         return bookItems.sort((a, b) => {
+            if (a[".tag"] === "folder" && b[".tag"] === "folder") {
+                return 0;
+            }
+            if (a[".tag"] === "file" && b[".tag"] === "folder") {
+                return 1;
+            }
+            if (a[".tag"] === "folder" && b[".tag"] === "file") {
+                return -1;
+            }
             // @ts-expect-error: entry?.is_downloadable is not defined in the type
             return a.client_modified < b.client_modified ? 1 : -1;
         });
@@ -73,13 +86,15 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; f
 const Home: FC = () => {
     const ready = useReady();
     const searchParams = useSearchParams();
+    let path = searchParams.get("code");
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
-        code: searchParams.get("code") ?? undefined
+        code: path ?? undefined
     });
     const { searchInput, onInputSearch } = useSearch(searchParams.get("filter") || "");
+    const currentPath = searchParams.get("path");
     const { sortedItems } = useDropboxAPI(dropboxClient, {
         filterQuery: searchInput,
-        path: searchParams.get("path") ?? ""
+        path: currentPath ?? ""
     });
     if (!ready) {
         return <div className={"main"}>Loading...</div>;
@@ -129,7 +144,9 @@ const Home: FC = () => {
                     </Link>
                 </div>
             </header>
-            <h2>Book List</h2>
+            <h2>
+                <Link href={"/"}>Book List</Link>
+            </h2>
             <form style={{ display: "flex", flexDirection: "row" }} onSubmit={(event) => event.preventDefault()}>
                 <label htmlFor={"input-search"}>🔎</label>
                 <input
@@ -142,6 +159,23 @@ const Home: FC = () => {
             </form>
             <ul>
                 {sortedItems.map((item) => {
+                    if (item[".tag"] === "folder") {
+                        return (
+                            <li key={item.path_lower}>
+                                📁
+                                <Link
+                                    href={{
+                                        pathname: "/",
+                                        query: {
+                                            path: item.path_lower
+                                        }
+                                    }}
+                                >
+                                    {item.path_display}
+                                </Link>
+                            </li>
+                        );
+                    }
                     return (
                         <li key={item.path_lower}>
                             <Link

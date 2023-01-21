@@ -4,9 +4,13 @@
 
 mubook-hon is epub/PDF reader + Notion Sync + Memo.
 
-![viewer: Ruth A. Shapiro, Manisha Mirchandani and Heesu Jang Pragmatic Philanthropy Asian Charity Explained](docs/viewer.png)
+![viewer: Ruth A. Shapiro, Manisha Mirchandani and Heesu Jang Pragmatic Philanthropy Asian Charity Explained - CC BY](docs/epub.png)
 
-> Beautiful viewer by [Bibi](https://bibi.epub.link/)
+> epub viewer by [Bibi](https://bibi.epub.link/)
+
+![viewer: Pro Git book - CC BY-NC-SA 3.0](docs/pdf.png)
+
+> PDF viewer by [PDF.js](https://mozilla.github.io/pdf.js/)
 
 ![notion-database.png](docs/notion-database.png)
 
