@@ -150,7 +150,6 @@ const Home: FC = () => {
                                         height: "1em",
                                         margin: "0"
                                     }}
-                                    loading={"lazy"}
                                     alt={"mubook-hon"}
                                 />
                             </Link>
