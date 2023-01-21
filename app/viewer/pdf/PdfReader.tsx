@@ -49,6 +49,12 @@ function absoluteRect(el: HTMLElement) {
     };
 }
 
+const removeSelection = (win: Window = window) => {
+    if (win.getSelection) {
+        win.getSelection()?.removeAllRanges();
+    }
+};
+
 function elementInViewport(el: HTMLElement) {
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
     const { top, left, width, height } = absoluteRect(el);
@@ -207,9 +213,13 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             marker: {
                 currentPage
             }
-        }).finally(() => {
-            setIsAddingMemo(false);
-        });
+        })
+            .then(() => {
+                return removeSelection();
+            })
+            .finally(() => {
+                setIsAddingMemo(false);
+            });
     }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
     const defaultLayoutPluginInstance = defaultLayoutPlugin({
         sidebarTabs: (defaultTabs) => (window.matchMedia("(min-width: 768px)").matches ? defaultTabs : [])
