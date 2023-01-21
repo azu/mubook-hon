@@ -1,5 +1,4 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
-// Import the styles
 import { rest, setupWorker } from "msw";
 import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
