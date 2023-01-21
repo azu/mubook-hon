@@ -9,9 +9,9 @@ import { useSearchParams } from "next/navigation";
 import { files } from "dropbox/types/dropbox_types";
 import Head from "next/head";
 import { BibiReaderProps } from "./epub/BibiReader";
-import { PdfReader } from "./pdf/PdfReader";
 
 const BibiReader = React.lazy(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })));
+const PdfReader = React.lazy(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })));
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
     const fileFetcher: Fetcher<
@@ -135,7 +135,7 @@ const App = (
             )}
             {props.viewerType === "pdf:pdfjs" && (
                 <Suspense fallback={<div>Loading...</div>}>
-                    <PdfReader src={fileBlobUrl} id={id} key={fileBlobUrl} bookFileName={fileDisplayName} />
+                    <PdfReader src={fileBlobUrl} id={id} bookFileName={fileDisplayName} />
                 </Suspense>
             )}
         </>

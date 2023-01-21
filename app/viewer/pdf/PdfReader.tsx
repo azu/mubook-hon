@@ -132,11 +132,6 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         },
         [props.bookFileName, props.id]
     );
-    const getPageText = async (pdf: PdfJs.PdfDocument, pageNo: number) => {
-        const page = await pdf.getPage(pageNo);
-        const tokenizedText = await page.getTextContent();
-        return tokenizedText.items.map((token) => token.str).join("");
-    };
     const onPageChange = useCallback((event: PageChangeEvent) => {
         setCurrentPage(event.currentPage);
     }, []);
