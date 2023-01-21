@@ -12,11 +12,60 @@ export type PdfReaderProps = {
     src?: string;
     bookFileName: string;
 };
+
+function absoluteRect(el: HTMLElement) {
+    const pos = { top: 0, left: 0 };
+    const boundingClientRect = el.getBoundingClientRect();
+    pos.top = boundingClientRect.top;
+    pos.left = boundingClientRect.left;
+    const doc = el.ownerDocument;
+    let childWindow = doc.defaultView;
+    while (window.top !== childWindow) {
+        let boundingClientRect1 = childWindow?.frameElement?.getBoundingClientRect();
+        pos.top += boundingClientRect1?.top ?? 0;
+        pos.left += boundingClientRect1?.left ?? 0;
+        // @ts-expect-error
+        childWindow = childWindow?.parent ?? null;
+    }
+
+    return {
+        top: pos.top,
+        left: pos.left,
+        width: boundingClientRect.width,
+        height: boundingClientRect.height
+    };
+}
+
+function elementInViewport(el: HTMLElement) {
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const { top, left, width, height } = absoluteRect(el);
+    return top >= 0 && top < viewportHeight && left + width > 0 && left + width < viewportHeight;
+}
+
+const usePdfText = () => {
+    const getVisibleText = useCallback(() => {
+        const textElement = document.querySelectorAll(".rpv-core__inner-page-container .rpv-core__text-layer-text");
+        return Array.from(textElement)
+            .filter((element) => {
+                return elementInViewport(element as HTMLElement);
+            })
+            .map((element) => element.textContent)
+            .join(" ");
+    }, []);
+    const getSelectedText = useCallback(() => {
+        return window.getSelection()?.toString() ?? "";
+    }, []);
+    return {
+        getVisibleText,
+        getSelectedText
+    } as const;
+};
 export const PdfReader: FC<PdfReaderProps> = (props) => {
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
         fileName: props.bookFileName
     });
+    const { getVisibleText, getSelectedText } = usePdfText();
     const [isAddingMemo, setIsAddingMemo] = useState(false);
     const [isReady, setIsReady] = React.useState(false);
     const bookId = props.id.replace("id:", "");
@@ -89,7 +138,6 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         return tokenizedText.items.map((token) => token.str).join("");
     };
     const onPageChange = useCallback((event: PageChangeEvent) => {
-        console.log(event);
         setCurrentPage(event.currentPage);
     }, []);
     const isUpdatingBookStatus = useRef<boolean>(false);
@@ -100,7 +148,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         if (runtimeBookInfo == null) {
             return;
         }
-        if (!isUpdatingBookStatus?.current) {
+        if (isUpdatingBookStatus?.current) {
             return;
         }
         isUpdatingBookStatus.current = true;
@@ -132,15 +180,18 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             console.debug("currentPage is not ready");
             return;
         }
-        console.log({
-            currentPage
+        const text = getSelectedText() || getVisibleText();
+        setIsAddingMemo(true);
+        addMemo({
+            memo: text,
+            currentPage,
+            marker: {
+                currentPage
+            }
+        }).finally(() => {
+            setIsAddingMemo(false);
         });
-        const text = await getPageText(currentDoc, currentPage);
-        console.log({
-            text
-        });
-    }, [currentDoc, currentPage]);
-
+    }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
     const characterMap: CharacterMap = {
         isCompressed: true,
@@ -169,6 +220,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             </button>
             <Worker workerUrl={"https://unpkg.com/pdfjs-dist@3.1.81/build/pdf.worker.min.js"}>
                 <Viewer
+                    initialPage={hasDataBook(currentBook) ? currentBook?.currentPage : 0}
                     fileUrl={`/pdf/${bookId}`}
                     plugins={[defaultLayoutPluginInstance]}
                     characterMap={characterMap}

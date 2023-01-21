@@ -152,3 +152,8 @@
 .Button.green:focus {
     box-shadow: 0 0 0 2px var(--green8);
 }
+
+.Button[disabled] {
+    cursor: default;
+    opacity: 0.5;
+}
