@@ -1,7 +1,7 @@
 import "../global.css";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html>
+        <html className={"full-app"}>
             <head>
                 <title>mu-book-hon</title>
             </head>

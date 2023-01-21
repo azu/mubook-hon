@@ -149,6 +149,9 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         if (isUpdatingBookStatus?.current) {
             return;
         }
+        if (currentBook == null) {
+            return;
+        }
         isUpdatingBookStatus.current = true;
         updateBookStatus({
             pageId: hasDataBook(currentBook) ? currentBook.pageId : undefined,
@@ -190,7 +193,9 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             setIsAddingMemo(false);
         });
     }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
-    const defaultLayoutPluginInstance = defaultLayoutPlugin();
+    const defaultLayoutPluginInstance = defaultLayoutPlugin({
+        sidebarTabs: (defaultTabs) => (window.matchMedia("(min-width: 768px)").matches ? defaultTabs : [])
+    });
     const fullScreenPluginInstance = fullScreenPlugin();
     const characterMap: CharacterMap = {
         isCompressed: true,
