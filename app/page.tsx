@@ -1,7 +1,7 @@
 "use client";
 import "./sakura.css";
 import { Dropbox, DropboxResponse } from "dropbox";
-import { FC, Suspense, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { FC, Suspense, useEffect, useMemo, useState } from "react";
 import useSWR, { Fetcher } from "swr";
 import { files } from "dropbox/types/dropbox_types";
 import Link from "next/link";
