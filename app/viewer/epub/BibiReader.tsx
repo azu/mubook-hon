@@ -366,7 +366,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         return <></>;
     }
     return (
-        <>
+        <div style={{ height: "100dvh" }} className={"full-page"}>
             <button
                 className="Button small violet"
                 hidden={!hasCompletedNotionSettings || menuState === "open"}
@@ -392,6 +392,6 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 ref={onInitializeIframeRef}
             ></iframe>
             <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
-        </>
+        </div>
     );
 };

@@ -223,7 +223,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         return <div>Loading...</div>;
     }
     return (
-        <div style={{ height: "100dvh" }}>
+        <div style={{ height: "100dvh" }} className={"full-page"}>
             <button
                 className="Button small violet"
                 hidden={!hasCompletedNotionSettings}
