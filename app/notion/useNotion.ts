@@ -40,8 +40,10 @@ export const useNotionSetting = () => {
         updateNotionSettings
     } as const;
 };
-
-export type BibiPositionMaker = {
+export const isBibiPositionMaker = (marker: unknown): marker is BibiPositionMarker => {
+    return typeof marker === "object" && marker !== null && "ItemIndex" in marker;
+};
+export type BibiPositionMarker = {
     ItemIndex: number; // iframe index
     ElementSelector: string; // css selector of Item(iframe)
     /**
@@ -55,7 +57,7 @@ export type BibiPositionMaker = {
 export type PdfJsPositionMarker = {
     currentPage: number;
 };
-export type BookMarker = BibiPositionMaker | PdfJsPositionMarker;
+export type BookMarker = BibiPositionMarker | PdfJsPositionMarker;
 
 export const encodeBookMarker = (marker?: BookMarker): string => {
     if (!marker) {
@@ -84,9 +86,14 @@ export const supportedViewerType = (viewerType: unknown): viewerType is BookItem
     // @ts-expect-error: ok
     return SUPPORTED_TYPES.includes(viewerType);
 };
-export type BookItem = {
-    // Book Viewer type
-    viewer: "epub:bibi" | "pdf:pdfjs";
+
+export const isBibiBookItem = (item: BibiBookItem | PdfJsBookItem): item is BibiBookItem => {
+    return item.viewer === "epub:bibi";
+};
+export const isPdfjsBookItem = (item: BibiBookItem | PdfJsBookItem): item is BibiBookItem => {
+    return item.viewer === "pdf:pdfjs";
+};
+export type CommonBookItemProps = {
     pageId: string;
     fileId: string;
     fileName: string;
@@ -95,8 +102,17 @@ export type BookItem = {
     totalPage: number;
     publisher?: string;
     authors: string[];
-    lastMarker?: BookMarker;
 };
+export type BibiBookItem = {
+    // Book Viewer type
+    viewer: "epub:bibi";
+    lastMarker?: BibiPositionMarker;
+} & CommonBookItemProps;
+export type PdfJsBookItem = {
+    viewer: "pdf:pdfjs";
+    lastMarker?: PdfJsPositionMarker;
+} & CommonBookItemProps;
+export type BookItem = BibiBookItem | PdfJsBookItem;
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
 const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {

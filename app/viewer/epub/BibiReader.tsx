@@ -1,9 +1,11 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-    BibiPositionMaker,
+    BibiPositionMarker,
     BookItem,
     decodeBookMarker,
     hasDataBook,
+    isBibiBookItem,
+    isBibiPositionMaker,
     NO_BOOK_DATA,
     useNotion
 } from "../../notion/useNotion";
@@ -24,10 +26,10 @@ export type BibiReaderProps = {
 export type ViewerContentMethod = {
     movePrevPage: () => Promise<void>;
     moveNextPage: () => Promise<void>;
-    moveToPositionMarker: (marker: BibiPositionMaker) => Promise<void>;
+    moveToPositionMarker: (marker: BibiPositionMarker) => Promise<void>;
     getTotalPage: () => Promise<number>;
     getCurrentPage: () => Promise<number>;
-    getCurrentPositionMaker: () => Promise<BibiPositionMaker>;
+    getCurrentPositionMaker: () => Promise<BibiPositionMarker>;
     getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
     getBookInfo: () => Promise<{
         type: "EPUB";
@@ -83,6 +85,10 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 isInitialized.current = true;
                 return;
             }
+            if (!isBibiBookItem(currentBook)) {
+                console.debug({ currentBook });
+                throw new Error("currentBook is not BibiBookItem. This is unexpected error");
+            }
             const isDifferencePage = Math.abs(currentMarker.ItemIndex - currentBook.lastMarker.ItemIndex) > 1;
             console.debug("last restore position check", {
                 currentMarker: currentMarker,
@@ -124,6 +130,10 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 marker: marker
             });
             if (marker) {
+                if (!isBibiPositionMaker(marker)) {
+                    console.error("invalid marker", { marker });
+                    throw new Error("marker is not BibiPositionMaker. This is unexpected error");
+                }
                 await waitContentWindowLoad(contentWindow);
                 await contentWindow.viewerController.moveToPositionMarker(marker);
             }

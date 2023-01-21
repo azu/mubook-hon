@@ -1,7 +1,7 @@
-import React, { FC, useCallback, useEffect, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 // Import the styles
 import { rest, setupWorker } from "msw";
-import { CharacterMap, DocumentLoadEvent, PageChangeEvent, Viewer, Worker } from "@react-pdf-viewer/core";
+import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
@@ -20,7 +20,6 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
     const [isAddingMemo, setIsAddingMemo] = useState(false);
     const [isReady, setIsReady] = React.useState(false);
     const bookId = props.id.replace("id:", "");
-    const onClickMemo = useCallback(async () => {}, []);
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -54,10 +53,12 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             worker.stop();
         };
     }, [bookId, props.src]);
-    const [runtimeBookInfo, setRuntimeBookInfo] =
-        React.useState<
-            Pick<BookItem, "viewer" | "fileId" | "fileName" | "authors" | "publisher" | "title" | "totalPage">
-        >();
+    const [runtimeBookInfo, setRuntimeBookInfo] = React.useState<
+        Pick<BookItem, "fileId" | "fileName" | "authors" | "publisher" | "title" | "totalPage"> & {
+            viewer: "pdf:pdfjs";
+        }
+    >();
+    const [currentDoc, setCurrentDoc] = React.useState<PdfJs.PdfDocument>();
     const [currentPage, setCurrentPage] = React.useState<number | null>(null);
     const onDocumentLoad = useCallback(
         async (event: DocumentLoadEvent) => {
@@ -71,17 +72,27 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                 fileId: props.id,
                 fileName: props.bookFileName,
                 title: metadata.info.Title,
-                authors: metadata.info?.Author?.split(/[,、]/).map((author) => author.trim()) || [],
+                authors:
+                    metadata.info?.Author?.split(/[,、]/)
+                        .map((author) => author.trim())
+                        .filter((author) => Boolean(author)) || [],
                 totalPage
             } as const;
             setRuntimeBookInfo(runtimeBookInfo);
+            setCurrentDoc(event.doc);
         },
         [props.bookFileName, props.id]
     );
+    const getPageText = async (pdf: PdfJs.PdfDocument, pageNo: number) => {
+        const page = await pdf.getPage(pageNo);
+        const tokenizedText = await page.getTextContent();
+        return tokenizedText.items.map((token) => token.str).join("");
+    };
     const onPageChange = useCallback((event: PageChangeEvent) => {
         console.log(event);
         setCurrentPage(event.currentPage);
     }, []);
+    const isUpdatingBookStatus = useRef<boolean>(false);
     useEffect(() => {
         if (currentPage === null) {
             return;
@@ -89,6 +100,10 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         if (runtimeBookInfo == null) {
             return;
         }
+        if (!isUpdatingBookStatus?.current) {
+            return;
+        }
+        isUpdatingBookStatus.current = true;
         updateBookStatus({
             pageId: hasDataBook(currentBook) ? currentBook.pageId : undefined,
             viewer: runtimeBookInfo.viewer,
@@ -100,10 +115,32 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             publisher: runtimeBookInfo.publisher,
             currentPage,
             lastMarker: { currentPage }
-        }).catch((e) => {
-            console.error(e);
+        })
+            .catch((e) => {
+                console.error(e);
+            })
+            .finally(() => {
+                isUpdatingBookStatus.current = false;
+            });
+    }, [runtimeBookInfo, currentPage, updateBookStatus, currentBook, isUpdatingBookStatus]);
+    const onClickMemo = useCallback(async () => {
+        if (!currentDoc) {
+            console.debug("currentDoc is not ready");
+            return;
+        }
+        if (currentPage === null) {
+            console.debug("currentPage is not ready");
+            return;
+        }
+        console.log({
+            currentPage
         });
-    }, [runtimeBookInfo, currentPage, updateBookStatus, currentBook]);
+        const text = await getPageText(currentDoc, currentPage);
+        console.log({
+            text
+        });
+    }, [currentDoc, currentPage]);
+
     const defaultLayoutPluginInstance = defaultLayoutPlugin();
     const characterMap: CharacterMap = {
         isCompressed: true,
