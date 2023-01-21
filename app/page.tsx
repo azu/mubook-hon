@@ -25,13 +25,13 @@ const useSearch = (initialSearch: string) => {
         onInputSearch
     };
 };
-const useDropboxAPI = (dropboxClient: Dropbox | null, options: { filterQuery: string }) => {
+const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; filterQuery: string }) => {
     const filterQuery = options.filterQuery;
     const listFetcher: Fetcher<DropboxResponse<files.ListFolderResult>> = async () => {
         if (!dropboxClient) {
             throw new Error("no dropbox client");
         }
-        return dropboxClient.filesListFolder({ path: "" });
+        return dropboxClient.filesListFolder({ path: options.path });
     };
     const { data: itemLists, error: itemListsError } = useSWR<DropboxResponse<files.ListFolderResult>>(
         () =>
@@ -50,11 +50,7 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { filterQuery: st
     const bookItems = useMemo(() => {
         const epubFiles =
             itemLists?.result.entries.filter((entry) => {
-                return (
-                    (entry?.path_lower?.endsWith(".epub") || entry?.path_lower?.endsWith(".pdf")) &&
-                    // @ts-expect-error: entry?.is_downloadable is not defined in the type
-                    Boolean(entry?.is_downloadable)
-                );
+                return entry?.path_lower?.endsWith(".epub") || entry?.path_lower?.endsWith(".pdf");
             }) ?? [];
         if (filterQuery) {
             return epubFiles.filter((entry) => {
@@ -82,7 +78,8 @@ const Home: FC = () => {
     });
     const { searchInput, onInputSearch } = useSearch(searchParams.get("filter") || "");
     const { sortedItems } = useDropboxAPI(dropboxClient, {
-        filterQuery: searchInput
+        filterQuery: searchInput,
+        path: searchParams.get("path") ?? ""
     });
     if (!ready) {
         return <div className={"main"}>Loading...</div>;
@@ -133,7 +130,7 @@ const Home: FC = () => {
                 </div>
             </header>
             <h2>Book List</h2>
-            <form style={{ display: "flex", flexDirection: "row" }}>
+            <form style={{ display: "flex", flexDirection: "row" }} onSubmit={(event) => event.preventDefault()}>
                 <label htmlFor={"input-search"}>🔎</label>
                 <input
                     id="input-search"
