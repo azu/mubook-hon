@@ -1,7 +1,7 @@
 "use client";
 import "./sakura.css";
 import { Dropbox, DropboxResponse } from "dropbox";
-import { FC, Suspense, useEffect, useMemo, useState } from "react";
+import { FC, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import useSWR, { Fetcher } from "swr";
 import { files } from "dropbox/types/dropbox_types";
 import Link from "next/link";
@@ -15,10 +15,18 @@ const useReady = () => {
     }, []);
     return ready;
 };
-
-const useDropboxAPI = (dropboxClient: Dropbox | null) => {
-    const searchParams = useSearchParams();
-    const filterQuery = searchParams.get("filter");
+const useSearch = (initialSearch: string) => {
+    const [searchInput, setSearchInput] = useState(initialSearch);
+    const onInputSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchInput(e.target.value);
+    }, []);
+    return {
+        searchInput,
+        onInputSearch
+    };
+};
+const useDropboxAPI = (dropboxClient: Dropbox | null, options: { filterQuery: string }) => {
+    const filterQuery = options.filterQuery;
     const listFetcher: Fetcher<DropboxResponse<files.ListFolderResult>> = async () => {
         if (!dropboxClient) {
             throw new Error("no dropbox client");
@@ -39,7 +47,7 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
             revalidateOnMount: true
         }
     );
-    const epubItems = useMemo(() => {
+    const bookItems = useMemo(() => {
         const epubFiles =
             itemLists?.result.entries.filter((entry) => {
                 return (
@@ -56,13 +64,13 @@ const useDropboxAPI = (dropboxClient: Dropbox | null) => {
         return epubFiles;
     }, [filterQuery, itemLists?.result.entries]);
     const sortedItems = useMemo(() => {
-        return epubItems.sort((a, b) => {
+        return bookItems.sort((a, b) => {
             // @ts-expect-error: entry?.is_downloadable is not defined in the type
             return a.client_modified < b.client_modified ? 1 : -1;
         });
-    }, [epubItems]);
+    }, [bookItems]);
     return {
-        epubItems,
+        bookItems,
         sortedItems
     } as const;
 };
@@ -72,7 +80,10 @@ const Home: FC = () => {
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
         code: searchParams.get("code") ?? undefined
     });
-    const { epubItems, sortedItems } = useDropboxAPI(dropboxClient);
+    const { searchInput, onInputSearch } = useSearch(searchParams.get("filter") || "");
+    const { sortedItems } = useDropboxAPI(dropboxClient, {
+        filterQuery: searchInput
+    });
     if (!ready) {
         return <div className={"main"}>Loading...</div>;
     }
@@ -122,6 +133,16 @@ const Home: FC = () => {
                 </div>
             </header>
             <h2>Book List</h2>
+            <form style={{ display: "flex", flexDirection: "row" }}>
+                <label htmlFor={"input-search"}>🔎</label>
+                <input
+                    id="input-search"
+                    type={"text"}
+                    value={searchInput}
+                    onInput={onInputSearch}
+                    style={{ flex: 1, marginLeft: "0.5em" }}
+                />
+            </form>
             <ul>
                 {sortedItems.map((item) => {
                     return (
