@@ -38,6 +38,13 @@ You need to set up Notion before using memo features.
 - [x] pdf
   - [PDF.js](https://mozilla.github.io/pdf.js/) + [react-pdf-viewer](https://react-pdf-viewer.dev/)(use developer license)
 
+## Application mode
+
+You can use <https://mubook-hon.vercel.app/> as PWA apps.
+
+- [Add & open Chrome apps - Chrome Web Store Help](https://support.google.com/chrome_webstore/answer/3060053?hl=en)
+- [Add to Home screen - Progressive web apps (PWAs) | MDN](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen)
+
 ## Privacy Notices
 
 - Request/Response to Dropbox: No Proxy
