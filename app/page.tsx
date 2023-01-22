@@ -58,7 +58,7 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; f
             }) ?? [];
         if (filterQuery) {
             return files.filter((entry) => {
-                return entry?.path_lower?.includes(filterQuery);
+                return entry?.path_lower?.toLowerCase().includes(filterQuery.toLowerCase());
             });
         }
         return files;
