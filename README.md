@@ -25,7 +25,9 @@ You need to set up Notion before using memo features.
 
 ## Features
 
-- Read epub files on Dropbox
+- Read epub/PDF files on Dropbox
+- Support cross browser on Mobile and PC
+- Sync progress using Notion on cross devices
 - Add memo to Notion with selected text
 - Manage book list in Notion
 
