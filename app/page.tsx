@@ -7,6 +7,7 @@ import { files } from "dropbox/types/dropbox_types";
 import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
+import { useNotionList } from "./notion/useNotionList";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -86,6 +87,7 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; f
 const Home: FC = () => {
     const ready = useReady();
     const searchParams = useSearchParams();
+    const { recentBooks, isLoadingRecentBooks } = useNotionList();
     let path = searchParams.get("code");
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
         code: path ?? undefined
@@ -205,6 +207,48 @@ const Home: FC = () => {
                     </div>
                 </div>
             </header>
+            <h2>Recent Books</h2>
+            <details>
+                <summary>
+                    {isLoadingRecentBooks ? (
+                        "Loading..."
+                    ) : recentBooks?.length === 0 ? (
+                        "No recent books"
+                    ) : (
+                        <Link
+                            href={{
+                                pathname: "/viewer",
+                                query: {
+                                    id: recentBooks?.at(0)?.fileId,
+                                    viewer: recentBooks?.at(0)?.viewer
+                                }
+                            }}
+                        >
+                            📖 {recentBooks?.at(0)?.fileName}
+                        </Link>
+                    )}
+                </summary>
+                <ul>
+                    {recentBooks?.slice(1).map((item) => {
+                        return (
+                            <li key={item.fileId}>
+                                📖{" "}
+                                <Link
+                                    href={{
+                                        pathname: "/viewer",
+                                        query: {
+                                            id: item.fileId,
+                                            viewer: item.viewer
+                                        }
+                                    }}
+                                >
+                                    {item.fileName}
+                                </Link>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </details>
             <h2>Book List</h2>
             <form style={{ display: "flex", flexDirection: "row" }} onSubmit={(event) => event.preventDefault()}>
                 <label htmlFor={"input-search"}>🔎</label>

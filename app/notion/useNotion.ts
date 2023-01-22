@@ -118,7 +118,7 @@ export type PdfJsBookItem = {
 export type BookItem = BibiBookItem | PdfJsBookItem;
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
-const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
+export const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
     if (o.type !== type) {
         throw new Error("invalid type:" + JSON.stringify(o));
     }
