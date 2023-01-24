@@ -158,7 +158,10 @@
         }
     };
 
-    const getCurrentPageTexts = async () => {
+    /**
+     * @returns {Promise<{text: string, selectors: {start: (string|undefined), end: (string|undefined)}}>}
+     */
+    const getCurrentPageText = async () => {
         await waitReady();
         const iframe = document.querySelector(".current iframe");
         if (!iframe) {
@@ -172,7 +175,6 @@
         }
         return {
             text: visibleChildren.map(el => el.textContent ?? "").join("\n"),
-            visibleChildren,
             selectors,
         };
     }
@@ -224,6 +226,7 @@
     const createSelectionState = async () => {
         await waitReady();
         let currentIframeContentWindow = null;
+        let onChangeHandler = () => void 0;
 
         function handleSelectStart(event) {
             currentIframeContentWindow = event.view;
@@ -231,6 +234,8 @@
 
         function handleSelectEnd(event) {
             currentIframeContentWindow = event.view;
+            const selection = event.view.getSelection().toString();
+            onChangeHandler(selection);
         }
 
         E.add("bibi:downs-pointer", handleSelectStart)
@@ -239,21 +244,33 @@
             get current() {
                 return currentIframeContentWindow
             },
+            /**
+             * @param {(selection:string) => void}cb
+             */
+            onChangeSelection: (cb) => {
+                // TODO: multiple event support
+                onChangeHandler = cb;
+                return () => {
+                    onChangeHandler = () => void 0;
+                }
+            },
             dispose: function destroy() {
                 E.remove("bibi:downs-pointer", handleSelectStart)
                 E.remove("bibi:upped-pointer", handleSelectEnd)
                 currentIframeContentWindow = null;
+                onChangeHandler = () => void 0;
             }
         };
     }
     /**
-     * @type {undefined | { current?: Window, dispose: () => void }}
+     * @type {undefined | { current?: Window, dispose: () => void; onChangeSelection: (cb: (selection: string) => void) => void
      */
     let selectionRef;
     window.addEventListener("load", async () => {
         selectionRef = await createSelectionState();
     })
     window.addEventListener("beforeunload", () => selectionRef?.dispose());
+
     /**
      * @returns {Promise<{text: string, selectors: {start?: string, end?: string}}>}
      */
@@ -264,7 +281,7 @@
         const selectedIframeWindow = getCurrentSelectedIframeWindow() ?? selectionRef?.current;
         const selection = selectedIframeWindow ? selectedIframeWindow.getSelection() : undefined;
         if (!selection) {
-            const currentPageText = await getCurrentPageTexts();
+            const currentPageText = await getCurrentPageText();
             if (currentPageText.text && currentPageText.selectors) {
                 console.debug("return current page text instead of selected text", currentPageText);
                 return { text: currentPageText.text, selectors: currentPageText.selectors }
@@ -478,8 +495,7 @@
         if (pageNumber) {
             await moveToIIPP(pageNumber);
         }
-
-    })
+    });
 
     const debounce = (fn, ms) => {
         let timer = null;
@@ -528,6 +544,16 @@
             E.remove("bibi:closed-menu", onMenuClosed)
         };
     }
+    /**
+     * onChange Selection
+     * @param {(selection:string) => void}fn
+     * @returns {Promise<void>}
+     */
+    const onChangeSelection = async (fn) => {
+        await waitReady();
+        await selectionRef.onChangeSelection(fn);
+
+    }
     window.viewerController = {
         movePrevPage,
         moveNextPage,
@@ -537,12 +563,13 @@
         getCurrentPositionMaker,
         getCurrentPage,
         getCurrentIIPP,
-        getCurrentPageTexts,
+        getCurrentPageText,
         getSelectedText,
         getBookInfo,
         removeSelection,
         onChangePage,
         onChangeMenuState,
+        onChangeSelection,
         // utils.
         findFirstVisibleElement
     };

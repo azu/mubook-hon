@@ -31,6 +31,7 @@ export type ViewerContentMethod = {
     getCurrentPage: () => Promise<number>;
     getCurrentPositionMaker: () => Promise<BibiPositionMarker>;
     getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
+    getCurrentPageText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
     removeSelection: () => Promise<void>;
     getBookInfo: () => Promise<{
         type: "EPUB";
@@ -41,6 +42,7 @@ export type ViewerContentMethod = {
     }>;
     onChangePage: (fn: (page: number) => void) => Promise<() => void>;
     onChangeMenuState: (fn: (state: "open" | "closed") => void) => Promise<() => void>;
+    onChangeSelection: (fn: (selection?: string) => void) => Promise<() => void>;
 };
 
 const waitContentWindowLoad = async (contentWindow: ContentWindow) => {
@@ -182,8 +184,10 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         [currentBook, props.bookFileName, props.id, updateBookStatus]
     );
 
+    const [canMemo, setCanMemo] = useState(false);
     const viewerControllerOnChangePageRef = useRef<() => void>();
-    const viewerControllerONChangeMenuRef = useRef<() => void>();
+    const viewerControllerOnChangeMenuRef = useRef<() => void>();
+    const viewerControllerOnSelectionChangeRef = useRef<() => void>();
     const onInitializeIframeRef = useCallback(
         async (frameElement: HTMLIFrameElement) => {
             bibiFrame.current = frameElement;
@@ -196,8 +200,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 await waitContentWindowLoad(contentWindow);
                 const watchChangePage = async ({ attempts }: { attempts: number }) => {
                     console.debug("Try to add listener to page. attempts: " + attempts);
-                    viewerControllerONChangeMenuRef.current?.();
-                    viewerControllerONChangeMenuRef.current = await contentWindow.viewerController.onChangeMenuState(
+                    viewerControllerOnChangeMenuRef.current?.();
+                    viewerControllerOnChangeMenuRef.current = await contentWindow.viewerController.onChangeMenuState(
                         (state) => {
                             console.debug("{menu", {
                                 state
@@ -205,6 +209,16 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                             setMenuState(state);
                         }
                     );
+                    viewerControllerOnSelectionChangeRef.current?.();
+                    viewerControllerOnSelectionChangeRef.current =
+                        await contentWindow.viewerController.onChangeSelection((selection) => {
+                            console.debug("selection change", {
+                                selection
+                            });
+                            if (selection) {
+                                setCanMemo(true);
+                            }
+                        });
                     viewerControllerOnChangePageRef.current?.(); // avoid register twice
                     viewerControllerOnChangePageRef.current = await contentWindow.viewerController.onChangePage(
                         async () => {
@@ -216,14 +230,16 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                             const currentPage = await contentWindow.viewerController.getCurrentPage();
                             const totalPage = await contentWindow.viewerController.getTotalPage();
                             const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                            const currentPageText = await contentWindow.viewerController.getCurrentPageText();
                             console.debug("onChangePage", {
                                 bookInfo,
                                 currentBook,
                                 lastMarker,
                                 currentPage,
-                                totalPage
+                                totalPage,
+                                currentPageText: currentPageText.text
                             });
-                            return updateBookStatus({
+                            await updateBookStatus({
                                 viewer: "epub:bibi", // TODO: currently, only support bibi
                                 pageId: bookInfo.id,
                                 fileId: props.id,
@@ -238,6 +254,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                                 totalPage,
                                 lastMarker
                             });
+                            // if you get current page text, can memo it
+                            setCanMemo(Boolean(currentPageText.text));
                         }
                     );
                 };
@@ -254,8 +272,9 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 });
                 alert("Fail to initialize book viewer. Please reload page");
             } else {
-                viewerControllerONChangeMenuRef.current?.();
+                viewerControllerOnChangeMenuRef.current?.();
                 viewerControllerOnChangePageRef.current?.();
+                viewerControllerOnSelectionChangeRef.current?.();
             }
         },
         [currentBook, props.bookFileName, props.id, tryToRestoreLastPositionAtFirst, updateBookStatus]
@@ -373,7 +392,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             <button
                 className="Button small violet"
                 hidden={!hasCompletedNotionSettings || menuState === "open"}
-                disabled={isAddingMemo}
+                disabled={!canMemo || isAddingMemo}
                 style={{
                     position: "fixed",
                     right: 0,
