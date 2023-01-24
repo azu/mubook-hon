@@ -4,7 +4,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html>
             <head>
-                <title>mu-book-hon</title>
+                <title>mubook-hon</title>
             </head>
             <body>{children}</body>
         </html>
