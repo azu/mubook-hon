@@ -31,7 +31,7 @@ export type ViewerContentMethod = {
     getCurrentPage: () => Promise<number>;
     getCurrentPositionMaker: () => Promise<BibiPositionMarker>;
     getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } } | null>;
-    getCurrentPageText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
+    getCurrentPageText: () => Promise<{ text: string; selectors: { start: string; end: string } } | null>;
     removeSelection: () => Promise<void>;
     getBookInfo: () => Promise<{
         type: "EPUB";
@@ -80,6 +80,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement>();
+    const [memoStock, setMemoStock] = useState<{ text: string; selectors: { start: string; end: string } }[]>([]);
     const restoreLastPosition = useCallback(
         async (contentWindow: ContentWindow, currentBook: BookItem) => {
             await waitContentWindowLoad(contentWindow);
@@ -184,7 +185,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         [currentBook, props.bookFileName, props.id, updateBookStatus]
     );
 
-    const [canMemo, setCanMemo] = useState(false);
+    // has selected text or page content
+    const [canMemoContent, setCanMemoContent] = useState(false);
     const viewerControllerOnChangePageRef = useRef<() => void>();
     const viewerControllerOnChangeMenuRef = useRef<() => void>();
     const viewerControllerOnSelectionChangeRef = useRef<() => void>();
@@ -216,7 +218,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                                 selection
                             });
                             if (selection) {
-                                setCanMemo(true);
+                                setCanMemoContent(true);
                             }
                         });
                     viewerControllerOnChangePageRef.current?.(); // avoid register twice
@@ -237,7 +239,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                                 lastMarker,
                                 currentPage,
                                 totalPage,
-                                currentPageText: currentPageText.text
+                                currentPageText: currentPageText
                             });
                             await updateBookStatus({
                                 viewer: "epub:bibi", // TODO: currently, only support bibi
@@ -255,8 +257,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                                 lastMarker
                             });
                             // if you get current page text, can memo it
-                            const canMemo = Boolean(currentPageText.text);
-                            setCanMemo(canMemo);
+                            const canMemo = Boolean(currentPageText?.text);
+                            setCanMemoContent(canMemo);
                         }
                     );
                 };
@@ -361,23 +363,48 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         return url.toString();
     }, [bookId, props.initialPage]);
     const [isAddingMemo, setIsAddingMemo] = useState(false);
-    const onClickMemo = useCallback(async () => {
+    const onClickStockMemo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
             // selected > page
             const selected =
                 (await contentWindow.viewerController.getSelectedText()) ??
                 (await contentWindow.viewerController.getCurrentPageText());
+            if (!selected?.text) {
+                return;
+            }
+            setMemoStock((prev) => {
+                return [...prev, selected];
+            });
+        }
+    }, []);
+
+    const onClickMemo = useCallback(async () => {
+        if (bibiFrame.current) {
+            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+            const stockedMemo = memoStock
+                ? {
+                      text: memoStock.map((m) => m.text).join("\n----\n"),
+                      selectors: {
+                          start: memoStock.at(0)?.selectors.start,
+                          end: memoStock.at(-1)?.selectors.end
+                      }
+                  }
+                : undefined;
+            // stock > selected > page
+            const selected = stockedMemo
+                ? stockedMemo
+                : (await contentWindow.viewerController.getSelectedText()) ??
+                  (await contentWindow.viewerController.getCurrentPageText());
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-            console.debug("selected texts", selected);
-            setIsAddingMemo(true);
-            if (!selected.text) {
+            if (!selected?.text) {
                 console.debug("selected text is empty", { selected, currentPage, currentMarker });
                 window.alert("Please select text to add memo");
                 return;
             }
             try {
+                setIsAddingMemo(true);
                 await addMemo({
                     memo: selected.text,
                     currentPage,
@@ -386,13 +413,20 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                         highlightSelectors: selected.selectors
                     }
                 }).then(() => {
+                    setMemoStock([]);
                     return contentWindow.viewerController.removeSelection();
                 });
             } finally {
                 setIsAddingMemo(false);
             }
         }
-    }, [addMemo]);
+    }, [addMemo, memoStock]);
+    const enableMemoButton = useMemo(() => {
+        if (memoStock.length > 0) {
+            return true;
+        }
+        return canMemoContent && !isAddingMemo;
+    }, [canMemoContent, isAddingMemo, memoStock.length]);
     if (!isReady) {
         return <div>Loading...</div>;
     }
@@ -401,7 +435,25 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             <button
                 className="Button small violet"
                 hidden={!hasCompletedNotionSettings || menuState === "open"}
-                disabled={!canMemo || isAddingMemo}
+                disabled={!canMemoContent || isAddingMemo}
+                title={"Stock Memo"}
+                style={{
+                    position: "fixed",
+                    left: 0,
+                    bottom: 0,
+                    zIndex: 1000,
+                    padding: "1rem",
+                    borderRadius: "4px"
+                }}
+                onClick={onClickStockMemo}
+            >
+                📁+{memoStock.length}
+            </button>
+            <button
+                className="Button small violet"
+                hidden={!hasCompletedNotionSettings || menuState === "open"}
+                disabled={!enableMemoButton}
+                title={"Add Memo"}
                 style={{
                     position: "fixed",
                     right: 0,

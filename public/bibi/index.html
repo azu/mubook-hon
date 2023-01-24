@@ -159,16 +159,19 @@
     };
 
     /**
-     * @returns {Promise<{text: string, selectors: {start: (string|undefined), end: (string|undefined)}}>}
+     * @returns {Promise<{text: string, selectors: {start: (string|undefined), end: (string|undefined)}} | null>}
      */
     const getCurrentPageText = async () => {
         await waitReady();
         const iframe = document.querySelector(".current iframe");
         if (!iframe) {
-            throw new Error("Can not find iframe");
+            return null;
         }
         const children = findChildren(iframe.contentWindow.document.body);
         const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
+        if(visibleChildren.length === 0) {
+            return null;
+        }
         const selectors = {
             start: getSelectorFromElement(visibleChildren.at(0), iframe.contentWindow),
             end: getSelectorFromElement(visibleChildren.at(-1), iframe.contentWindow)
