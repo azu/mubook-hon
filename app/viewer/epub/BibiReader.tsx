@@ -368,6 +368,11 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             console.debug("selected texts", selected);
             setIsAddingMemo(true);
+            if (!selected.text) {
+                console.debug("selected text is empty", { selected, currentPage, currentMarker });
+                window.alert("Please select text to add memo");
+                return;
+            }
             try {
                 await addMemo({
                     memo: selected.text,
