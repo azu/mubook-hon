@@ -272,7 +272,7 @@
     window.addEventListener("beforeunload", () => selectionRef?.dispose());
 
     /**
-     * @returns {Promise<{text: string, selectors: {start?: string, end?: string}}>}
+     * @returns {Promise<{text: string, selectors: {start?: string, end?: string}} | null>}
      */
     const getSelectedText = async () => {
         await waitReady();
@@ -281,16 +281,13 @@
         const selectedIframeWindow = getCurrentSelectedIframeWindow() ?? selectionRef?.current;
         const selection = selectedIframeWindow ? selectedIframeWindow.getSelection() : undefined;
         if (!selection) {
-            const currentPageText = await getCurrentPageText();
-            if (currentPageText.text && currentPageText.selectors) {
-                console.debug("return current page text instead of selected text", currentPageText);
-                return { text: currentPageText.text, selectors: currentPageText.selectors }
-            }
-            console.debug("selected iframe window cannot found");
-            return { text: "", selectors: undefined };
+            return null;
         }
         const selectors = getSelectorFromSelection(selection, selectedIframeWindow);
         const text = selection.toString();
+        if (!text) {
+            return null;
+        }
         return {
             text,
             selectors,

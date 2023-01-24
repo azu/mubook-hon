@@ -30,7 +30,7 @@ export type ViewerContentMethod = {
     getTotalPage: () => Promise<number>;
     getCurrentPage: () => Promise<number>;
     getCurrentPositionMaker: () => Promise<BibiPositionMarker>;
-    getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
+    getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } } | null>;
     getCurrentPageText: () => Promise<{ text: string; selectors: { start: string; end: string } }>;
     removeSelection: () => Promise<void>;
     getBookInfo: () => Promise<{
@@ -255,7 +255,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                                 lastMarker
                             });
                             // if you get current page text, can memo it
-                            setCanMemo(Boolean(currentPageText.text));
+                            const canMemo = Boolean(currentPageText.text);
+                            setCanMemo(canMemo);
                         }
                     );
                 };
@@ -363,7 +364,10 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     const onClickMemo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-            const selected = await contentWindow.viewerController.getSelectedText();
+            // selected > page
+            const selected =
+                (await contentWindow.viewerController.getSelectedText()) ??
+                (await contentWindow.viewerController.getCurrentPageText());
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             console.debug("selected texts", selected);
