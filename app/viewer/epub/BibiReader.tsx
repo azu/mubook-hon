@@ -396,6 +396,10 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 ? stockedMemo
                 : (await contentWindow.viewerController.getSelectedText()) ??
                   (await contentWindow.viewerController.getCurrentPageText());
+            console.debug("selected object", {
+                selected,
+                stockedMemo
+            });
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             if (!selected?.text) {
