@@ -70,8 +70,91 @@ const waitContentWindowLoad = async (contentWindow: ContentWindow) => {
     });
 };
 
+const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: string }) => {
+    const [isReadyBook, setIsReadyBook] = useState(false);
+    const bookId = props.id.replace("id:", "");
+    useEffect(() => {
+        const src = props.src;
+        if (!src) {
+            return;
+        }
+        const worker = setupWorker(
+            // Bibi request
+            // 1. /META-INF/container.xml
+            // 2. /OEBPS/content.opf
+            // Response epub content as /OEBPS/content.opf
+            rest.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", async (_, res, ctx) => {
+                return res(
+                    ctx.set("Content-Type", "application/xml"),
+                    // Respond with the "ArrayBuffer".
+                    ctx.body(`<?xml version="1.0" ?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml" />
+  </rootfiles>
+</container>
+`)
+                );
+            }),
+            rest.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async (_, res, ctx) => {
+                const epub = await fetch(src).then((res) => res.arrayBuffer());
+                return res(
+                    ctx.set("Content-Length", epub.byteLength.toString()),
+                    ctx.set("Content-Type", "application/epub+zip"),
+                    ctx.body(epub)
+                );
+            }),
+            rest.get("/bibi-bookshelf/" + bookId, async (_, res, ctx) => {
+                const epub = await fetch(src).then((res) => res.arrayBuffer());
+                return res(
+                    ctx.set("Content-Length", epub.byteLength.toString()),
+                    ctx.set("Content-Type", "application/epub+zip"),
+                    // Respond with the "ArrayBuffer".
+                    ctx.body(epub)
+                );
+            })
+        );
+        worker
+            .start({
+                onUnhandledRequest: "bypass",
+                waitUntilReady: true
+            })
+            .then(() => {
+                setIsReadyBook(true);
+                console.debug("Service Worker is Ready!");
+            })
+            .catch((e) => {
+                console.error(e);
+            });
+        return () => {
+            console.debug("Service Worker is stop");
+            worker.stop();
+        };
+    }, [bookId, props.id, props.src]);
+    const bookUrl = useMemo(() => {
+        const url = new URL("/bibi/index.html", location.href);
+        url.search = new URLSearchParams({
+            book: bookId,
+            ...(props.initialPage
+                ? {
+                      p: props.initialPage
+                  }
+                : {})
+        }).toString();
+        console.debug("bookUrl", url.toString());
+        return url.toString();
+    }, [bookId, props.initialPage]);
+    return {
+        isReadyBook,
+        bookUrl
+    } as const;
+};
 export const BibiReader: FC<BibiReaderProps> = (props) => {
-    const [isReady, setIsReady] = useState(false);
+    const { isReadyBook, bookUrl } = useEpubServiceWorker({
+        id: props.id,
+        src: props.src,
+        initialPage: props.initialPage
+    });
     const [menuState, setMenuState] = useState<"open" | "closed">("closed");
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
@@ -290,78 +373,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             await contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead);
         }
     }, [bookInfo?.lastRead, currentBook]);
-    const bookId = props.id.replace("id:", "");
-    useEffect(() => {
-        const src = props.src;
-        if (!src) {
-            return;
-        }
-        const worker = setupWorker(
-            // Bibi request
-            // 1. /META-INF/container.xml
-            // 2. /OEBPS/content.opf
-            // Response epub content as /OEBPS/content.opf
-            rest.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", async (_, res, ctx) => {
-                return res(
-                    ctx.set("Content-Type", "application/xml"),
-                    // Respond with the "ArrayBuffer".
-                    ctx.body(`<?xml version="1.0" ?>
-<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
-  <rootfiles>
-    <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml" />
-  </rootfiles>
-</container>
-`)
-                );
-            }),
-            rest.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async (_, res, ctx) => {
-                const epub = await fetch(src).then((res) => res.arrayBuffer());
-                return res(
-                    ctx.set("Content-Length", epub.byteLength.toString()),
-                    ctx.set("Content-Type", "application/epub+zip"),
-                    ctx.body(epub)
-                );
-            }),
-            rest.get("/bibi-bookshelf/" + bookId, async (_, res, ctx) => {
-                const epub = await fetch(src).then((res) => res.arrayBuffer());
-                return res(
-                    ctx.set("Content-Length", epub.byteLength.toString()),
-                    ctx.set("Content-Type", "application/epub+zip"),
-                    // Respond with the "ArrayBuffer".
-                    ctx.body(epub)
-                );
-            })
-        );
-        worker
-            .start({
-                onUnhandledRequest: "bypass",
-                waitUntilReady: true
-            })
-            .then(() => {
-                setIsReady(true);
-                console.debug("Service Worker is Ready!");
-            })
-            .catch((e) => {
-                console.error(e);
-            });
-        return () => {
-            console.debug("Service Worker is stop");
-            worker.stop();
-        };
-    }, [bookId, props.bookFileName, props.id, props.src]);
-    const bookUrl = useMemo(() => {
-        const url = new URL("/bibi/index.html", location.href);
-        url.search = new URLSearchParams({
-            book: bookId,
-            ...(props.initialPage
-                ? {
-                      p: props.initialPage
-                  }
-                : {})
-        }).toString();
-        console.debug("bookUrl", url.toString());
-        return url.toString();
-    }, [bookId, props.initialPage]);
+
     const [isAddingMemo, setIsAddingMemo] = useState(false);
     const onClickStockMemo = useCallback(async () => {
         if (bibiFrame.current) {
@@ -431,7 +443,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         }
         return canMemoContent && !isAddingMemo;
     }, [canMemoContent, isAddingMemo, memoStock.length]);
-    if (!isReady) {
+    if (!isReadyBook) {
         return <div>Loading...</div>;
     }
     return (
