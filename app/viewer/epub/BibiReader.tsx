@@ -394,15 +394,16 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     const onClickMemo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-            const stockedMemo = memoStock
-                ? {
-                      text: memoStock.map((m) => m.text).join("\n----\n"),
-                      selectors: {
-                          start: memoStock.at(0)?.selectors.start,
-                          end: memoStock.at(-1)?.selectors.end
+            const stockedMemo =
+                memoStock.length > 0
+                    ? {
+                          text: memoStock.map((m) => m.text).join("\n----\n"),
+                          selectors: {
+                              start: memoStock.at(0)?.selectors.start,
+                              end: memoStock.at(-1)?.selectors.end
+                          }
                       }
-                  }
-                : undefined;
+                    : undefined;
             // stock > selected > page
             const selected = stockedMemo
                 ? stockedMemo
