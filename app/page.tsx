@@ -273,6 +273,7 @@ const Home: FC = () => {
                                             path: item.path_lower
                                         }
                                     }}
+                                    rel="noopener"
                                 >
                                     {item.path_display}
                                 </Link>
@@ -291,7 +292,7 @@ const Home: FC = () => {
                                     }
                                 }}
                                 // target={"_blank"}
-                                // rel="noopener"
+                                rel="noopener"
                             >
                                 {item.path_display}
                             </Link>
