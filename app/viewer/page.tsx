@@ -40,7 +40,10 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
                   }
                 : undefined,
         fileFetcher,
-        {}
+        {
+            revalidateIfStale: false,
+            revalidateOnFocus: false
+        }
     );
     const fileBlobUrl = useMemo(() => {
         if (!downloadResponse) {
