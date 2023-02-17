@@ -37,6 +37,7 @@
     </ul>
 </div>
 
+<div id="google_translate_element"></div>
 <div id="bibi-book-data" data-bibi-book-mimetype="application/epub+zip" hidden="hidden">
 </div>
 <script>
@@ -169,7 +170,7 @@
         }
         const children = findChildren(iframe.contentWindow.document.body);
         const visibleChildren = Array.from(children).filter(el => elementInViewport(el));
-        if(visibleChildren.length === 0) {
+        if (visibleChildren.length === 0) {
             return null;
         }
         const selectors = {
@@ -525,6 +526,92 @@
         };
     }
 
+
+    const translate = async () => {
+        await waitReady();
+        const iframe = document.querySelector(".current iframe");
+        if (!iframe) {
+            return;
+        }
+        const iframeWindow = iframe.contentWindow;
+        const googleBannerFrame = iframeWindow.document.getElementById(":1.container");
+        if (!googleBannerFrame) {
+            return;
+        }
+        // googleBannerFrame.style.visibility = "hidden";
+        const confirmButton = googleBannerFrame.contentWindow.document.querySelector(`button[id=":1.confirm"]`);
+        if (!confirmButton) {
+            return;
+        }
+        confirmButton.click();
+    };
+    const restoreTranslate = async () => {
+        await waitReady();
+        const iframe = document.querySelector(".current iframe");
+        if (!iframe) {
+            return;
+        }
+        const iframeWindow = iframe.contentWindow;
+        const googleBannerFrame = iframeWindow.document.getElementById(":1.container");
+        if (!googleBannerFrame) {
+            return;
+        }
+        const confirmButton = googleBannerFrame.contentWindow.document.querySelector(`button[id=":1.restore"]`);
+        if (!confirmButton) {
+            return;
+        }
+        confirmButton.click();
+    };
+    const loadGoogleTranslate = async () => {
+        await waitReady();
+        const iframe = document.querySelector(".current iframe");
+        if (!iframe) {
+            return;
+        }
+        const iframeWindow = iframe.contentWindow;
+        if (iframeWindow.document.querySelector("#google_translate_element")) {
+            return;
+        }
+        const google_translate_element = iframeWindow.document.createElement('div');
+        google_translate_element.id = "google_translate_element";
+        google_translate_element.style.position = "fixed";
+        google_translate_element.style.top = "0";
+        iframeWindow.document.body.prepend(google_translate_element);
+        iframeWindow.googleTranslateElementInit = function googleTranslateElementInit() {
+            new iframeWindow.google.translate.TranslateElement(
+                {
+                    autoDisplay: true,
+                    multilanguagePage: true,
+                }, 'google_translate_element');
+        };
+        const googleTranslateScript = iframeWindow.document.createElement('script');
+        googleTranslateScript.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+        googleTranslateScript.onload = () => {
+            // add stylesheet
+            const style = iframeWindow.document.createElement('style');
+            style.innerHTML = `#\\:1\\.container { visibility: hidden!important; }`;
+            iframeWindow.document.head.appendChild(style);
+            setTimeout(() => {
+                translate();
+            }, 1000);
+        };
+        iframeWindow.document.body.appendChild(googleTranslateScript);
+    };
+    const translation = {
+        unListen: () => {
+            /* none */
+        },
+        async enable() {
+            await waitReady();
+            translation.unListen = await onChangePage(loadGoogleTranslate)
+            await loadGoogleTranslate();
+            await translate()
+        },
+        async disable() {
+            translation.unListen?.();
+            await restoreTranslate()
+        }
+    }
     /**
      *
      * @param {(state: "open"| "closed") => void} fn
@@ -570,6 +657,8 @@
         onChangePage,
         onChangeMenuState,
         onChangeSelection,
+        enableTranslation: () => translation.enable(),
+        disableTranslation: () => translation.disable(),
         // utils.
         findFirstVisibleElement
     };

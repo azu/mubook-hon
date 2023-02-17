@@ -78,6 +78,7 @@ const Page: FC<PageProps> = ({ params }) => {
     const initialPage = searchParams.get("page") ?? undefined;
     const viewerType = searchParams.get("viewer") ?? undefined;
     const initialMarker = searchParams.get("marker") ?? undefined;
+    const translation = searchParams.has("translation") ?? false;
     const fileId = searchParams?.get("id");
     if (!fileId) {
         return <div>ID not found</div>;
@@ -91,7 +92,13 @@ const Page: FC<PageProps> = ({ params }) => {
                 provider: cacheProvider
             }}
         >
-            <App viewerType={viewerType} id={fileId} initialPage={initialPage} initialMarker={initialMarker} />
+            <App
+                viewerType={viewerType}
+                id={fileId}
+                initialPage={initialPage}
+                initialMarker={initialMarker}
+                translation={translation}
+            />
         </SWRConfig>
     );
 };
@@ -99,7 +106,7 @@ const Page: FC<PageProps> = ({ params }) => {
 export default Page;
 
 const App = (
-    props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker"> & {
+    props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
         viewerType: "epub:bibi" | "pdf:pdfjs";
     }
 ) => {
@@ -133,6 +140,7 @@ const App = (
                         src={fileBlobUrl}
                         initialPage={props.initialPage}
                         initialMarker={props.initialMarker}
+                        translation={props.translation}
                     />
                 </Suspense>
             )}

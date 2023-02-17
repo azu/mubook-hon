@@ -12,6 +12,7 @@ import {
 import { generateBackoff } from "exponential-backoff-generator";
 import { rest, setupWorker } from "msw";
 import { useToast } from "../useToast";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -22,6 +23,7 @@ export type BibiReaderProps = {
     src: string | undefined;
     initialPage?: string;
     initialMarker?: string;
+    translation?: boolean;
 };
 export type ViewerContentMethod = {
     movePrevPage: () => Promise<void>;
@@ -43,6 +45,9 @@ export type ViewerContentMethod = {
     onChangePage: (fn: (page: number) => void) => Promise<() => void>;
     onChangeMenuState: (fn: (state: "open" | "closed") => void) => Promise<() => void>;
     onChangeSelection: (fn: (selection?: string) => void) => Promise<() => void>;
+
+    enableTranslation: () => void;
+    disableTranslation: () => void;
 };
 
 const waitContentWindowLoad = async (contentWindow: ContentWindow) => {
@@ -163,7 +168,31 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement>();
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const [memoStock, setMemoStock] = useState<{ text: string; selectors: { start: string; end: string } }[]>([]);
+    const [isTranslation, setIsTranslation] = useState(props.translation);
+    const onClickTranslationButton = useCallback(async () => {
+        if (!bibiFrame.current) {
+            return;
+        }
+        const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+        if (isTranslation) {
+            contentWindow.viewerController.disableTranslation();
+        } else {
+            contentWindow.viewerController.enableTranslation();
+        }
+        setIsTranslation(!isTranslation);
+
+        const newParams = new URLSearchParams(searchParams);
+        if (isTranslation) {
+            newParams.delete("translation");
+        } else {
+            newParams.set("translation", "true");
+        }
+        router.replace(`${pathname}?${newParams.toString()}`);
+    }, [isTranslation, pathname, router, searchParams]);
     const restoreLastPosition = useCallback(
         async (contentWindow: ContentWindow, currentBook: BookItem) => {
             await waitContentWindowLoad(contentWindow);
@@ -348,11 +377,16 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 const backoff = generateBackoff();
                 for (const { sleep, attempts } of backoff) {
                     try {
-                        return await watchChangePage({ attempts });
+                        await watchChangePage({ attempts });
+                        if (isTranslation) {
+                            contentWindow.viewerController.enableTranslation();
+                        }
+                        return;
                     } catch (error) {
                         await sleep(); // wait 100ms, 200ms, 400ms, 800ms ...
                     }
                 }
+
                 console.error(new Error("Fail to initialized book viewer"), {
                     current: bibiFrame.current
                 });
@@ -363,7 +397,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 viewerControllerOnSelectionChangeRef.current?.();
             }
         },
-        [currentBook, props.bookFileName, props.id, tryToRestoreLastPositionAtFirst, updateBookStatus]
+        [currentBook, isTranslation, props.bookFileName, props.id, tryToRestoreLastPositionAtFirst, updateBookStatus]
     );
     const onClickJumpLastPage = useCallback(async () => {
         if (bibiFrame.current && hasDataBook(currentBook) && bookInfo?.lastRead) {
@@ -449,6 +483,30 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     }
     return (
         <div style={{ height: "100dvh" }} className={"full-page"}>
+            <div
+                hidden={menuState === "closed"}
+                style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%"
+                }}
+            >
+                <button
+                    style={{
+                        height: "32px",
+                        margin: "6px 0",
+                        background: "none",
+                        border: "1px solid #ddd"
+                    }}
+                    onClick={onClickTranslationButton}
+                >
+                    {isTranslation ? "Restore Translation" : "Translate"}
+                </button>
+            </div>
             <button
                 className="Button small violet"
                 hidden={!hasCompletedNotionSettings || menuState === "open"}
