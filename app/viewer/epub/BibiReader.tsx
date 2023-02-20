@@ -492,7 +492,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: "100%"
+                    width: "100px"
                 }}
             >
                 <button
