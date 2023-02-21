@@ -112,13 +112,17 @@
      * @return {string|undefined}
      */
     function getSelectorFromElement(el, win) {
+        const SKIP_NODE_NAMES = ["font"];
         const names = [];
         if (!(el instanceof win.Element)) {
             return undefined;
         }
         while (el.nodeType === Node.ELEMENT_NODE) {
             let name = el.nodeName.toLowerCase();
-
+            if (SKIP_NODE_NAMES.includes(name)) {
+                el = el.parentNode;
+                continue;
+            }
             const index = getSiblingElementsIndex(el, name);
             if (1 < index) {
                 name += ':nth-of-type(' + index + ')';
