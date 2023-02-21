@@ -488,11 +488,12 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 style={{
                     position: "fixed",
                     top: 0,
-                    left: 0,
+                    left: "50vw",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    width: "100px"
+                    width: "100px",
+                    margin: "auto"
                 }}
             >
                 <button
