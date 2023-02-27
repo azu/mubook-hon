@@ -62,8 +62,8 @@ Bibi.preset({
     "flipper-width": isMobile ? 0.3 : 0.2, // Number of ratio (lower than 1) or pixel (1 or higher)
 
     // 4^n
-    "item-padding-left": isMobile ? 56 : 84, // Number of pixel (It is used only if the book is reflowable.)
-    "item-padding-right": isMobile ? 56 : 84, // Number of pixel (It is used only if the book is reflowable.)
+    "item-padding-left": isMobile ? 32 : 84, // Number of pixel (It is used only if the book is reflowable.)
+    "item-padding-right": isMobile ? 32 : 84, // Number of pixel (It is used only if the book is reflowable.)
     "item-padding-top": isMobile ? 60 : 72, // Number of pixel (It is used only if the book is reflowable.)
     "item-padding-bottom": isMobile ? 60 : 72, // Number of pixel (It is used only if the book is reflowable.)
 
