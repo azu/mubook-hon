@@ -151,13 +151,32 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
+            if (!fileId || !fileName) {
+                return NO_BOOK_DATA;
+            }
             const { results } = await notionClient.databases.query({
                 database_id: notionSetting.bookListDatabaseId,
                 filter: {
-                    property: "FileId",
-                    rich_text: {
-                        equals: fileId
-                    }
+                    // Dropbox fileIs is case-sensitive
+                    // https://www.dropboxforum.com/t5/Dropbox-API-Support-Feedback/Unique-file-id-not-really-unique/td-p/333590
+                    // But, Notion does not case-sensitive search
+                    // fileId x fileName
+                    // Note: Notion Query just ignore empty string
+                    // e.g. equals: "" => always true
+                    and: [
+                        {
+                            property: "FileId",
+                            rich_text: {
+                                equals: fileId
+                            }
+                        },
+                        {
+                            property: "FileName",
+                            title: {
+                                equals: fileName
+                            }
+                        }
+                    ]
                 }
             });
             console.debug("⭐ Fetch book 📚", results[0]);
