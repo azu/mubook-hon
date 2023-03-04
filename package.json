@@ -38,6 +38,7 @@
     "react-dom": "^18.2.0",
     "react-pdf": "^6.2.2",
     "react-use": "^17.4.0",
+    "react-icons": "^4.8.0",
     "swr": "^2.0.1"
   },
   "devDependencies": {

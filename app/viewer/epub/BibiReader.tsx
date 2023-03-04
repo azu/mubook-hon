@@ -13,6 +13,7 @@ import { generateBackoff } from "exponential-backoff-generator";
 import { rest, setupWorker } from "msw";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { HiOutlineTranslate } from "react-icons/all";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -488,7 +489,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 style={{
                     position: "fixed",
                     top: 0,
-                    left: "50vw",
+                    left: "calc(50vw - 100px)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -500,12 +501,13 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     style={{
                         height: "32px",
                         margin: "6px 0",
-                        background: "none",
+                        background: isTranslation ? "#fff" : "#ddd",
                         border: "1px solid #ddd"
                     }}
                     onClick={onClickTranslationButton}
                 >
-                    {isTranslation ? "Restore Translation" : "Translate"}
+                    {/* HiOutlineTranslate */}
+                    <HiOutlineTranslate />
                 </button>
             </div>
             <button
