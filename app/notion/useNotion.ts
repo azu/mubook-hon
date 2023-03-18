@@ -96,10 +96,10 @@ export const supportedViewerType = (viewerType: unknown): viewerType is BookItem
     return SUPPORTED_TYPES.includes(viewerType);
 };
 
-export const isBibiBookItem = (item: BibiBookItem | PdfJsBookItem): item is BibiBookItem => {
+export const isBibiBookItem = (item: BibiBookItem | PdfJsBookItem | KindleBookItem): item is BibiBookItem => {
     return item.viewer === "epub:bibi";
 };
-export const isPdfjsBookItem = (item: BibiBookItem | PdfJsBookItem): item is BibiBookItem => {
+export const isPdfjsBookItem = (item: BibiBookItem | PdfJsBookItem | KindleBookItem): item is BibiBookItem => {
     return item.viewer === "pdf:pdfjs";
 };
 export type CommonBookItemProps = {
