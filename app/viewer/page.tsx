@@ -12,6 +12,7 @@ import { BibiReaderProps } from "./epub/BibiReader";
 
 const BibiReader = React.lazy(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })));
 const PdfReader = React.lazy(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })));
+const KindleReader = React.lazy(() => import("./kindle/KindleReader").then((mod) => ({ default: mod.KindleReader })));
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
     const fileFetcher: Fetcher<
@@ -83,7 +84,7 @@ const Page: FC<PageProps> = ({ params }) => {
     if (!fileId) {
         return <div>ID not found</div>;
     }
-    if (viewerType !== "epub:bibi" && viewerType !== "pdf:pdfjs") {
+    if (viewerType !== "epub:bibi" && viewerType !== "pdf:pdfjs" && viewerType !== "kindle") {
         return <div>Invalid viewer type: {viewerType}</div>;
     }
     return (
@@ -107,7 +108,7 @@ export default Page;
 
 const App = (
     props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
-        viewerType: "epub:bibi" | "pdf:pdfjs";
+        viewerType: "epub:bibi" | "pdf:pdfjs" | "kindle";
     }
 ) => {
     const id = props.id;
@@ -132,6 +133,11 @@ const App = (
             <Head>
                 <title>{fileDisplayName}</title>
             </Head>
+            {props.viewerType === "kindle" && (
+                <Suspense fallback={<div>Loading...</div>}>
+                    <KindleReader id={id} initialMarker={props.initialMarker} />
+                </Suspense>
+            )}
             {props.viewerType === "epub:bibi" && (
                 <Suspense fallback={<div>Loading...</div>}>
                     <BibiReader

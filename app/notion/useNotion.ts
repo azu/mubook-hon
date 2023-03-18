@@ -46,6 +46,9 @@ export const isBibiPositionMaker = (marker: unknown): marker is BibiPositionMark
 export const isPdfJsPositionMarker = (marker: unknown): marker is PdfJsPositionMarker => {
     return typeof marker === "object" && marker !== null && "currentPage" in marker;
 };
+export const isKindleMarker = (marker: unknown): marker is KindlePositionMarker => {
+    return typeof marker === "object" && marker !== null && "locationNumber" in marker;
+};
 export type BibiPositionMarker = {
     ItemIndex: number; // iframe index
     ElementSelector: string; // css selector of Item(iframe)
@@ -60,7 +63,10 @@ export type BibiPositionMarker = {
 export type PdfJsPositionMarker = {
     currentPage: number;
 };
-export type BookMarker = BibiPositionMarker | PdfJsPositionMarker;
+export type KindlePositionMarker = {
+    locationNumber: number;
+};
+export type BookMarker = BibiPositionMarker | PdfJsPositionMarker | KindlePositionMarker;
 
 export const encodeBookMarker = (marker?: BookMarker): string => {
     if (!marker) {
@@ -85,7 +91,7 @@ export const supportedViewerType = (viewerType: unknown): viewerType is BookItem
     if (typeof viewerType !== "string") {
         return false;
     }
-    const SUPPORTED_TYPES: BookItem["viewer"][] = ["epub:bibi", "pdf:pdfjs"];
+    const SUPPORTED_TYPES: BookItem["viewer"][] = ["epub:bibi", "pdf:pdfjs", "kindle"];
     // @ts-expect-error: ok
     return SUPPORTED_TYPES.includes(viewerType);
 };
@@ -115,7 +121,11 @@ export type PdfJsBookItem = {
     viewer: "pdf:pdfjs";
     lastMarker?: PdfJsPositionMarker;
 } & CommonBookItemProps;
-export type BookItem = BibiBookItem | PdfJsBookItem;
+export type KindleBookItem = {
+    viewer: "kindle";
+    lastMarker?: PdfJsPositionMarker;
+} & CommonBookItemProps;
+export type BookItem = BibiBookItem | PdfJsBookItem | KindleBookItem;
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
 export const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
@@ -128,9 +138,12 @@ export const NO_BOOK_DATA = Symbol("No Data YET");
 export const hasDataBook = (bookItem: unknown): bookItem is BookItem => {
     return bookItem !== undefined && bookItem !== null && typeof bookItem === "object" && "fileId" in bookItem;
 };
-export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: string }) => {
+export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: string }) => {
     const { notionSetting, hasCompleteNotionSettings: hasCompletedNotionSettings } = useNotionSetting();
     const notionClient = useMemo(() => {
+        if (!fileId || !fileName) {
+            return;
+        }
         if (!notionSetting?.apiKey) {
             return;
         }
@@ -138,7 +151,7 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             auth: notionSetting.apiKey,
             baseUrl: NOTION_API_BASE_URL
         });
-    }, [notionSetting?.apiKey]);
+    }, [fileId, fileName, notionSetting?.apiKey]);
     const { data: currentBook, mutate: mutateCurrentBook } = useSWR<BookItem | typeof NO_BOOK_DATA>(
         () =>
             notionClient
@@ -220,6 +233,9 @@ export const useNotion = ({ fileId, fileName }: { fileId: string; fileName: stri
             const bookItem = arg;
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
+            }
+            if (!fileId || !fileName) {
+                return;
             }
             const properties = {
                 FileId: {
