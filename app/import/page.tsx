@@ -71,7 +71,11 @@ const ImportPage = () => {
     return (
         <div className={"main"}>
             <h1>ImportPage</h1>
-            <label htmlFor={"fileId"}>FileId</label>
+            <ul>
+                <li>1. Create book JSON object</li>
+                <li>2. Paste JSON object</li>
+                <li>3. Click Import button</li>
+            </ul>
             <textarea defaultValue={importJSONText} onChange={(event) => setImportJSONText(event.target.value)} />
             <button disabled={!isValidJSON} onClick={importBook}>
                 Import
