@@ -1,5 +1,5 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookMarker, isBibiBookItem, isBibiPositionMaker } from "../notion/useNotion";
+import { BookMarker, isBibiBookItem, isBibiPositionMaker, isPdfJsPositionMarker } from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
 
 export const useToast = () => {
@@ -12,7 +12,9 @@ export const useToast = () => {
         }
         return isBibiPositionMaker(restoreMakers?.current)
             ? restoreMakers?.current.ItemIndex
-            : restoreMakers?.current.currentPage;
+            : isPdfJsPositionMarker(restoreMakers?.current)
+            ? restoreMakers?.current.currentPage
+            : "";
     }, [restoreMakers]);
     const last = useMemo(() => {
         if (!restoreMakers?.lastRead) {
@@ -20,7 +22,9 @@ export const useToast = () => {
         }
         return isBibiPositionMaker(restoreMakers?.lastRead)
             ? restoreMakers?.lastRead.ItemIndex
-            : restoreMakers?.lastRead.currentPage;
+            : isPdfJsPositionMarker(restoreMakers?.lastRead)
+            ? restoreMakers?.lastRead.currentPage
+            : "";
     }, [restoreMakers]);
     useEffect(() => {
         return () => clearTimeout(timerRef.current);
