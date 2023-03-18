@@ -1,5 +1,12 @@
 # Import
 
+## Usage
+
+1. https://mubook-hon.vercel.app/import
+2. Create import object
+3. Paste to textarea
+4. "Import"
+
 ## Kindle
 
 ```Js
