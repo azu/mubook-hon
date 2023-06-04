@@ -13,7 +13,7 @@ import { generateBackoff } from "exponential-backoff-generator";
 import { rest, setupWorker } from "msw";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HiOutlineTranslate } from "react-icons/all";
+import { HiOutlineTranslate } from "react-icons/hi";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -186,7 +186,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         }
         setIsTranslation(!isTranslation);
 
-        const newParams = new URLSearchParams(searchParams);
+        const newParams = new URLSearchParams(searchParams ?? []);
         if (isTranslation) {
             newParams.delete("translation");
         } else {
