@@ -3,6 +3,7 @@ import "../sakura.css";
 import { useNotionSetting } from "../notion/useNotion";
 import { useDropbox } from "../dropbox/useDropbox";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -86,6 +87,14 @@ export default function Page() {
                             });
                         }}
                     />
+                </div>
+                <div>
+                    <h2>Debug Menu</h2>
+                    <ul>
+                        <li>
+                            <Link href={"/settings/clear-cache"}>Clear Cache</Link>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
