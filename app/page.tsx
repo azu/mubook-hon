@@ -88,12 +88,12 @@ const Home: FC = () => {
     const ready = useReady();
     const searchParams = useSearchParams();
     const { recentBooks, isLoadingRecentBooks } = useNotionList();
-    let path = searchParams.get("code");
+    const path = searchParams?.get("code");
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
         code: path ?? undefined
     });
-    const { searchInput, onInputSearch } = useSearch(searchParams.get("filter") || "");
-    const currentPath = searchParams.get("path");
+    const currentPath = searchParams?.get("path");
+    const { searchInput, onInputSearch } = useSearch(searchParams?.get("filter") || "");
     const { sortedItems } = useDropboxAPI(dropboxClient, {
         filterQuery: searchInput,
         path: currentPath ?? ""
