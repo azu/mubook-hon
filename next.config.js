@@ -3,8 +3,7 @@ module.exports = {
     reactStrictMode: false,
     runtime: "edge",
     experimental: {
-        appDir: true,
-        outputFileTracingExcludes: ["**canvas**"]
+        appDir: true
     },
     webpack: (config) => {
         // Avoid: Can't resolve 'canvas'

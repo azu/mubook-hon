@@ -7,14 +7,7 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 
-import {
-    BookItem,
-    decodeBookMarker,
-    hasDataBook,
-    isPdfjsBookItem,
-    isPdfJsPositionMarker,
-    useNotion
-} from "../../notion/useNotion";
+import { BookItem, decodeBookMarker, hasDataBook, isPdfJsPositionMarker, useNotion } from "../../notion/useNotion";
 // Import styles
 export type PdfReaderProps = {
     id: string;

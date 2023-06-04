@@ -10,9 +10,15 @@ import { useSearchParams } from "next/navigation";
 import { files } from "dropbox/types/dropbox_types";
 import Head from "next/head";
 
-const BibiReader = React.lazy(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })));
-const PdfReader = React.lazy(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })));
-const KindleReader = React.lazy(() => import("./kindle/KindleReader").then((mod) => ({ default: mod.KindleReader })));
+import dynamic from "next/dynamic";
+
+const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
+    ssr: false
+});
+const PdfReader = dynamic(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })), { ssr: false });
+const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) => ({ default: mod.KindleReader })), {
+    ssr: false
+});
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
     const fileFetcher: Fetcher<
