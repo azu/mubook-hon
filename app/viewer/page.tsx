@@ -76,10 +76,10 @@ const Page: FC<PageProps> = ({ params }) => {
     if (!cacheProvider) {
         return <div>Loading...</div>;
     }
-    const initialPage = searchParams.get("page") ?? undefined;
-    const viewerType = searchParams.get("viewer") ?? undefined;
-    const initialMarker = searchParams.get("marker") ?? undefined;
-    const translation = searchParams.has("translation") ?? false;
+    const initialPage = searchParams?.get("page") ?? undefined;
+    const viewerType = searchParams?.get("viewer") ?? undefined;
+    const initialMarker = searchParams?.get("marker") ?? undefined;
+    const translation = searchParams?.has("translation") ?? false;
     const fileId = searchParams?.get("id");
     if (!fileId) {
         return <div>ID not found</div>;
