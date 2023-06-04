@@ -5,10 +5,10 @@ import useSWR, { Fetcher, SWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
 import "./toast.css";
+import type { BibiReaderProps } from "./epub/BibiReader";
 import { useSearchParams } from "next/navigation";
 import { files } from "dropbox/types/dropbox_types";
 import Head from "next/head";
-import { BibiReaderProps } from "./epub/BibiReader";
 
 const BibiReader = React.lazy(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })));
 const PdfReader = React.lazy(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })));
