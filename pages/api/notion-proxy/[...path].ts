@@ -13,7 +13,10 @@ export default async function Handler(request: NextApiRequest, response: NextApi
                 }
             });
         }
-
+        // proxy/http://example.com should throw an error
+        if (url.pathname.startsWith("http")) {
+            return response.status(400).json({ error: "Invalid URL" });
+        }
         const notionApiPath = url.pathname.replace("/api/notion-proxy/", "");
         const notionURL = new URL(notionApiPath, "https://api.notion.com");
         const notionResponse = await fetch(notionURL, {
