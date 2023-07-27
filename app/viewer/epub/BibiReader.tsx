@@ -77,15 +77,29 @@ const waitContentWindowLoad = async (contentWindow: ContentWindow) => {
     });
 };
 
+const usePageVisibilityHide = (fn: () => void) => {
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "hidden") {
+                fn();
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
+    }, [fn]);
+};
 const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: string }) => {
     const [isReadyBook, setIsReadyBook] = useState(false);
     const bookId = props.id.replace("id:", "");
+    let workerRef = useRef<ReturnType<typeof setupWorker> | null>(null);
     useEffect(() => {
         const src = props.src;
         if (!src) {
             return;
         }
-        const worker = setupWorker(
+        workerRef.current = setupWorker(
             // Bibi request
             // 1. /META-INF/container.xml
             // 2. /OEBPS/content.opf
@@ -121,7 +135,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 );
             })
         );
-        worker
+        workerRef.current
             .start({
                 onUnhandledRequest: "bypass",
                 waitUntilReady: true
@@ -134,10 +148,15 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 console.error(e);
             });
         return () => {
-            console.debug("Service Worker is stop");
-            worker.stop();
+            console.debug("Service Worker is stop on unmount");
+            workerRef.current?.stop();
         };
     }, [bookId, props.id, props.src]);
+    // on hide page, stop worker
+    usePageVisibilityHide(() => {
+        console.debug("Service Worker stop on hide page");
+        workerRef.current?.stop();
+    });
     const bookUrl = useMemo(() => {
         const url = new URL("/bibi/index.html", location.href);
         url.search = new URLSearchParams({
