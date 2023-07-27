@@ -14,6 +14,7 @@ import { rest, setupWorker } from "msw";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HiOutlineTranslate } from "react-icons/hi";
+import { useOnetimeStorage } from "../../settings/TemporaryStorage";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -92,6 +93,7 @@ const usePageVisibilityHide = (fn: () => void) => {
 };
 const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: string }) => {
     const [isReadyBook, setIsReadyBook] = useState(false);
+    const onetimeStorage = useOnetimeStorage();
     const bookId = props.id.replace("id:", "");
     let workerRef = useRef<ReturnType<typeof setupWorker> | null>(null);
     useEffect(() => {
@@ -145,11 +147,17 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                         ctx.body(epub)
                     );
                 } catch (error) {
+                    // probably, blob is broken
                     console.error(
                         new Error("failed to fetch book content", {
                             cause: error
                         })
                     );
+                    // disable cache for fileId
+                    onetimeStorage.set(props.id, {
+                        noCache: true
+                    });
+                    console.log("disable cache for", props.id);
                     return res(ctx.status(500));
                 }
             })

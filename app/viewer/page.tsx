@@ -11,6 +11,7 @@ import { files } from "dropbox/types/dropbox_types";
 import Head from "next/head";
 
 import dynamic from "next/dynamic";
+import { useOnetimeStorage } from "../settings/TemporaryStorage";
 
 const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
     ssr: false
@@ -20,7 +21,7 @@ const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) =>
     ssr: false
 });
 
-const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
+const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache: boolean }) => {
     const { cache } = useSWRConfig();
     const fileFetcher: Fetcher<
         DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob },
@@ -49,8 +50,8 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
                 : undefined,
         fileFetcher,
         {
-            revalidateIfStale: false,
-            revalidateOnFocus: false
+            revalidateIfStale: props.noCache,
+            revalidateOnFocus: props.noCache
         }
     );
     const removeCache = useCallback(() => {
@@ -134,15 +135,18 @@ const LoadingBook = (props: { tooLoadingLong: boolean; onClickReloadWithoutCache
         </div>
     );
 };
+
 const App = (
     props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
         viewerType: "epub:bibi" | "pdf:pdfjs" | "kindle";
     }
 ) => {
     const id = props.id;
+    const onetimeStorage = useOnetimeStorage();
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({});
     const { fileBlobUrl, fileDisplayName, removeCache } = useDropboxAPI(dropboxClient, {
-        fileId: id
+        fileId: id,
+        noCache: onetimeStorage.get(id)?.noCache ?? false
     });
     const [tooLoadLong, setTooLoadLong] = useState(false);
     useEffect(() => {
