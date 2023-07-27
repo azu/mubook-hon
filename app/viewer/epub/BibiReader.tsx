@@ -99,7 +99,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
         if (!src) {
             return;
         }
-        console.debug("create mock server for src: %s, bookId: %s", src, bookId);
+        console.debug("create mock server for", src, bookId);
         workerRef.current = setupWorker(
             // Bibi request
             // 1. /META-INF/container.xml
