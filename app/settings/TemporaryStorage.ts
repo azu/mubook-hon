@@ -8,7 +8,6 @@ export const useOnetimeStorage = () => {
         if (value === null) {
             return null;
         }
-        sessionStorage.removeItem(key);
         return JSON.parse(value);
     };
     return { set, get } as const;

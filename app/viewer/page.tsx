@@ -22,7 +22,6 @@ const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) =>
 });
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache: boolean }) => {
-    const { cache } = useSWRConfig();
     const fileFetcher: Fetcher<
         DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob },
         { fileId: string }
