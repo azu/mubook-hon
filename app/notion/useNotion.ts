@@ -229,7 +229,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                   }
                 : null,
         // pageId is not required because it comes from the `currentBook`
-        async (param, { arg }: { arg: Omit<BookItem, "pageId"> | BookItem }) => {
+        async (param, { arg }: { arg: Omit<BookItem, "pageId" | "pageUrl"> | BookItem }) => {
             const { fileId, fileName, currentBook } = param;
             // TODO: currently, only support bibi
             const bookItem = arg;
