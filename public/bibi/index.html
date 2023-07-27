@@ -186,6 +186,9 @@
             selectors,
         };
     }
+    const getCurrentFrameWindow = () => {
+        return getCurrentSelectedIframeWindow() ?? selectionRef?.current?.contentWindow ?? undefined;
+    }
     const getSelectorFromSelection = (selection, window) => {
         const NoSelectors = {
             start: undefined,
@@ -286,7 +289,7 @@
         await waitReady();
         // Maybe, Bibi does not return Current iframe in sometimes(two pages are displayed, but return only one iframe)
         // As a fallback, preserve selected iframe content and use it
-        const selectedIframeWindow = getCurrentSelectedIframeWindow() ?? selectionRef?.current;
+        const selectedIframeWindow = getCurrentFrameWindow();
         const selection = selectedIframeWindow ? selectedIframeWindow.getSelection() : undefined;
         if (!selection) {
             return null;
@@ -655,6 +658,7 @@
         getCurrentPage,
         getCurrentIIPP,
         getCurrentPageText,
+        getCurrentFrameWindow,
         getSelectedText,
         getBookInfo,
         removeSelection,

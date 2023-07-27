@@ -102,14 +102,14 @@ const Home: FC = () => {
         return <div className={"main"}>Loading...</div>;
     }
     if (accessTokenStatus === "none") {
-        return <div className={"main"}>Loading...</div>;
+        return <div className={"main"}>Checking Dropbox Access Token...</div>;
     }
     if (accessTokenStatus === "invalid") {
         return (
             <div className={"main"}>
                 <h1>mubook-hon</h1>
                 <p>mubook-hon require to access your dropbox account.</p>
-                <Suspense fallback={<div>loading...</div>}>
+                <Suspense fallback={<div>Loading Dropbox Auth Url...</div>}>
                     ➡️ <AuthUrl />
                 </Suspense>
                 <div>
@@ -211,7 +211,7 @@ const Home: FC = () => {
             <details>
                 <summary>
                     {isLoadingRecentBooks ? (
-                        "Loading..."
+                        "Loading recent books..."
                     ) : recentBooks?.length === 0 ? (
                         "No recent books"
                     ) : (

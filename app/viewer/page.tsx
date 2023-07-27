@@ -1,7 +1,7 @@
 "use client";
-import React, { FC, Suspense, useMemo } from "react";
+import React, { FC, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Dropbox, DropboxResponse } from "dropbox";
-import useSWR, { Fetcher, SWRConfig } from "swr";
+import useSWR, { Fetcher, mutate, SWRConfig, useSWRConfig } from "swr";
 import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
 import { useDropbox } from "../dropbox/useDropbox";
 import "./toast.css";
@@ -21,6 +21,7 @@ const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) =>
 });
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
+    const { cache } = useSWRConfig();
     const fileFetcher: Fetcher<
         DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob },
         { fileId: string }
@@ -52,6 +53,18 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
             revalidateOnFocus: false
         }
     );
+    const removeCache = useCallback(() => {
+        return mutate(
+            () => {
+                return {
+                    cacheKey: "/dropbox/filesDownload",
+                    fileId: props.fileId
+                };
+            },
+            undefined, // キャッシュデータを `undefined` に更新する
+            { revalidate: false } // 再検証しない
+        );
+    }, [props.fileId]);
     const fileBlobUrl = useMemo(() => {
         if (!downloadResponse) {
             return;
@@ -66,7 +79,8 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string }) => {
     }, [downloadResponse]);
     return {
         fileDisplayName,
-        fileBlobUrl
+        fileBlobUrl,
+        removeCache
     } as const;
 };
 
@@ -80,7 +94,7 @@ const Page: FC<PageProps> = ({ params }) => {
         storeName: "mubook-book"
     });
     if (!cacheProvider) {
-        return <div>Loading...</div>;
+        return <div>Loading Cache Provider...</div>;
     }
     const initialPage = searchParams?.get("page") ?? undefined;
     const viewerType = searchParams?.get("viewer") ?? undefined;
@@ -112,6 +126,14 @@ const Page: FC<PageProps> = ({ params }) => {
 
 export default Page;
 
+const LoadingBook = (props: { tooLoadingLong: boolean; onClickReloadWithoutCache: () => void }) => {
+    return (
+        <div>
+            <p>Loading Book...</p>
+            {props.tooLoadingLong && <button onClick={props.onClickReloadWithoutCache}>Remove Cache and Reload</button>}
+        </div>
+    );
+};
 const App = (
     props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
         viewerType: "epub:bibi" | "pdf:pdfjs" | "kindle";
@@ -119,9 +141,23 @@ const App = (
 ) => {
     const id = props.id;
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({});
-    const { fileBlobUrl, fileDisplayName } = useDropboxAPI(dropboxClient, {
+    const { fileBlobUrl, fileDisplayName, removeCache } = useDropboxAPI(dropboxClient, {
         fileId: id
     });
+    const [tooLoadLong, setTooLoadLong] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setTooLoadLong(true);
+        }, 5000);
+        return () => {
+            clearTimeout(timer);
+        };
+    }, []);
+    const onClickReloadWithoutCache = useCallback(() => {
+        removeCache().then(() => {
+            location.reload();
+        });
+    }, [removeCache]);
     if (accessTokenStatus === "none") {
         return null;
     }
@@ -140,12 +176,26 @@ const App = (
                 <title>{fileDisplayName}</title>
             </Head>
             {props.viewerType === "kindle" && (
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense
+                    fallback={
+                        <LoadingBook
+                            onClickReloadWithoutCache={onClickReloadWithoutCache}
+                            tooLoadingLong={tooLoadLong}
+                        />
+                    }
+                >
                     <KindleReader id={id} initialMarker={props.initialMarker} />
                 </Suspense>
             )}
             {props.viewerType === "epub:bibi" && (
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense
+                    fallback={
+                        <LoadingBook
+                            onClickReloadWithoutCache={onClickReloadWithoutCache}
+                            tooLoadingLong={tooLoadLong}
+                        />
+                    }
+                >
                     <BibiReader
                         id={id}
                         bookFileName={fileDisplayName}
@@ -157,7 +207,14 @@ const App = (
                 </Suspense>
             )}
             {props.viewerType === "pdf:pdfjs" && (
-                <Suspense fallback={<div>Loading...</div>}>
+                <Suspense
+                    fallback={
+                        <LoadingBook
+                            onClickReloadWithoutCache={onClickReloadWithoutCache}
+                            tooLoadingLong={tooLoadLong}
+                        />
+                    }
+                >
                     <PdfReader
                         src={fileBlobUrl}
                         id={id}

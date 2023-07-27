@@ -14,6 +14,7 @@ import { rest, setupWorker } from "msw";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HiOutlineTranslate } from "react-icons/hi";
+import { useHotkeys } from "react-hotkeys-hook";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -35,6 +36,7 @@ export type ViewerContentMethod = {
     getCurrentPositionMaker: () => Promise<BibiPositionMarker>;
     getSelectedText: () => Promise<{ text: string; selectors: { start: string; end: string } } | null>;
     getCurrentPageText: () => Promise<{ text: string; selectors: { start: string; end: string } } | null>;
+    getCurrentFrameWindow: () => Promise<ContentWindow | undefined>;
     removeSelection: () => Promise<void>;
     getBookInfo: () => Promise<{
         type: "EPUB";
@@ -262,7 +264,9 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     useEffect(() => {
         console.debug("Updated Current Book", currentBook);
         if (!isInitialized.current && currentBook) {
-            tryToRestoreLastPositionAtFirst();
+            tryToRestoreLastPositionAtFirst().catch((e) => {
+                console.error(e);
+            });
         }
     }, [currentBook, tryToRestoreLastPositionAtFirst]);
     useEffect(
@@ -318,9 +322,6 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     viewerControllerOnChangeMenuRef.current?.();
                     viewerControllerOnChangeMenuRef.current = await contentWindow.viewerController.onChangeMenuState(
                         (state) => {
-                            console.debug("{menu", {
-                                state
-                            });
                             setMenuState(state);
                         }
                     );
@@ -479,8 +480,18 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         }
         return canMemoContent && !isAddingMemo;
     }, [canMemoContent, isAddingMemo, memoStock.length]);
+    useHotkeys("Control+a", onClickStockMemo, {
+        document: bibiFrame.current?.contentDocument ?? undefined
+    });
+    useHotkeys("Control+s", onClickMemo, {
+        document: bibiFrame.current?.contentDocument ?? undefined
+    });
     if (!isReadyBook) {
-        return <div>Loading...</div>;
+        return (
+            <div>
+                <p>Loading Viewer...</p>
+            </div>
+        );
     }
     return (
         <div style={{ height: "100dvh" }} className={"full-page"}>
