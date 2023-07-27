@@ -153,6 +153,8 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
         };
     }, [bookId, props.id, props.src]);
     // on hide page, stop worker
+    // Note: SW is required when loading page.
+    // After loading page, SW is not required.
     usePageVisibilityHide(() => {
         console.debug("Service Worker stop on hide page");
         workerRef.current?.stop();
