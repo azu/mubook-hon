@@ -10,5 +10,8 @@ export const useOnetimeStorage = () => {
         }
         return JSON.parse(value);
     };
-    return { set, get } as const;
+    const del = (key: string) => {
+        sessionStorage.removeItem(key);
+    };
+    return { set, get, del } as const;
 };

@@ -22,6 +22,7 @@ const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) =>
 });
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache: boolean }) => {
+    const onetimeStorage = useOnetimeStorage();
     const fileFetcher: Fetcher<
         DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob },
         { fileId: string }
@@ -35,6 +36,11 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache
                 path: fileId
             })
             .then((res) => {
+                if (res.status !== 200) {
+                    throw new Error(`dropbox download error: ${res.status}`);
+                }
+                // clear storage for this file. noCache config will be reset
+                onetimeStorage.del(fileId);
                 // @ts-ignore
                 return res.result;
             }) as Promise<DropboxResponse<files.FileMetadata>["result"] & { fileBlob: Blob }>;
