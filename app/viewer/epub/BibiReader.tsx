@@ -523,6 +523,14 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             }
         }
     }, [addMemo, memoStock]);
+    const onClickOpenNotionPage = useCallback(async () => {
+        if (!hasDataBook(currentBook)) {
+            return;
+        }
+        const notionPageUrl = currentBook.pageUrl.replace("https://www.notion.so/", "notion://");
+        console.debug("onClickOpenNotionPage", notionPageUrl);
+        window.open(notionPageUrl, "_blank");
+    }, [currentBook]);
     const enableMemoButton = useMemo(() => {
         if (memoStock.length > 0) {
             return true;
@@ -552,16 +560,31 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 }}
             >
                 <button
+                    className="Button small violet"
                     style={{
                         height: "32px",
-                        margin: "6px 0",
+                        margin: "6px 6px",
                         background: isTranslation ? "#fff" : "#ddd",
                         border: "1px solid #ddd"
                     }}
+                    title={"Translate Page"}
                     onClick={onClickTranslationButton}
                 >
-                    {/* HiOutlineTranslate */}
-                    <HiOutlineTranslate />
+                    A
+                </button>
+                <button
+                    className="Button small violet"
+                    hidden={!hasCompletedNotionSettings}
+                    title={"Open Notion Page"}
+                    style={{
+                        height: "32px",
+                        margin: "6px 6px",
+                        background: "#fff",
+                        border: "1px solid #ddd"
+                    }}
+                    onClick={onClickOpenNotionPage}
+                >
+                    N
                 </button>
             </div>
             <button

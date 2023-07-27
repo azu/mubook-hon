@@ -103,6 +103,7 @@ export const isPdfjsBookItem = (item: BibiBookItem | PdfJsBookItem | KindleBookI
     return item.viewer === "pdf:pdfjs";
 };
 export type CommonBookItemProps = {
+    pageUrl: string;
     pageId: string;
     fileId: string;
     fileName: string;
@@ -204,6 +205,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
             const currentBook = {
                 viewer: viewerType,
                 pageId: result.id,
+                pageUrl: result.url,
                 fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
                 fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                 title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
@@ -323,6 +325,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                 }
                 const commonBookItem: CommonBookItemProps = {
                     pageId: result.id,
+                    pageUrl: result.url,
                     fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
                     fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                     title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
@@ -364,6 +367,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                 }
                 const commonBookItem: CommonBookItemProps = {
                     pageId: result.id,
+                    pageUrl: result.url,
                     fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
                     fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                     title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
