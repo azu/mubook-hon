@@ -19,6 +19,9 @@ export default async function Handler(request: NextApiRequest, response: NextApi
         }
         const notionApiPath = url.pathname.replace("/api/notion-proxy/", "");
         const notionURL = new URL(notionApiPath, "https://api.notion.com");
+        if (notionURL.origin !== "https://api.notion.com") {
+            return response.status(400).json({ error: "Invalid Origin" });
+        }
         const notionResponse = await fetch(notionURL, {
             method: request.method,
             // @ts-ignore
