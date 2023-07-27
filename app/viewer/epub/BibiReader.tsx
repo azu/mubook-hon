@@ -145,7 +145,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 console.debug("Service Worker is Ready!");
             })
             .catch((e) => {
-                console.error("Service Worker is failed to start", e.message);
+                console.debug("Service Worker is failed to start", e.message);
                 console.error(e);
             });
         return () => {
