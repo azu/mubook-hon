@@ -14,7 +14,6 @@ import { rest, setupWorker } from "msw";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HiOutlineTranslate } from "react-icons/hi";
-import { useHotkeys } from "react-hotkeys-hook";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -412,6 +411,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
 
     const [isAddingMemo, setIsAddingMemo] = useState(false);
     const onClickStockMemo = useCallback(async () => {
+        console.debug("onClickStockMemo");
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
             // selected > page
@@ -480,12 +480,6 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         }
         return canMemoContent && !isAddingMemo;
     }, [canMemoContent, isAddingMemo, memoStock.length]);
-    useHotkeys("Control+a", onClickStockMemo, {
-        document: bibiFrame.current?.contentDocument ?? undefined
-    });
-    useHotkeys("Control+s", onClickMemo, {
-        document: bibiFrame.current?.contentDocument ?? undefined
-    });
     if (!isReadyBook) {
         return (
             <div>
