@@ -527,9 +527,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         if (!hasDataBook(currentBook)) {
             return;
         }
-        const notionPageUrl = currentBook.pageUrl.replace("https://www.notion.so/", "notion://");
-        console.debug("onClickOpenNotionPage", notionPageUrl);
-        window.open(notionPageUrl, "_blank");
+        window.open(currentBook.pageUrl, "_blank");
     }, [currentBook]);
     const enableMemoButton = useMemo(() => {
         if (memoStock.length > 0) {
