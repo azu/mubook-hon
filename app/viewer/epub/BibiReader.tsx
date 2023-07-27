@@ -118,21 +118,31 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 );
             }),
             rest.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async (_, res, ctx) => {
-                const epub = await fetch(src).then((res) => res.arrayBuffer());
-                return res(
-                    ctx.set("Content-Length", epub.byteLength.toString()),
-                    ctx.set("Content-Type", "application/epub+zip"),
-                    ctx.body(epub)
-                );
+                try {
+                    const epub = await fetch(src).then((res) => res.arrayBuffer());
+                    return res(
+                        ctx.set("Content-Length", epub.byteLength.toString()),
+                        ctx.set("Content-Type", "application/epub+zip"),
+                        ctx.body(epub)
+                    );
+                } catch (error) {
+                    console.error(error);
+                    return res(ctx.status(500));
+                }
             }),
             rest.get("/bibi-bookshelf/" + bookId, async (_, res, ctx) => {
-                const epub = await fetch(src).then((res) => res.arrayBuffer());
-                return res(
-                    ctx.set("Content-Length", epub.byteLength.toString()),
-                    ctx.set("Content-Type", "application/epub+zip"),
-                    // Respond with the "ArrayBuffer".
-                    ctx.body(epub)
-                );
+                try {
+                    const epub = await fetch(src).then((res) => res.arrayBuffer());
+                    return res(
+                        ctx.set("Content-Length", epub.byteLength.toString()),
+                        ctx.set("Content-Type", "application/epub+zip"),
+                        // Respond with the "ArrayBuffer".
+                        ctx.body(epub)
+                    );
+                } catch (error) {
+                    console.error(error);
+                    return res(ctx.status(500));
+                }
             })
         );
         workerRef.current
