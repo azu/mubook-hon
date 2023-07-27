@@ -179,7 +179,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
             console.debug("Service Worker is stop on unmount");
             workerRef.current?.stop();
         };
-    }, [bookId, props.id, props.src]);
+    }, [bookId, onetimeStorage, props.id, props.src]);
     // on hide page, stop worker
     // Note: SW is required when loading page.
     // After loading page, SW is not required.
