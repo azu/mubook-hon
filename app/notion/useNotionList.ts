@@ -54,6 +54,7 @@ export const useNotionList = () => {
                 return {
                     viewer: viewerType,
                     pageId: result.id,
+                    pageUrl: result.url,
                     fileId: prop(result.properties.FileId, "rich_text").rich_text[0].plain_text,
                     fileName: prop(result.properties.FileName, "title").title[0].plain_text,
                     title: prop(result.properties.Title, "rich_text").rich_text[0].plain_text,
