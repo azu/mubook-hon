@@ -127,7 +127,11 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                         ctx.body(epub)
                     );
                 } catch (error) {
-                    console.error(error);
+                    console.error(
+                        new Error("fetch book OEBPS/package.opf", {
+                            cause: error
+                        })
+                    );
                     return res(ctx.status(500));
                 }
             }),
@@ -141,7 +145,11 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                         ctx.body(epub)
                     );
                 } catch (error) {
-                    console.error(error);
+                    console.error(
+                        new Error("failed to fetch book content", {
+                            cause: error
+                        })
+                    );
                     return res(ctx.status(500));
                 }
             })
