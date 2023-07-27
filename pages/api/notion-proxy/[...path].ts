@@ -3,16 +3,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 export default async function Handler(request: NextApiRequest, response: NextApiResponse) {
     try {
         const url = new URL(request.url!, "https://example.test");
-        if (request.method === "OPTIONS") {
-            return new Response(null, {
-                status: 200,
-                headers: {
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
-                    "Access-Control-Allow-Headers": "Authorization, Content-Type, Notion-Version"
-                }
-            });
-        }
         // proxy/http://example.com should throw an error
         if (url.pathname.startsWith("http")) {
             return response.status(400).json({ error: "Invalid URL" });
