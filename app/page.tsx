@@ -241,6 +241,7 @@ const Home: FC = () => {
                                             viewer: item.viewer
                                         }
                                     }}
+                                    target={"_blank"}
                                 >
                                     {item.fileName}
                                 </Link>
@@ -273,7 +274,6 @@ const Home: FC = () => {
                                             path: item.path_lower
                                         }
                                     }}
-                                    rel="noopener"
                                 >
                                     {item.path_display}
                                 </Link>
@@ -291,7 +291,7 @@ const Home: FC = () => {
                                         viewer: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
                                     }
                                 }}
-                                // target={"_blank"}
+                                target={"_blank"}
                                 rel="noopener"
                             >
                                 {item.path_display}
