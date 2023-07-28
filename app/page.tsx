@@ -9,6 +9,7 @@ import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
 import { useNotionList } from "./notion/useNotionList";
 import { Loading } from "./components/Loading";
+import { useUserSettings } from "./settings/useUserSettings";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -87,6 +88,7 @@ const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; f
 };
 const Home: FC = () => {
     const ready = useReady();
+    const { userSettings } = useUserSettings();
     const searchParams = useSearchParams();
     const { recentBooks, isLoadingRecentBooks } = useNotionList();
     const path = searchParams?.get("code");
@@ -250,7 +252,7 @@ const Home: FC = () => {
                                             viewer: item.viewer
                                         }
                                     }}
-                                    target={"_blank"}
+                                    target={userSettings.openNewTab ? "_blank" : ""}
                                 >
                                     {item.fileName}
                                 </Link>
@@ -300,7 +302,7 @@ const Home: FC = () => {
                                         viewer: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
                                     }
                                 }}
-                                target={"_blank"}
+                                target={userSettings.openNewTab ? "_blank" : ""}
                                 rel="noopener"
                             >
                                 {item.path_display}

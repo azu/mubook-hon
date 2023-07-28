@@ -4,6 +4,7 @@ import { useNotionSetting } from "../notion/useNotion";
 import { useDropbox } from "../dropbox/useDropbox";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useUserSettings } from "./useUserSettings";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -15,6 +16,7 @@ const useReady = () => {
 export default function Page() {
     const ready = useReady();
     const { notionSetting, updateNotionSettings } = useNotionSetting();
+    const { userSettings, updateUserSettings } = useUserSettings();
     const { accessTokenStatus, AuthUrl } = useDropbox();
     const DropboxFilePath = useMemo(() => {
         if (typeof navigator === "undefined") {
@@ -87,6 +89,27 @@ export default function Page() {
                             });
                         }}
                     />
+                </div>
+                <div>
+                    <h2>Options</h2>
+                    <div
+                        style={{
+                            display: "flex"
+                        }}
+                    >
+                        <label htmlFor="open-new-tab">Open Book in New Tab</label>
+                        <input
+                            id="open-new-tab"
+                            type="checkbox"
+                            checked={userSettings.openNewTab}
+                            onChange={(e) => {
+                                updateUserSettings({
+                                    ...userSettings,
+                                    openNewTab: e.target.checked
+                                });
+                            }}
+                        />
+                    </div>
                 </div>
                 <div>
                     <h2>Debug Menu</h2>
