@@ -119,20 +119,29 @@ const Home: FC = () => {
         return (
             <div className={"main"}>
                 <h1>mubook-hon</h1>
-                <p>mubook-hon require to access your dropbox account.</p>
+                <p>mubook-hon requires to access your dropbox account.</p>
                 <Suspense fallback={<Loading>Loading Dropbox Auth Url...</Loading>}>
                     ➡️ <AuthUrl />
                 </Suspense>
                 <div>
-                    <h3>Why need to access Dropbox?</h3>
+                    <h3>Why need to connect Dropbox?</h3>
                     <ul>
-                        <li>Download epub files from your dropbox account from browser</li>
+                        <li>mubook-hon downloads epub/pdf files from your dropbox account</li>
+                        <li>
+                            After connect, You can put your epub/pdf files to <b>~/Dropbox/Apps/mubook-hon</b> directory
+                        </li>
                     </ul>
                 </div>
                 <div>
                     <p>
                         For more details, please see{" "}
-                        <a href={"https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6"}>Document</a>
+                        <a
+                            href={"https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6"}
+                            target={"_blank"}
+                            rel={"noopener"}
+                        >
+                            Document
+                        </a>
                     </p>
                 </div>
             </div>
