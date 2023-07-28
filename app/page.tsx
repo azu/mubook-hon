@@ -138,7 +138,7 @@ const Home: FC = () => {
                         <a
                             href={"https://efcl.notion.site/mubook-hon-addce6c324d44d749a73748f92e3a1a6"}
                             target={"_blank"}
-                            rel={"noopener"}
+                            rel={"noopener noreferrer"}
                         >
                             Document
                         </a>
