@@ -101,7 +101,7 @@ export default function Page() {
                         <input
                             id="open-new-tab"
                             type="checkbox"
-                            checked={userSettings.openNewTab}
+                            checked={userSettings?.openNewTab}
                             onChange={(e) => {
                                 updateUserSettings({
                                     ...userSettings,
