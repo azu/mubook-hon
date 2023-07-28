@@ -546,7 +546,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 style={{
                     position: "fixed",
                     top: 0,
-                    left: "calc(50vw - 100px)",
+                    left: "calc(50vw - 50px)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
