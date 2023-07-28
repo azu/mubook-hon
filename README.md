@@ -16,6 +16,10 @@ mubook-hon is epub/PDF reader + Notion Sync + Memo.
 
 > Notion Database is created by mubook-hon
 
+![Notion Book Page](docs/notion-book-page.png)
+
+> You can write memo to Notion
+
 ## Usage
 
 - WebSite: <https://mubook-hon.vercel.app/>
