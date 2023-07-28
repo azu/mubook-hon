@@ -12,6 +12,7 @@ import Head from "next/head";
 
 import dynamic from "next/dynamic";
 import { useOnetimeStorage } from "../settings/TemporaryStorage";
+import { Loading } from "../components/Loading";
 
 const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
     ssr: false
@@ -100,7 +101,7 @@ const Page: FC<PageProps> = ({ params }) => {
         storeName: "mubook-book"
     });
     if (!cacheProvider) {
-        return <div>Loading Cache Provider...</div>;
+        return <Loading>Loading Cache Provider...</Loading>;
     }
     const initialPage = searchParams?.get("page") ?? undefined;
     const viewerType = searchParams?.get("viewer") ?? undefined;
@@ -135,7 +136,7 @@ export default Page;
 const LoadingBook = (props: { tooLoadingLong: boolean; onClickReloadWithoutCache: () => void }) => {
     return (
         <div>
-            <p>Loading Book...</p>
+            <Loading>Loading Book...</Loading>
             {props.tooLoadingLong && <button onClick={props.onClickReloadWithoutCache}>Remove Cache and Reload</button>}
         </div>
     );
@@ -173,7 +174,7 @@ const App = (
     if (accessTokenStatus === "invalid") {
         return (
             <div>
-                <Suspense fallback={<div>loading...</div>}>
+                <Suspense fallback={<Loading>loading...</Loading>}>
                     <AuthUrl />
                 </Suspense>
             </div>

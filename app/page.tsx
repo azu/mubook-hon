@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
 import { useNotionList } from "./notion/useNotionList";
+import { Loading } from "./components/Loading";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -99,17 +100,25 @@ const Home: FC = () => {
         path: currentPath ?? ""
     });
     if (!ready) {
-        return <div className={"main"}>Loading...</div>;
+        return (
+            <div className={"main"}>
+                <Loading>Loading...</Loading>
+            </div>
+        );
     }
     if (accessTokenStatus === "none") {
-        return <div className={"main"}>Checking Dropbox Access Token...</div>;
+        return (
+            <div className={"main"}>
+                <Loading>Checking Dropbox Access Token...</Loading>
+            </div>
+        );
     }
     if (accessTokenStatus === "invalid") {
         return (
             <div className={"main"}>
                 <h1>mubook-hon</h1>
                 <p>mubook-hon require to access your dropbox account.</p>
-                <Suspense fallback={<div>Loading Dropbox Auth Url...</div>}>
+                <Suspense fallback={<Loading>Loading Dropbox Auth Url...</Loading>}>
                     ➡️ <AuthUrl />
                 </Suspense>
                 <div>

@@ -1,4 +1,4 @@
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     BibiPositionMarker,
     BookItem,
@@ -15,6 +15,7 @@ import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { HiOutlineTranslate } from "react-icons/hi";
 import { useOnetimeStorage } from "../../settings/TemporaryStorage";
+import { Loading } from "../../components/Loading";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -536,11 +537,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         return canMemoContent && !isAddingMemo;
     }, [canMemoContent, isAddingMemo, memoStock.length]);
     if (!isReadyBook) {
-        return (
-            <div>
-                <p>Loading Viewer...</p>
-            </div>
-        );
+        return <Loading>Loading Viewer...</Loading>;
     }
     return (
         <div style={{ height: "100dvh" }} className={"full-page"}>
