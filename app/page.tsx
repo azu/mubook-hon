@@ -302,7 +302,7 @@ const Home: FC = () => {
                                         viewer: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
                                     }
                                 }}
-                                target={userSettings.openNewTab ? "_blank" : ""}
+                                target={userSettings?.openNewTab ? "_blank" : ""}
                                 rel="noopener"
                             >
                                 {item.path_display}
