@@ -559,7 +559,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     style={{
                         height: "32px",
                         margin: "6px 6px",
-                        background: isTranslation ? "#fff" : "#ddd",
+                        background: isTranslation ? "#ddd" : "#fff",
                         border: "1px solid #ddd"
                     }}
                     title={"Translate Page"}
