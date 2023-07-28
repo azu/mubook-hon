@@ -252,7 +252,7 @@ const Home: FC = () => {
                                             viewer: item.viewer
                                         }
                                     }}
-                                    target={userSettings.openNewTab ? "_blank" : ""}
+                                    target={userSettings?.openNewTab ? "_blank" : ""}
                                 >
                                     {item.fileName}
                                 </Link>
