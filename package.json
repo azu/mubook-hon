@@ -16,7 +16,7 @@
     "lint": "next lint",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\"",
     "prepare": "git config --local core.hooksPath .githooks",
-    "test": "ts-node-test app/**/*.test.ts"
+    "test": "ts-node-test app/**/*.test.ts pages/api/**/*.test.ts"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.9",
