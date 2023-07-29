@@ -9,6 +9,9 @@
 
 ## Kindle
 
+1. Visit https://read.amazon.co.jp/notebook
+2. Excute following code in console
+
 ```Js
 (async function (){ 
     const { parsePage, toMarkdown } = await import('https://esm.sh/kindle-highlight-to-markdown');
