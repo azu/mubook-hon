@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from "next";
 
 export default async function Handler(request: NextApiRequest, response: NextApiResponse) {
     try {
-        console.log("request", request.method, request.url);
         const url = new URL(request.url!, "https://example.test");
         // proxy/http://example.com should throw an error
         if (url.pathname.startsWith("http")) {
