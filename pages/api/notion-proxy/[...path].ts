@@ -13,7 +13,6 @@ export default async function Handler(request: NextApiRequest, response: NextApi
         if (notionURL.origin !== "https://api.notion.com") {
             return response.status(400).json({ error: "Invalid Origin" });
         }
-        console.log("send", notionURL.href);
         const notionResponse = await fetch(notionURL, {
             method: request.method,
             // @ts-expect-error
@@ -24,7 +23,6 @@ export default async function Handler(request: NextApiRequest, response: NextApi
             },
             body: request.body ? JSON.stringify(request.body) : undefined
         });
-        console.log("response", notionResponse.status, notionResponse.url);
         return response.status(notionResponse.status).json(await notionResponse.json());
     } catch (e: any) {
         console.error(e);
