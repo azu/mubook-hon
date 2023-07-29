@@ -94,7 +94,7 @@ const usePageVisibilityHide = (fn: () => void) => {
 };
 const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: string }) => {
     const [isReadyBook, setIsReadyBook] = useState(false);
-    const onetimeStorage = useOnetimeStorage();
+    const { set } = useOnetimeStorage();
     const bookId = props.id.replace("id:", "");
     let workerRef = useRef<ReturnType<typeof setupWorker> | null>(null);
     useEffect(() => {
@@ -155,7 +155,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                         })
                     );
                     // disable cache for fileId
-                    onetimeStorage.set(props.id, {
+                    set(props.id, {
                         noCache: true
                     });
                     console.log("disable cache for", props.id);
@@ -180,7 +180,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
             console.debug("Service Worker is stop on unmount");
             workerRef.current?.stop();
         };
-    }, [bookId, onetimeStorage, props.id, props.src]);
+    }, [bookId, set, props.id, props.src]);
     // on hide page, stop worker
     // Note: SW is required when loading page.
     // After loading page, SW is not required.
