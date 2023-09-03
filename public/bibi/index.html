@@ -603,7 +603,18 @@
             style.innerHTML = `#\\:1\\.container { visibility: hidden!important; }`;
             iframeWindow.document.head.appendChild(style);
             setTimeout(() => {
-                translate();
+                // translate the frame
+                // prevent to translate another frame when page is changed
+                const iframeWindow = iframe.contentWindow;
+                const googleBannerFrame = iframeWindow.document.getElementById(":1.container");
+                if (!googleBannerFrame) {
+                    return;
+                }
+                const confirmButton = googleBannerFrame.contentWindow.document.querySelector(`button[id=":1.confirm"]`);
+                if (!confirmButton) {
+                    return;
+                }
+                confirmButton.click();
             }, 1000);
         };
         iframeWindow.document.body.appendChild(googleTranslateScript);
