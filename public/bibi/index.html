@@ -576,6 +576,10 @@
             return;
         }
         const iframeWindow = iframe.contentWindow;
+        // already loaded
+        if (iframeWindow.googleTranslateElementInit) {
+            return;
+        }
         if (iframeWindow.document.querySelector("#google_translate_element")) {
             return;
         }
