@@ -533,6 +533,20 @@
         };
     }
 
+    /**
+     * @param {(event:KeyboardEvent) => void} fn
+     * @returns {Promise<(function(): void)>}
+     */
+    const onKeydown = async (fn) => {
+        await waitReady();
+        const handler = (e) => {
+            fn(e);
+        };
+        E.add("bibi:downed-key", handler);
+        return () => {
+            E.remove("bibi:downed-key", handler)
+        };
+    }
 
     const translate = async () => {
         await waitReady();
@@ -678,6 +692,7 @@
         getBookInfo,
         removeSelection,
         onChangePage,
+        onKeydown,
         onChangeMenuState,
         onChangeSelection,
         enableTranslation: () => translation.enable(),

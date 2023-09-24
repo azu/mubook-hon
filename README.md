@@ -49,6 +49,11 @@ You can use <https://mubook-hon.vercel.app/> as PWA apps.
 - [Add & open Chrome apps - Chrome Web Store Help](https://support.google.com/chrome_webstore/answer/3060053?hl=en)
 - [Add to Home screen - Progressive web apps (PWAs) | MDN](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen)
 
+## Shortcut Keys
+
+- <kbd>Shift + A</kbd>: Add memo to Stock
+- <kbd>Shift + S</kbd>: Save memo to Notion
+
 ## Privacy Notices
 
 - Request/Response to Dropbox: No Proxy

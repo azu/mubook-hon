@@ -47,6 +47,7 @@ export type ViewerContentMethod = {
         id: string;
     }>;
     onChangePage: (fn: (page: number) => void) => Promise<() => void>;
+    onKeydown: (fn: (event: KeyboardEvent) => void) => Promise<() => void>;
     onChangeMenuState: (fn: (state: "open" | "closed") => void) => Promise<() => void>;
     onChangeSelection: (fn: (selection?: string) => void) => Promise<() => void>;
 
@@ -353,6 +354,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
 
     // has selected text or page content
     const [canMemoContent, setCanMemoContent] = useState(false);
+    const viewerControllerOnKeydownRef = useRef<() => void>();
     const viewerControllerOnChangePageRef = useRef<() => void>();
     const viewerControllerOnChangeMenuRef = useRef<() => void>();
     const viewerControllerOnSelectionChangeRef = useRef<() => void>();
@@ -374,6 +376,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                             setMenuState(state);
                         }
                     );
+                    // on selection change
                     viewerControllerOnSelectionChangeRef.current?.();
                     viewerControllerOnSelectionChangeRef.current =
                         await contentWindow.viewerController.onChangeSelection((selection) => {
@@ -384,7 +387,17 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                                 setCanMemoContent(true);
                             }
                         });
-                    viewerControllerOnChangePageRef.current?.(); // avoid register twice
+                    // on keydown
+                    viewerControllerOnKeydownRef.current?.();
+                    viewerControllerOnKeydownRef.current = await contentWindow.viewerController.onKeydown((event) => {
+                        if (/* Shift + A */ event.shiftKey && event.key === "A") {
+                            onClickStockMemo();
+                        } else if (/* Shift + S */ event.shiftKey && event.key === "S") {
+                            onClickMemo();
+                        }
+                    });
+                    // on change page
+                    viewerControllerOnChangePageRef.current?.();
                     viewerControllerOnChangePageRef.current = await contentWindow.viewerController.onChangePage(
                         async () => {
                             if (!isInitialized.current) {
