@@ -38,7 +38,7 @@ export const useNotionList = () => {
                 database_id: notionSetting.bookListDatabaseId,
                 sorts: [
                     {
-                        property: "Updated",
+                        property: "Created",
                         direction: "descending"
                     }
                 ],
