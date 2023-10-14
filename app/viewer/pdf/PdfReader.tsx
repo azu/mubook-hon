@@ -8,6 +8,7 @@ import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 
 import { BookItem, decodeBookMarker, hasDataBook, isPdfJsPositionMarker, useNotion } from "../../notion/useNotion";
+import { useHotkeys } from "react-hotkeys-hook";
 // Import styles
 export type PdfReaderProps = {
     id: string;
@@ -214,6 +215,8 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                 setIsAddingMemo(false);
             });
     }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
+
+    useHotkeys("shift+s", onClickMemo);
 
     const defaultLayoutPluginInstance = defaultLayoutPlugin({
         sidebarTabs: (defaultTabs) => (window.matchMedia("(min-width: 768px)").matches ? defaultTabs : [])
