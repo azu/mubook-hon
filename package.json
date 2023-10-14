@@ -39,7 +39,7 @@
     "react-hotkeys-hook": "^4.4.1",
     "react-icons": "^4.9.0",
     "react-pdf": "^6.2.2",
-    "react-use": "^17.4.0",
+    "@react-hookz/web": "^23.1.0",
     "swr": "^2.2.0"
   },
   "devDependencies": {

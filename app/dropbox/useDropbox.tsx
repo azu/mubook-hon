@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useLocalStorage } from "react-use";
+import { useLocalStorageValue as useLocalStorage } from "@react-hookz/web";
 import { useEffect, useMemo, useState } from "react";
 import { Dropbox, DropboxAuth } from "dropbox";
 
@@ -12,7 +12,11 @@ const DROPBOX_AUTH_REDIRECT_URI =
     process.env.NODE_ENV === "production" ? "https://mubook-hon.vercel.app/" : "http://localhost:3000/";
 export const useDropbox = (props: { code?: string } = {}) => {
     const router = useRouter();
-    const [tokens, setTokens] = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
+    const {
+        value: tokens,
+        set: setTokens,
+        remove: removeTokens
+    } = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
     const [accessTokenStatus, setAccessTokenStatus] = useState<"none" | "valid" | "invalid">("none");
     const dropboxAuth = useMemo(() => {
         console.debug("create dropbox auth");
@@ -52,9 +56,9 @@ export const useDropbox = (props: { code?: string } = {}) => {
             })
             .catch((e: Error) => {
                 console.error(e);
-                setTokens(undefined);
+                removeTokens();
             });
-    }, [dropboxAuth, setTokens]);
+    }, [dropboxAuth, removeTokens, setTokens]);
     useEffect(() => {
         if (!props.code) return;
         const codeVerifier = window.sessionStorage.getItem("codeVerifier");

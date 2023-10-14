@@ -1,4 +1,4 @@
-import { useLocalStorage } from "react-use";
+import { useLocalStorageValue as useLocalStorage } from "@react-hookz/web";
 import { useCallback, useMemo } from "react";
 import { Client } from "@notionhq/client";
 import useSWR from "swr";
@@ -18,7 +18,8 @@ const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
     : "http://localhost:3000/api/notion-proxy";
 
 export const useNotionSetting = () => {
-    const [notionSetting, setNotionSettings] = useLocalStorage<Partial<NotionSetting>>("mubook-hon-notion");
+    const { value: notionSetting, set: setNotionSettings } =
+        useLocalStorage<Partial<NotionSetting>>("mubook-hon-notion");
     const updateNotionSettings = useCallback(
         (notionSetting: Partial<NotionSetting>) => {
             setNotionSettings((prev) => {

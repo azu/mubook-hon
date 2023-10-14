@@ -214,6 +214,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                 setIsAddingMemo(false);
             });
     }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
+
     const defaultLayoutPluginInstance = defaultLayoutPlugin({
         sidebarTabs: (defaultTabs) => (window.matchMedia("(min-width: 768px)").matches ? defaultTabs : [])
     });
