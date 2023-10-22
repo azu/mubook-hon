@@ -115,6 +115,12 @@ Bibi.preset({
 
     "trustworthy-origins": ["http://localhost:10002", "http://localhost:3000", "https://mubook-hon.vercel.app"],
 
+    // "allow-scripts-in-content": false break some epub render
+    // if allow-scripts-in-content is false, Bibi sanitize html content. The extensions/sanitize break some epub content
+    // https://github.com/azu/mubook-hon/issues/12
+    // mubook-hon does not provide untrusted own epub as a content, so allow-scripts is safe.
+    "allow-scripts-in-content": true,
+
     /*
     
     
