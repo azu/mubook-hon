@@ -10,10 +10,10 @@ import {
     useNotion
 } from "../../notion/useNotion";
 import { generateBackoff } from "exponential-backoff-generator";
-import { rest, setupWorker } from "msw";
+import { http } from "msw";
+import { setupWorker } from "msw/browser";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { HiOutlineTranslate } from "react-icons/hi";
 import { useOnetimeStorage } from "../../settings/TemporaryStorage";
 import { Loading } from "../../components/Loading";
 
@@ -109,45 +109,50 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
             // 1. /META-INF/container.xml
             // 2. /OEBPS/content.opf
             // Response epub content as /OEBPS/content.opf
-            rest.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", async (_, res, ctx) => {
-                return res(
-                    ctx.set("Content-Type", "application/xml"),
-                    // Respond with the "ArrayBuffer".
-                    ctx.body(`<?xml version="1.0" ?>
+            http.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", () => {
+                const xml = `<?xml version="1.0" ?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml" />
   </rootfiles>
 </container>
-`)
-                );
+`;
+                return new Response(xml, {
+                    headers: {
+                        "Content-Type": "application/xml"
+                    }
+                });
             }),
-            rest.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async (_, res, ctx) => {
+            http.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async () => {
                 try {
                     const epub = await fetch(src).then((res) => res.arrayBuffer());
-                    return res(
-                        ctx.set("Content-Length", epub.byteLength.toString()),
-                        ctx.set("Content-Type", "application/epub+zip"),
-                        ctx.body(epub)
-                    );
+                    return new Response(epub, {
+                        headers: {
+                            "Content-Length": epub.byteLength.toString(),
+                            "Content-Type": "application/epub+zip"
+                        }
+                    });
                 } catch (error) {
                     console.error(
                         new Error("fetch book OEBPS/package.opf", {
                             cause: error
                         })
                     );
-                    return res(ctx.status(500));
+                    return new Response("Error", {
+                        status: 500
+                    });
                 }
             }),
-            rest.get("/bibi-bookshelf/" + bookId, async (_, res, ctx) => {
+            http.get("/bibi-bookshelf/" + bookId, async () => {
                 try {
                     const epub = await fetch(src).then((res) => res.arrayBuffer());
-                    return res(
-                        ctx.set("Content-Length", epub.byteLength.toString()),
-                        ctx.set("Content-Type", "application/epub+zip"),
-                        // Respond with the "ArrayBuffer".
-                        ctx.body(epub)
-                    );
+                    // Respond with the "ArrayBuffer".
+                    return new Response(epub, {
+                        headers: {
+                            "Content-Length": epub.byteLength.toString(),
+                            "Content-Type": "application/epub+zip"
+                        }
+                    });
                 } catch (error) {
                     // probably, blob is broken
                     console.error(
@@ -159,8 +164,10 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                     set(props.id, {
                         noCache: true
                     });
-                    console.log("disable cache for", props.id);
-                    return res(ctx.status(500));
+                    console.debug("disable cache for", props.id);
+                    return new Response("Error", {
+                        status: 500
+                    });
                 }
             })
         );

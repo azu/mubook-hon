@@ -1,5 +1,4 @@
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { rest, setupWorker } from "msw";
 import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { fullScreenPlugin } from "@react-pdf-viewer/full-screen";
@@ -9,6 +8,8 @@ import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 
 import { BookItem, decodeBookMarker, hasDataBook, isPdfJsPositionMarker, useNotion } from "../../notion/useNotion";
 import { useHotkeys } from "react-hotkeys-hook";
+import { setupWorker } from "msw/browser";
+import { http } from "msw";
 // Import styles
 export type PdfReaderProps = {
     id: string;
@@ -99,14 +100,25 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             return;
         }
         const worker = setupWorker(
-            rest.get("/pdf/" + bookId, async (_, res, ctx) => {
-                const pdf = await fetch(src).then((res) => res.arrayBuffer());
-                return res(
-                    ctx.set("Content-Length", pdf.byteLength.toString()),
-                    ctx.set("Content-Type", "application/pdf"),
-                    // Respond with the "ArrayBuffer".
-                    ctx.body(pdf)
-                );
+            http.get("/pdf/" + bookId, async () => {
+                try {
+                    const pdf = await fetch(src).then((res) => res.arrayBuffer());
+                    return new Response(pdf, {
+                        headers: {
+                            "Content-Length": pdf.byteLength.toString(),
+                            "Content-Type": "application/pdf"
+                        }
+                    });
+                } catch (error) {
+                    console.error(
+                        new Error("fetch book", {
+                            cause: error
+                        })
+                    );
+                    return new Response("Error", {
+                        status: 500
+                    });
+                }
             })
         );
         worker
