@@ -101,6 +101,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
     useEffect(() => {
         const src = props.src;
         if (!src) {
+            console.debug("src is empty");
             return;
         }
         console.debug("create mock server for", src, bookId);
