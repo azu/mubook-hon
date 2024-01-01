@@ -402,6 +402,10 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                             onClickStockMemo();
                         } else if (/* Shift + S */ event.shiftKey && event.key === "S") {
                             onClickMemo();
+                        } else if (/* J */ event.key === "j") {
+                            contentWindow.viewerController.moveNextPage();
+                        } else if (/* K */ event.key === "k") {
+                            contentWindow.viewerController.movePrevPage();
                         }
                     });
                     // on change page
