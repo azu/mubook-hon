@@ -319,12 +319,12 @@
     const moveNextPage = async () => {
         await waitReady();
         // B.PPD is dir of book
-        // left to right: move +1 is next
-        // right to left: move -1 is next
+        // left to right: move -1 is next
+        // right to left: move +1 is next
         if (B.PPD === "ltr") {
-            E.dispatch("bibi:commands:move-by", 1)
-        } else {
             E.dispatch("bibi:commands:move-by", -1)
+        } else {
+            E.dispatch("bibi:commands:move-by", +1)
         }
     };
     /**
