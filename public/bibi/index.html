@@ -311,9 +311,9 @@
         // Just tap arrow
         // https://github.com/satorumurmur/bibi/blob/022672550044ca145c355943cca6fe4f9bc21307/__src/bibi/resources/scripts/bibi.heart.js#L3806-L3813
         if (B.PPD === "ltr") {
-            E.dispatch("bibi:commands:move-by", -1)
+            E.dispatch("bibi:commands:move-by", +1)
         } else {
-            E.dispatch("bibi:commands:move-by", 1)
+            E.dispatch("bibi:commands:move-by", -1)
         }
     };
     const moveNextPage = async () => {
