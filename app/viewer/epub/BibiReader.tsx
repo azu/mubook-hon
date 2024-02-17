@@ -172,11 +172,18 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 }
             })
         );
-        workerRef.current
-            .start({
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("Service Worker is timeout"));
+            }, 3_000);
+        });
+        Promise.race([
+            workerRef.current.start({
                 onUnhandledRequest: "bypass",
                 waitUntilReady: true
-            })
+            }),
+            timeoutPromise
+        ])
             .then(() => {
                 setIsReadyBook(true);
                 console.debug("Service Worker is Ready!");
