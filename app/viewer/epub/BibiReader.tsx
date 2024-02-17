@@ -188,9 +188,16 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 setIsReadyBook(true);
                 console.debug("Service Worker is Ready!");
             })
-            .catch((e) => {
+            .catch(async (e) => {
                 console.debug("Service Worker is failed to start", e.message);
                 console.error(e);
+                // unregister worker
+                const registration = await navigator.serviceWorker.getRegistration();
+                if (registration) {
+                    await registration.unregister();
+                }
+                // reload page
+                window.location.reload();
             });
         return () => {
             console.debug("Service Worker is stop on unmount");
