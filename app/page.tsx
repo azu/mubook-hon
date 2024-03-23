@@ -1,5 +1,4 @@
 "use client";
-import "./sakura.css";
 import { Dropbox, DropboxResponse } from "dropbox";
 import { FC, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import useSWR, { Fetcher } from "swr";
