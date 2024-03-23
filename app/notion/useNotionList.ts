@@ -30,7 +30,7 @@ export const useNotionList = () => {
                       cacheKey: "/notion/recent-books"
                   }
                 : null,
-        async () => {
+        (async () => {
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
@@ -68,7 +68,7 @@ export const useNotionList = () => {
                 };
             });
             return bookItems;
-        }
+        }) as Fetcher<BookItem[]>
     );
     return {
         recentBooks,
