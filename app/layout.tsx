@@ -1,6 +1,6 @@
 import "./global.css";
-import { Metadata } from "next";
-
+import "./sakura.css";
+import type { Metadata } from "next";
 export const metadata: Metadata = {
     title: "mubook-hon",
     description: "mubook-hon is a web-based epub/pdf reader",

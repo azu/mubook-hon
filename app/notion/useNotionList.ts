@@ -1,7 +1,7 @@
-import useSWR, { Fetcher } from "swr";
+import useSWR from "swr";
 import { useMemo } from "react";
 import { Client } from "@notionhq/client";
-import { BookItem, decodeBookMarker, prop, supportedViewerType, useNotionSetting } from "./useNotion";
+import { decodeBookMarker, prop, supportedViewerType, useNotionSetting } from "./useNotion";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 const USER_DEFINED_NOTION_BASE_URL =
@@ -30,7 +30,7 @@ export const useNotionList = () => {
                       cacheKey: "/notion/recent-books"
                   }
                 : null,
-        (async () => {
+        async () => {
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
@@ -68,7 +68,7 @@ export const useNotionList = () => {
                 };
             });
             return bookItems;
-        }) as Fetcher<BookItem[]>
+        }
     );
     return {
         recentBooks,

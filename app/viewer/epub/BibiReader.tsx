@@ -16,6 +16,7 @@ import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOnetimeStorage } from "../../settings/TemporaryStorage";
 import { Loading } from "../../components/Loading";
+import { joinMemoStock } from "../../utils/joinMemoStock";
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -522,7 +523,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             const stockedMemo =
                 memoStock.length > 0
                     ? {
-                          text: memoStock.map((m) => m.text).join("\n----\n"),
+                          text: joinMemoStock(memoStock.map((memo) => memo.text)),
                           selectors: {
                               start: memoStock.at(0)?.selectors.start,
                               end: memoStock.at(-1)?.selectors.end
