@@ -16,7 +16,7 @@
     "lint": "next lint",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\"",
     "prepare": "git config --local core.hooksPath .githooks",
-    "test": "node --test --import=tsimp/import app/**/*.test.ts pages/api/**/*.test.ts"
+    "test": "node --test --require=ts-node/register app/**/*.test.ts pages/api/**/*.test.ts"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.9",
@@ -29,7 +29,6 @@
     "@react-pdf-viewer/full-screen": "^3.10.0",
     "@react-pdf-viewer/locales": "^1.0.0",
     "dropbox": "^10.34.0",
-    "encoding": "^0.1.13",
     "exponential-backoff-generator": "^2.0.1",
     "husky": "^8.0.3",
     "msw": "^2.2.1",
@@ -45,11 +44,11 @@
   "devDependencies": {
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
-    "eslint": "^8.31.0",
-    "eslint-config-next": "^13.1.4",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^13.5.6",
     "lint-staged": "^13.1.0",
     "prettier": "^2.8.3",
-    "tsimp": "^2.0.11",
+    "ts-node": "^10.9.2",
     "typescript": "~5.3.0"
   },
   "msw": {
