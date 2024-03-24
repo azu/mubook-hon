@@ -19,9 +19,10 @@ describe("joinMemoStock", () => {
     it("should return a string with 2 strings", () => {
         const memos = [
             `背もたれはびくともしない。彼女は客室乗`,
-            `務員を呼び、乗務員はビーチに固定具を外すよう頼んだ。`
+            `務員を呼び、乗務員はビーチに固定具を外すよう頼んだ。`,
+            `頼んだけど、これはどうなの?`
         ];
-        const expected = `背もたれはびくともしない。彼女は客室乗務員を呼び、乗務員はビーチに固定具を外すよう頼んだ。`;
+        const expected = `背もたれはびくともしない。彼女は客室乗務員を呼び、乗務員はビーチに固定具を外すよう頼んだ。頼んだけど、これはどうなの?`;
         assert.strictEqual(joinMemoStock(memos), expected);
     });
 });
