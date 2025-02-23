@@ -1,10 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 
-type Options<T> = {
+export type UseLocalStorageOption<T> = {
     defaultValue: T;
 };
 
-export function useLocalStorage<T>(key: string, options: Options<T>) {
+export function useLocalStorage<T>(key: string, options: UseLocalStorageOption<T>) {
     // Get from local storage then
     // parse stored json or return defaultValue
     const readValue = useCallback((): T => {
@@ -60,6 +60,8 @@ export function useLocalStorage<T>(key: string, options: Options<T>) {
         }
     }, [key, options.defaultValue]);
 
+    // Re-read from localStorage when the key changes or when the component mounts
+    // This ensures the stored value stays in sync with other components using the same key
     useEffect(() => {
         setStoredValue(readValue());
     }, [readValue]);
