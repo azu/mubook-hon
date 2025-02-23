@@ -5,7 +5,7 @@ import { waitContentWindowLoad } from "./BibiReader";
 import { ContentWindow } from "./BibiReader";
 
 type UseViewerInitializationProps = {
-    contentWindow: ContentWindow;
+    contentWindow: ContentWindow | undefined;
     isInitialized: React.MutableRefObject<boolean>;
     tryToRestoreLastPositionAtFirst: () => Promise<void>;
     onClickStockMemo: () => void;
@@ -31,12 +31,13 @@ export const useViewerInitialization = ({
     props,
     currentBook
 }: UseViewerInitializationProps) => {
-    const viewerControllerOnKeydownRef = useRef<() => void>();
-    const viewerControllerOnChangePageRef = useRef<() => void>();
-    const viewerControllerOnChangeMenuRef = useRef<() => void>();
-    const viewerControllerOnSelectionChangeRef = useRef<() => void>();
+    const viewerControllerOnKeydownRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnChangePageRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnChangeMenuRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnSelectionChangeRef = useRef<(() => void) | undefined>(undefined);
 
     const setupEventListeners = useCallback(async () => {
+        if (!contentWindow) return;
         console.debug("Try to add listener to page");
         viewerControllerOnChangeMenuRef.current?.();
         viewerControllerOnChangeMenuRef.current = await contentWindow.viewerController.onChangeMenuState(
@@ -131,6 +132,7 @@ export const useViewerInitialization = ({
 
     const initialize = useCallback(async () => {
         try {
+            if (!contentWindow) return;
             await waitContentWindowLoad(contentWindow);
             if (!isInitialized.current) {
                 await tryToRestoreLastPositionAtFirst();

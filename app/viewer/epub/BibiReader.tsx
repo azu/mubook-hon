@@ -263,7 +263,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     });
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
-    const bibiFrame = useRef<HTMLIFrameElement>();
+    const bibiFrame = useRef<HTMLIFrameElement | null>(null);
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -465,7 +465,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     }, [addMemo, memoStock]);
 
     const { initialize, cleanup } = useViewerInitialization({
-        contentWindow: (bibiFrame.current?.contentWindow as ContentWindow | undefined) ?? undefined,
+        contentWindow: bibiFrame.current?.contentWindow as ContentWindow,
         isInitialized,
         tryToRestoreLastPositionAtFirst,
         onClickStockMemo,
@@ -475,7 +475,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         updateBookStatus,
         isTranslation: Boolean(isTranslation),
         props,
-        currentBook: currentBook ?? null
+        currentBook: typeof currentBook === "symbol" ? null : currentBook ?? null
     });
 
     const onInitializeIframeRef = useCallback(
