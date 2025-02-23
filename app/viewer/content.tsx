@@ -15,8 +15,10 @@ import dynamic from "next/dynamic";
 const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
     ssr: false
 });
-const PdfReader = dynamic(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })), { ssr: false });
 const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) => ({ default: mod.KindleReader })), {
+    ssr: false
+});
+const PdfReader = dynamic(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })), {
     ssr: false
 });
 
