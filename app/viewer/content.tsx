@@ -15,7 +15,6 @@ import dynamic from "next/dynamic";
 const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
     ssr: false
 });
-const PdfReader = dynamic(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })), { ssr: false });
 const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) => ({ default: mod.KindleReader })), {
     ssr: false
 });
@@ -106,7 +105,7 @@ function ViewerContentInner() {
     if (!fileId) {
         return <div>ID not found</div>;
     }
-    if (viewerType !== "epub:bibi" && viewerType !== "pdf:pdfjs" && viewerType !== "kindle") {
+    if (viewerType !== "epub:bibi" && viewerType !== "kindle") {
         return <div>Invalid viewer type: {viewerType}</div>;
     }
     return (
@@ -145,7 +144,7 @@ const LoadingBook = (props: { tooLoadingLong: boolean; onClickReloadWithoutCache
 
 const App = (
     props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
-        viewerType: "epub:bibi" | "pdf:pdfjs" | "kindle";
+        viewerType: "epub:bibi" | "kindle";
     }
 ) => {
     const id = props.id;
@@ -211,24 +210,6 @@ const App = (
                         initialPage={props.initialPage}
                         initialMarker={props.initialMarker}
                         translation={props.translation}
-                    />
-                </Suspense>
-            )}
-            {props.viewerType === "pdf:pdfjs" && (
-                <Suspense
-                    fallback={
-                        <LoadingBook
-                            onClickReloadWithoutCache={onClickReloadWithoutCache}
-                            tooLoadingLong={tooLoadLong}
-                        />
-                    }
-                >
-                    <PdfReader
-                        src={fileBlobUrl}
-                        id={id}
-                        bookFileName={fileDisplayName}
-                        initialPage={props.initialPage}
-                        initialMarker={props.initialMarker}
                     />
                 </Suspense>
             )}

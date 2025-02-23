@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useLocalStorageValue as useLocalStorage } from "@react-hookz/web";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useEffect, useMemo, useState } from "react";
 import { Dropbox, DropboxAuth } from "dropbox";
 
@@ -16,7 +16,7 @@ export const useDropbox = (props: { code?: string } = {}) => {
         value: tokens,
         set: setTokens,
         remove: removeTokens
-    } = useLocalStorage<DropboxTokens>("mubook-hon-dropbox-tokens");
+    } = useLocalStorage<DropboxTokens | undefined>("mubook-hon-dropbox-tokens", { defaultValue: undefined });
     const [accessTokenStatus, setAccessTokenStatus] = useState<"none" | "valid" | "invalid">("none");
     const dropboxAuth = useMemo(() => {
         console.debug("create dropbox auth");
