@@ -1,3 +1,4 @@
+"use client";
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
@@ -8,9 +9,16 @@ import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 
 import { BookItem, decodeBookMarker, hasDataBook, isPdfJsPositionMarker, useNotion } from "../../notion/useNotion";
 import { useHotkeys } from "react-hotkeys-hook";
-import { setupWorker } from "msw/browser";
 import { http } from "msw";
 // Import styles
+
+import type { SetupWorker } from "msw/browser";
+
+const getSetupWorker = async () => {
+    const { setupWorker } = await import("msw/browser");
+    return setupWorker;
+};
+
 export type PdfReaderProps = {
     id: string;
     src?: string;
@@ -99,43 +107,50 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         if (!src) {
             return;
         }
-        const worker = setupWorker(
-            http.get("/pdf/" + bookId, async () => {
-                try {
-                    const pdf = await fetch(src).then((res) => res.arrayBuffer());
-                    return new Response(pdf, {
-                        headers: {
-                            "Content-Length": pdf.byteLength.toString(),
-                            "Content-Type": "application/pdf"
-                        }
-                    });
-                } catch (error) {
-                    console.error(
-                        new Error("fetch book", {
-                            cause: error
-                        })
-                    );
-                    return new Response("Error", {
-                        status: 500
-                    });
-                }
-            })
-        );
-        worker
-            .start({
+        const initWorker = async () => {
+            const setupWorker = await getSetupWorker();
+            const worker = setupWorker(
+                http.get("/pdf/" + bookId, async () => {
+                    try {
+                        const pdf = await fetch(src).then((res) => res.arrayBuffer());
+                        return new Response(pdf, {
+                            headers: {
+                                "Content-Length": pdf.byteLength.toString(),
+                                "Content-Type": "application/pdf"
+                            }
+                        });
+                    } catch (error) {
+                        console.error(
+                            new Error("fetch book", {
+                                cause: error
+                            })
+                        );
+                        return new Response("Error", {
+                            status: 500
+                        });
+                    }
+                })
+            );
+
+            return worker;
+        };
+        const workerPromise = initWorker().then((worker: SetupWorker) => {
+            return worker.start({
                 onUnhandledRequest: "bypass",
                 waitUntilReady: true
-            })
-            .then(() => {
+            }).then(() => {
                 setIsReady(true);
                 console.debug("Service Worker is Ready!");
-            })
-            .catch((e) => {
-                console.error(e);
+                return worker;
             });
+        }).catch((error: Error) => {
+            console.error(error);
+            return null;
+        });
+
         return () => {
-            console.debug("Service Worker is stop");
-            worker.stop();
+            console.debug("Service Worker is stopping");
+            void workerPromise.then(worker => worker?.stop());
         };
     }, [bookId, props.src]);
     const [runtimeBookInfo, setRuntimeBookInfo] = React.useState<
@@ -234,6 +249,10 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         sidebarTabs: (defaultTabs) => (window.matchMedia("(min-width: 768px)").matches ? defaultTabs : [])
     });
     const fullScreenPluginInstance = fullScreenPlugin();
+    const plugins = React.useMemo(
+        () => [defaultLayoutPluginInstance, fullScreenPluginInstance],
+        [defaultLayoutPluginInstance, fullScreenPluginInstance]
+    );
     const characterMap: CharacterMap = {
         isCompressed: true,
         url: "https://unpkg.com/pdfjs-dist@3.1.81/cmaps/"
@@ -263,7 +282,7 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                 <Viewer
                     initialPage={initialPage}
                     fileUrl={`/pdf/${bookId}`}
-                    plugins={[defaultLayoutPluginInstance, fullScreenPluginInstance]}
+                    plugins={plugins}
                     characterMap={characterMap}
                     onDocumentLoad={onDocumentLoad}
                     onPageChange={onPageChange}
