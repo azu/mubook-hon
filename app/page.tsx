@@ -1,14 +1,12 @@
 "use client";
-import { Dropbox, DropboxResponse } from "dropbox";
-import { FC, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import useSWR, { Fetcher } from "swr";
-import { files } from "dropbox/types/dropbox_types";
+import { FC, Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
 import { useNotionList } from "./notion/useNotionList";
 import { Loading } from "./components/Loading";
 import { useUserSettings } from "./settings/useUserSettings";
+import { useDropboxAPI } from "./dropbox/useDropboxAPI";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -26,64 +24,6 @@ const useSearch = (initialSearch: string) => {
         searchInput,
         onInputSearch
     };
-};
-const useDropboxAPI = (dropboxClient: Dropbox | null, options: { path: string; filterQuery: string }) => {
-    const filterQuery = options.filterQuery;
-    const listFetcher: Fetcher<DropboxResponse<files.ListFolderResult>> = async () => {
-        if (!dropboxClient) {
-            throw new Error("no dropbox client");
-        }
-        return dropboxClient.filesListFolder({ path: options.path });
-    };
-    const { data: itemLists, error: itemListsError } = useSWR<DropboxResponse<files.ListFolderResult>>(
-        () =>
-            dropboxClient
-                ? {
-                      cacheKey: "/dropbox/filesListFolder/",
-                      path: options.path
-                  }
-                : null,
-        listFetcher,
-        {
-            revalidateOnFocus: true,
-            revalidateIfStale: true,
-            revalidateOnMount: true
-        }
-    );
-    const bookItems = useMemo(() => {
-        const files =
-            itemLists?.result.entries.filter((entry) => {
-                if (entry[".tag"] === "folder") {
-                    return true;
-                }
-                return entry?.path_lower?.endsWith(".epub") || entry?.path_lower?.endsWith(".pdf");
-            }) ?? [];
-        if (filterQuery) {
-            return files.filter((entry) => {
-                return entry?.path_lower?.toLowerCase().includes(filterQuery.toLowerCase());
-            });
-        }
-        return files;
-    }, [filterQuery, itemLists?.result.entries]);
-    const sortedItems = useMemo(() => {
-        return bookItems.sort((a, b) => {
-            if (a[".tag"] === "folder" && b[".tag"] === "folder") {
-                return 0;
-            }
-            if (a[".tag"] === "file" && b[".tag"] === "folder") {
-                return 1;
-            }
-            if (a[".tag"] === "folder" && b[".tag"] === "file") {
-                return -1;
-            }
-            // @ts-expect-error: entry?.is_downloadable is not defined in the type
-            return a.client_modified < b.client_modified ? 1 : -1;
-        });
-    }, [bookItems]);
-    return {
-        bookItems,
-        sortedItems
-    } as const;
 };
 const HomeContent: FC = () => {
     const ready = useReady();
@@ -119,7 +59,8 @@ const HomeContent: FC = () => {
                         <ul>
                             <li>mubook-hon downloads epub/pdf files from your dropbox account</li>
                             <li>
-                                After connect, You can put your epub/pdf files to <b>~/Dropbox/Apps/mubook-hon</b> directory
+                                After connect, You can put your epub/pdf files to <b>~/Dropbox/Apps/mubook-hon</b>{" "}
+                                directory
                             </li>
                         </ul>
                     </div>
@@ -260,7 +201,10 @@ const HomeContent: FC = () => {
                         </ul>
                     </details>
                     <h2>Book List</h2>
-                    <form style={{ display: "flex", flexDirection: "row" }} onSubmit={(event) => event.preventDefault()}>
+                    <form
+                        style={{ display: "flex", flexDirection: "row" }}
+                        onSubmit={(event) => event.preventDefault()}
+                    >
                         <label htmlFor={"input-search"}>🔎</label>
                         <input
                             id="input-search"
