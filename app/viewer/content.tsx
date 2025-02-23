@@ -18,6 +18,9 @@ const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ de
 const KindleReader = dynamic(() => import("./kindle/KindleReader").then((mod) => ({ default: mod.KindleReader })), {
     ssr: false
 });
+const PdfReader = dynamic(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })), {
+    ssr: false
+});
 
 const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache: boolean }) => {
     const onetimeStorage = useOnetimeStorage();
@@ -105,7 +108,7 @@ function ViewerContentInner() {
     if (!fileId) {
         return <div>ID not found</div>;
     }
-    if (viewerType !== "epub:bibi" && viewerType !== "kindle") {
+    if (viewerType !== "epub:bibi" && viewerType !== "pdf:pdfjs" && viewerType !== "kindle") {
         return <div>Invalid viewer type: {viewerType}</div>;
     }
     return (
@@ -144,7 +147,7 @@ const LoadingBook = (props: { tooLoadingLong: boolean; onClickReloadWithoutCache
 
 const App = (
     props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
-        viewerType: "epub:bibi" | "kindle";
+        viewerType: "epub:bibi" | "pdf:pdfjs" | "kindle";
     }
 ) => {
     const id = props.id;
@@ -210,6 +213,24 @@ const App = (
                         initialPage={props.initialPage}
                         initialMarker={props.initialMarker}
                         translation={props.translation}
+                    />
+                </Suspense>
+            )}
+            {props.viewerType === "pdf:pdfjs" && (
+                <Suspense
+                    fallback={
+                        <LoadingBook
+                            onClickReloadWithoutCache={onClickReloadWithoutCache}
+                            tooLoadingLong={tooLoadLong}
+                        />
+                    }
+                >
+                    <PdfReader
+                        src={fileBlobUrl}
+                        id={id}
+                        bookFileName={fileDisplayName}
+                        initialPage={props.initialPage}
+                        initialMarker={props.initialMarker}
                     />
                 </Suspense>
             )}
