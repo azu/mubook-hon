@@ -31,10 +31,10 @@ export const useViewerInitialization = ({
     props,
     currentBook
 }: UseViewerInitializationProps) => {
-    const viewerControllerOnKeydownRef = useRef<() => void>();
-    const viewerControllerOnChangePageRef = useRef<() => void>();
-    const viewerControllerOnChangeMenuRef = useRef<() => void>();
-    const viewerControllerOnSelectionChangeRef = useRef<() => void>();
+    const viewerControllerOnKeydownRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnChangePageRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnChangeMenuRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnSelectionChangeRef = useRef<(() => void) | undefined>(undefined);
 
     const setupEventListeners = useCallback(async () => {
         console.debug("Try to add listener to page");
