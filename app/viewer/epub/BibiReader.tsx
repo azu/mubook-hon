@@ -465,7 +465,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     }, [addMemo, memoStock]);
 
     const { initialize, cleanup } = useViewerInitialization({
-        contentWindow: bibiFrame.current?.contentWindow as ContentWindow,
+        contentWindow: bibiFrame.current?.contentWindow as ContentWindow | undefined,
         isInitialized,
         tryToRestoreLastPositionAtFirst,
         onClickStockMemo,

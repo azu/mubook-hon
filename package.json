@@ -21,10 +21,10 @@
   },
   "dependencies": {
     "@notionhq/client": "^2.2.9",
-    "@piotr-cz/swr-idb-cache": "^1.0.1",
+    "@piotr-cz/swr-idb-cache": "^1.1.2",
     "@radix-ui/colors": "^0.1.8",
-    "@radix-ui/react-toast": "^1.1.2",
-    "@react-hookz/web": "^23.1.0",
+    "@radix-ui/react-toast": "^1.2.7-rc.6",
+    "@react-hookz/web": "^25.0.1",
     "@react-pdf-viewer/core": "^3.12.0",
     "@react-pdf-viewer/default-layout": "^3.12.0",
     "@react-pdf-viewer/full-screen": "^3.12.0",
