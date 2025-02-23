@@ -142,7 +142,7 @@ export const NO_BOOK_DATA = Symbol("No Data YET");
 export const hasDataBook = (bookItem: unknown): bookItem is BookItem => {
     return bookItem !== undefined && bookItem !== null && typeof bookItem === "object" && "fileId" in bookItem;
 };
-const eacapeMultiSelectValue = (value: string) => {
+const escapeMultiSelectValue = (value: string) => {
     return value.replaceAll(",", "");
 };
 export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: string }) => {
@@ -284,7 +284,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                               multi_select:
                                   bookItem.authors?.map((author) => {
                                       return {
-                                          name: eacapeMultiSelectValue(author)
+                                          name: escapeMultiSelectValue(author)
                                       };
                                   }) ?? []
                           }
@@ -294,7 +294,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                     ? {
                           Publisher: {
                               select: {
-                                  name: eacapeMultiSelectValue(bookItem.publisher)
+                                  name: escapeMultiSelectValue(bookItem.publisher)
                               }
                           }
                       }
