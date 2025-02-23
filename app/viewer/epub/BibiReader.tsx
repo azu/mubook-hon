@@ -1,3 +1,4 @@
+"use client";
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     BibiPositionMarker,
@@ -11,6 +12,7 @@ import {
 } from "../../notion/useNotion";
 import { generateBackoff } from "exponential-backoff-generator";
 import { http } from "msw";
+import type { SetupWorker } from "msw/browser";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOnetimeStorage } from "../../settings/TemporaryStorage";
@@ -102,7 +104,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
     const [isReadyBook, setIsReadyBook] = useState(false);
     const { set } = useOnetimeStorage();
     const bookId = props.id.replace("id:", "");
-    let workerRef = useRef<any>(null);
+    const workerRef = useRef<SetupWorker | null>(null);
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -112,108 +114,107 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
         console.debug("create mock server for", src, bookId);
         const initWorker = async () => {
             const worker = await (await getSetupWorker())(
-            // Bibi request
-            // 1. /META-INF/container.xml
-            // 2. /OEBPS/content.opf
-            // Response epub content as /OEBPS/content.opf
-            http.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", () => {
-                const xml = `<?xml version="1.0" ?>
+                // Bibi request
+                // 1. /META-INF/container.xml
+                // 2. /OEBPS/content.opf
+                // Response epub content as /OEBPS/content.opf
+                http.get("/bibi-bookshelf/" + bookId + "/META-INF/container.xml", () => {
+                    const xml = `<?xml version="1.0" ?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/package.opf" media-type="application/oebps-package+xml" />
   </rootfiles>
 </container>
 `;
-                return new Response(xml, {
-                    headers: {
-                        "Content-Type": "application/xml"
+                    return new Response(xml, {
+                        headers: {
+                            "Content-Type": "application/xml"
+                        }
+                    });
+                }),
+                http.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async () => {
+                    try {
+                        const epub = await fetch(src).then((res) => res.arrayBuffer());
+                        return new Response(epub, {
+                            headers: {
+                                "Content-Length": epub.byteLength.toString(),
+                                "Content-Type": "application/epub+zip"
+                            }
+                        });
+                    } catch (error) {
+                        console.error(
+                            new Error("fetch book OEBPS/package.opf", {
+                                cause: error
+                            })
+                        );
+                        return new Response("Error", {
+                            status: 500
+                        });
                     }
-                });
-            }),
-            http.get("/bibi-bookshelf/" + bookId + "/OEBPS/package.opf", async () => {
-                try {
-                    const epub = await fetch(src).then((res) => res.arrayBuffer());
-                    return new Response(epub, {
-                        headers: {
-                            "Content-Length": epub.byteLength.toString(),
-                            "Content-Type": "application/epub+zip"
-                        }
-                    });
-                } catch (error) {
-                    console.error(
-                        new Error("fetch book OEBPS/package.opf", {
-                            cause: error
-                        })
-                    );
-                    return new Response("Error", {
-                        status: 500
-                    });
-                }
-            }),
-            http.get("/bibi-bookshelf/" + bookId, async () => {
-                try {
-                    const epub = await fetch(src).then((res) => res.arrayBuffer());
-                    // Respond with the "ArrayBuffer".
-                    return new Response(epub, {
-                        headers: {
-                            "Content-Length": epub.byteLength.toString(),
-                            "Content-Type": "application/epub+zip"
-                        }
-                    });
-                } catch (error) {
-                    // probably, blob is broken
-                    console.error(
-                        new Error("failed to fetch book content", {
-                            cause: error
-                        })
-                    );
-                    // disable cache for fileId
-                    set(props.id, {
-                        noCache: true
-                    });
-                    console.debug("disable cache for", props.id);
-                    return new Response("Error", {
-                        status: 500
-                    });
-                }
-            })
+                }),
+                http.get("/bibi-bookshelf/" + bookId, async () => {
+                    try {
+                        const epub = await fetch(src).then((res) => res.arrayBuffer());
+                        // Respond with the "ArrayBuffer".
+                        return new Response(epub, {
+                            headers: {
+                                "Content-Length": epub.byteLength.toString(),
+                                "Content-Type": "application/epub+zip"
+                            }
+                        });
+                    } catch (error) {
+                        // probably, blob is broken
+                        console.error(
+                            new Error("failed to fetch book content", {
+                                cause: error
+                            })
+                        );
+                        // disable cache for fileId
+                        set(props.id, {
+                            noCache: true
+                        });
+                        console.debug("disable cache for", props.id);
+                        return new Response("Error", {
+                            status: 500
+                        });
+                    }
+                })
             );
-            workerRef.current = worker;
             return worker;
         };
-        let worker: any;
-        initWorker().then(w => {
-            worker = w;
-        });
-        const timeoutPromise = new Promise((_, reject) => {
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
             setTimeout(() => {
                 reject(new Error("Service Worker is timeout"));
             }, 3_000);
         });
-        Promise.race([
-            initWorker().then(worker => 
-                worker.start({
+
+        const workerPromise = Promise.race([
+            initWorker().then(worker => {
+                workerRef.current = worker;
+                return worker.start({
                     onUnhandledRequest: "bypass",
                     waitUntilReady: true
-                })
-            ),
+                }).then(() => {
+                    setIsReadyBook(true);
+                    console.debug("Service Worker is Ready!");
+                    return worker;
+                });
+            }),
             timeoutPromise
-        ])
-            .then(() => {
-                setIsReadyBook(true);
-                console.debug("Service Worker is Ready!");
-            })
-            .catch(async (e) => {
-                console.debug("Service Worker is failed to start", e.message);
-                console.error(e);
-                // unregister worker
-                const registration = await navigator.serviceWorker.getRegistration();
-                if (registration) {
-                    await registration.unregister();
-                }
-                // reload page
-                window.location.reload();
-            });
+        ]).catch(async (error) => {
+            console.debug("Service Worker is failed to start", error.message);
+            console.error(error);
+            // unregister worker
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                await registration.unregister();
+            }
+            // reload page
+            window.location.reload();
+            return null;
+        });
+
         return () => {
             console.debug("Service Worker is stop on unmount");
             workerRef.current?.stop();

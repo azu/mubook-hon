@@ -1,3 +1,4 @@
+"use client";
 import React, { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CharacterMap, DocumentLoadEvent, PageChangeEvent, PdfJs, Viewer, Worker } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
@@ -10,6 +11,8 @@ import { BookItem, decodeBookMarker, hasDataBook, isPdfJsPositionMarker, useNoti
 import { useHotkeys } from "react-hotkeys-hook";
 import { http } from "msw";
 // Import styles
+
+import type { SetupWorker } from "msw/browser";
 
 const getSetupWorker = async () => {
     const { setupWorker } = await import("msw/browser");
@@ -130,22 +133,23 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
 
             return worker;
         };
-        let worker: any;
-        initWorker().then(w => {
-            worker = w;
+        const workerPromise = initWorker().then((worker: SetupWorker) => 
             worker.start({
                 onUnhandledRequest: "bypass",
                 waitUntilReady: true
             }).then(() => {
                 setIsReady(true);
                 console.debug("Service Worker is Ready!");
-            }).catch((e: Error) => {
-                console.error(e);
-            });
+                return worker;
+            })
+        ).catch((error: Error) => {
+            console.error(error);
+            return null;
         });
+
         return () => {
             console.debug("Service Worker is stop");
-            worker?.stop();
+            workerPromise.then(worker => worker?.stop());
         };
     }, [bookId, props.src]);
     const [runtimeBookInfo, setRuntimeBookInfo] = React.useState<

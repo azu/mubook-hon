@@ -6,6 +6,13 @@ module.exports = {
         config.externals.push({
             canvas: "canvas"
         });
+
+        // Fix MSW browser imports in production build
+        config.resolve = {
+            ...config.resolve,
+            conditionNames: ['browser', 'import', 'require', 'node', 'default', '...']
+        };
+
         return config;
     }
 };
