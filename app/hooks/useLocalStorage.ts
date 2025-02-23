@@ -62,6 +62,8 @@ export function useLocalStorage<T>(key: string, options: UseLocalStorageOption<T
 
     // Re-read from localStorage when the key changes or when the component mounts
     // This ensures the stored value stays in sync with other components using the same key
+    // This is necessary because localStorage events don't trigger across tabs/windows,
+    // so we need to manually sync the value when the component mounts or the key changes
     useEffect(() => {
         setStoredValue(readValue());
     }, [readValue]);
