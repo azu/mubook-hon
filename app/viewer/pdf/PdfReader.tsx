@@ -228,19 +228,18 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         }
         const text = getSelectedText() || getVisibleText();
         setIsAddingMemo(true);
-        addMemo({
-            memo: text,
-            currentPage,
-            marker: {
-                currentPage
-            }
-        })
-            .then(() => {
-                return removeSelection();
-            })
-            .finally(() => {
-                setIsAddingMemo(false);
+        try {
+            await addMemo({
+                memo: text,
+                currentPage,
+                marker: {
+                    currentPage
+                }
             });
+            removeSelection();
+        } finally {
+            setIsAddingMemo(false);
+        }
     }, [addMemo, currentDoc, currentPage, getSelectedText, getVisibleText]);
 
     useHotkeys("shift+s", onClickMemo);
