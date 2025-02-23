@@ -108,48 +108,49 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             return;
         }
         const initWorker = async () => {
-            const worker = await (await getSetupWorker())(
-            http.get("/pdf/" + bookId, async () => {
-                try {
-                    const pdf = await fetch(src).then((res) => res.arrayBuffer());
-                    return new Response(pdf, {
-                        headers: {
-                            "Content-Length": pdf.byteLength.toString(),
-                            "Content-Type": "application/pdf"
-                        }
-                    });
-                } catch (error) {
-                    console.error(
-                        new Error("fetch book", {
-                            cause: error
-                        })
-                    );
-                    return new Response("Error", {
-                        status: 500
-                    });
-                }
-            })
-        );
+            const setupWorker = await getSetupWorker();
+            const worker = setupWorker(
+                http.get("/pdf/" + bookId, async () => {
+                    try {
+                        const pdf = await fetch(src).then((res) => res.arrayBuffer());
+                        return new Response(pdf, {
+                            headers: {
+                                "Content-Length": pdf.byteLength.toString(),
+                                "Content-Type": "application/pdf"
+                            }
+                        });
+                    } catch (error) {
+                        console.error(
+                            new Error("fetch book", {
+                                cause: error
+                            })
+                        );
+                        return new Response("Error", {
+                            status: 500
+                        });
+                    }
+                })
+            );
 
             return worker;
         };
-        const workerPromise = initWorker().then((worker: SetupWorker) => 
-            worker.start({
+        const workerPromise = initWorker().then((worker: SetupWorker) => {
+            return worker.start({
                 onUnhandledRequest: "bypass",
                 waitUntilReady: true
             }).then(() => {
                 setIsReady(true);
                 console.debug("Service Worker is Ready!");
                 return worker;
-            })
-        ).catch((error: Error) => {
+            });
+        }).catch((error: Error) => {
             console.error(error);
             return null;
         });
 
         return () => {
-            console.debug("Service Worker is stop");
-            workerPromise.then(worker => worker?.stop());
+            console.debug("Service Worker is stopping");
+            void workerPromise.then(worker => worker?.stop());
         };
     }, [bookId, props.src]);
     const [runtimeBookInfo, setRuntimeBookInfo] = React.useState<
