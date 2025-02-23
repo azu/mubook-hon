@@ -11,12 +11,16 @@ import {
 } from "../../notion/useNotion";
 import { generateBackoff } from "exponential-backoff-generator";
 import { http } from "msw";
-import { setupWorker } from "msw/browser";
 import { useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOnetimeStorage } from "../../settings/TemporaryStorage";
 import { Loading } from "../../components/Loading";
 import { joinMemoStock } from "../../utils/joinMemoStock";
+
+const getSetupWorker = async () => {
+    const { setupWorker } = await import("msw/browser");
+    return setupWorker;
+};
 
 type ContentWindow = WindowProxy & {
     viewerController: ViewerContentMethod;
@@ -98,7 +102,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
     const [isReadyBook, setIsReadyBook] = useState(false);
     const { set } = useOnetimeStorage();
     const bookId = props.id.replace("id:", "");
-    let workerRef = useRef<ReturnType<typeof setupWorker> | null>(null);
+    let workerRef = useRef<any>(null);
     useEffect(() => {
         const src = props.src;
         if (!src) {
@@ -106,7 +110,8 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
             return;
         }
         console.debug("create mock server for", src, bookId);
-        workerRef.current = setupWorker(
+        const initWorker = async () => {
+            const worker = await (await getSetupWorker())(
             // Bibi request
             // 1. /META-INF/container.xml
             // 2. /OEBPS/content.opf
@@ -172,17 +177,26 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                     });
                 }
             })
-        );
+            );
+            workerRef.current = worker;
+            return worker;
+        };
+        let worker: any;
+        initWorker().then(w => {
+            worker = w;
+        });
         const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => {
                 reject(new Error("Service Worker is timeout"));
             }, 3_000);
         });
         Promise.race([
-            workerRef.current.start({
-                onUnhandledRequest: "bypass",
-                waitUntilReady: true
-            }),
+            initWorker().then(worker => 
+                worker.start({
+                    onUnhandledRequest: "bypass",
+                    waitUntilReady: true
+                })
+            ),
             timeoutPromise
         ])
             .then(() => {
