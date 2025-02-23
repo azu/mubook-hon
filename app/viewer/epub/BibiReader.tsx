@@ -404,16 +404,17 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         (frameElement: HTMLIFrameElement | null) => {
             if (!frameElement) return;
             bibiFrame.current = frameElement;
-            if (!isInitialized.current) {
-                void tryToRestoreLastPositionAtFirst();
-            }
             if (bibiFrame.current) {
                 const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-                // Initialize async operations
+                // Initialize async operations in sequence
                 void (async () => {
                     try {
-                        // lazy initialized
+                        // First ensure content window is loaded
                         await waitContentWindowLoad(contentWindow);
+                        // Then restore position if needed
+                        if (!isInitialized.current) {
+                            await tryToRestoreLastPositionAtFirst();
+                        }
                         const watchChangePage = async ({ attempts }: { attempts: number }) => {
                             console.debug("Try to add listener to page. attempts: " + attempts);
                             viewerControllerOnChangeMenuRef.current?.();
