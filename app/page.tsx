@@ -316,6 +316,9 @@ const HomeContent: FC = () => {
 };
 
 const Home: FC = () => {
+    // HomeContentコンポーネントはuseSearchParamsとDropbox APIを使用するため、
+    // Suspenseで囲んでクライアントサイドレンダリングを適切に処理します。
+    // これにより、データ取得中のローディング状態を適切に表示できます。
     return (
         <Suspense fallback={<Loading>Loading...</Loading>}>
             <HomeContent />
