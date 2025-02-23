@@ -266,7 +266,6 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const [memoStock, setMemoStock] = useState<{ text: string; selectors: { start: string; end: string } }[]>([]);
     const [isTranslation, setIsTranslation] = useState(props.translation);
     const onClickTranslationButton = useCallback(async () => {
         if (!bibiFrame.current) {
@@ -396,139 +395,9 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
 
     // has selected text or page content
     const [canMemoContent, setCanMemoContent] = useState(false);
-    const viewerControllerOnKeydownRef = useRef<() => void>();
-    const viewerControllerOnChangePageRef = useRef<() => void>();
-    const viewerControllerOnChangeMenuRef = useRef<() => void>();
-    const viewerControllerOnSelectionChangeRef = useRef<() => void>();
-    const onInitializeIframeRef = useCallback(
-        (frameElement: HTMLIFrameElement | null) => {
-            if (!frameElement) return;
-            bibiFrame.current = frameElement;
-            if (bibiFrame.current) {
-                const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-                // Initialize async operations in sequence
-                void (async () => {
-                    try {
-                        // First ensure content window is loaded
-                        await waitContentWindowLoad(contentWindow);
-                        // Then restore position if needed
-                        if (!isInitialized.current) {
-                            await tryToRestoreLastPositionAtFirst();
-                        }
-                        const watchChangePage = async ({ attempts }: { attempts: number }) => {
-                            console.debug("Try to add listener to page. attempts: " + attempts);
-                            viewerControllerOnChangeMenuRef.current?.();
-                            viewerControllerOnChangeMenuRef.current =
-                                await contentWindow.viewerController.onChangeMenuState((state) => {
-                                    setMenuState(state);
-                                });
-                            // on selection change
-                            viewerControllerOnSelectionChangeRef.current?.();
-                            viewerControllerOnSelectionChangeRef.current =
-                                await contentWindow.viewerController.onChangeSelection((selection) => {
-                                    console.debug("selection change", {
-                                        selection
-                                    });
-                                    if (selection) {
-                                        setCanMemoContent(true);
-                                    }
-                                });
-                            // on keydown
-                            viewerControllerOnKeydownRef.current?.();
-                            viewerControllerOnKeydownRef.current = await contentWindow.viewerController.onKeydown(
-                                (event) => {
-                                    if (/* Shift + A */ event.shiftKey && event.key === "A") {
-                                        onClickStockMemo();
-                                    } else if (/* Shift + S */ event.shiftKey && event.key === "S") {
-                                        onClickMemo();
-                                    } else if (/* J */ event.key === "j") {
-                                        contentWindow.viewerController.moveNextPage();
-                                    } else if (/* K */ event.key === "k") {
-                                        contentWindow.viewerController.movePrevPage();
-                                    }
-                                }
-                            );
-                            // on change page
-                            viewerControllerOnChangePageRef.current?.();
-                            viewerControllerOnChangePageRef.current = await contentWindow.viewerController.onChangePage(
-                                async () => {
-                                    if (!isInitialized.current) {
-                                        console.debug("not yet initialized");
-                                        return;
-                                    }
-                                    const bookInfo = await contentWindow.viewerController.getBookInfo();
-                                    const currentPage = await contentWindow.viewerController.getCurrentPage();
-                                    const totalPage = await contentWindow.viewerController.getTotalPage();
-                                    const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
-                                    const currentPageText = await contentWindow.viewerController.getCurrentPageText();
-                                    console.debug("onChangePage", {
-                                        bookInfo,
-                                        currentBook,
-                                        lastMarker,
-                                        currentPage,
-                                        totalPage,
-                                        currentPageText: currentPageText
-                                    });
-                                    await updateBookStatus({
-                                        viewer: "epub:bibi", // TODO: currently, only support bibi
-                                        pageId: bookInfo.id,
-                                        fileId: props.id,
-                                        fileName: props.bookFileName,
-                                        publisher: bookInfo.publisher,
-                                        title: bookInfo.title,
-                                        authors: bookInfo.author
-                                            .split(",")
-                                            .map((author) => author.trim())
-                                            .filter((author) => author !== ""),
-                                        currentPage,
-                                        totalPage,
-                                        lastMarker
-                                    });
-                                    // if you get current page text, can memo it
-                                    const canMemo = Boolean(currentPageText?.text);
-                                    setCanMemoContent(canMemo);
-                                }
-                            );
-                        };
-                        const backoff = generateBackoff();
-                        for (const { sleep, attempts } of backoff) {
-                            try {
-                                await watchChangePage({ attempts });
-                                if (isTranslation) {
-                                    contentWindow.viewerController.enableTranslation();
-                                }
-                                return;
-                            } catch (error) {
-                                await sleep(); // wait 100ms, 200ms, 400ms, 800ms ...
-                            }
-                        }
-
-                        console.error(new Error("Fail to initialized book viewer"), {
-                            current: bibiFrame.current
-                        });
-                        alert("Fail to initialize book viewer. Please reload page");
-                    } catch (error) {
-                        console.error("Error initializing iframe:", error);
-                    }
-                })();
-            } else {
-                viewerControllerOnChangeMenuRef.current?.();
-                viewerControllerOnChangePageRef.current?.();
-                viewerControllerOnSelectionChangeRef.current?.();
-            }
-        },
-        [currentBook, isTranslation, props.bookFileName, props.id, tryToRestoreLastPositionAtFirst, updateBookStatus]
-    );
-    const onClickJumpLastPage = useCallback(async () => {
-        if (bibiFrame.current && hasDataBook(currentBook) && bookInfo?.lastRead) {
-            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
-            console.debug("jump to Last marker", bookInfo?.lastRead);
-            // @ts-expect-error
-            await contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead);
-        }
-    }, [bookInfo?.lastRead, currentBook]);
-
     const [isAddingMemo, setIsAddingMemo] = useState(false);
+    const [memoStock, setMemoStock] = useState<{ text: string; selectors: { start: string; end: string } }[]>([]);
+
     const onClickStockMemo = useCallback(async () => {
         console.debug("onClickStockMemo");
         if (bibiFrame.current) {
@@ -564,10 +433,6 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 ? stockedMemo
                 : (await contentWindow.viewerController.getSelectedText()) ??
                   (await contentWindow.viewerController.getCurrentPageText());
-            console.debug("selected object", {
-                selected,
-                stockedMemo
-            });
             const currentPage = await contentWindow.viewerController.getCurrentPage();
             const currentMarker = await contentWindow.viewerController.getCurrentPositionMaker();
             if (!selected?.text) {
@@ -593,12 +458,158 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             }
         }
     }, [addMemo, memoStock]);
+
     const onClickOpenNotionPage = useCallback(async () => {
         if (!hasDataBook(currentBook)) {
             return;
         }
         window.open(currentBook.pageUrl, "_blank");
     }, [currentBook]);
+
+    const viewerControllerOnKeydownRef = useRef<() => void>();
+    const viewerControllerOnChangePageRef = useRef<() => void>();
+    const viewerControllerOnChangeMenuRef = useRef<() => void>();
+    const viewerControllerOnSelectionChangeRef = useRef<() => void>();
+    const initializeViewer = useCallback(
+        async (contentWindow: ContentWindow) => {
+            try {
+                // First ensure content window is loaded
+                await waitContentWindowLoad(contentWindow);
+                // Then restore position if needed
+                if (!isInitialized.current) {
+                    await tryToRestoreLastPositionAtFirst();
+                }
+                // Set up event listeners
+                const watchChangePage = async ({ attempts }: { attempts: number }) => {
+                    console.debug("Try to add listener to page. attempts: " + attempts);
+                    viewerControllerOnChangeMenuRef.current?.();
+                    viewerControllerOnChangeMenuRef.current = await contentWindow.viewerController.onChangeMenuState(
+                        (state) => {
+                            setMenuState(state);
+                        }
+                    );
+                    // on selection change
+                    viewerControllerOnSelectionChangeRef.current?.();
+                    viewerControllerOnSelectionChangeRef.current =
+                        await contentWindow.viewerController.onChangeSelection((selection) => {
+                            console.debug("selection change", {
+                                selection
+                            });
+                            if (selection) {
+                                setCanMemoContent(true);
+                            }
+                        });
+                    // on keydown
+                    viewerControllerOnKeydownRef.current?.();
+                    viewerControllerOnKeydownRef.current = await contentWindow.viewerController.onKeydown((event) => {
+                        if (/* Shift + A */ event.shiftKey && event.key === "A") {
+                            onClickStockMemo();
+                        } else if (/* Shift + S */ event.shiftKey && event.key === "S") {
+                            onClickMemo();
+                        } else if (/* J */ event.key === "j") {
+                            contentWindow.viewerController.moveNextPage();
+                        } else if (/* K */ event.key === "k") {
+                            contentWindow.viewerController.movePrevPage();
+                        }
+                    });
+                    // on change page
+                    viewerControllerOnChangePageRef.current?.();
+                    viewerControllerOnChangePageRef.current = await contentWindow.viewerController.onChangePage(
+                        async () => {
+                            if (!isInitialized.current) {
+                                console.debug("not yet initialized");
+                                return;
+                            }
+                            const bookInfo = await contentWindow.viewerController.getBookInfo();
+                            const currentPage = await contentWindow.viewerController.getCurrentPage();
+                            const totalPage = await contentWindow.viewerController.getTotalPage();
+                            const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
+                            const currentPageText = await contentWindow.viewerController.getCurrentPageText();
+                            console.debug("onChangePage", {
+                                bookInfo,
+                                currentBook,
+                                lastMarker,
+                                currentPage,
+                                totalPage,
+                                currentPageText: currentPageText
+                            });
+                            await updateBookStatus({
+                                viewer: "epub:bibi", // TODO: currently, only support bibi
+                                pageId: bookInfo.id,
+                                fileId: props.id,
+                                fileName: props.bookFileName,
+                                publisher: bookInfo.publisher,
+                                title: bookInfo.title,
+                                authors: bookInfo.author
+                                    .split(",")
+                                    .map((author) => author.trim())
+                                    .filter((author) => author !== ""),
+                                currentPage,
+                                totalPage,
+                                lastMarker
+                            });
+                            // if you get current page text, can memo it
+                            const canMemo = Boolean(currentPageText?.text);
+                            setCanMemoContent(canMemo);
+                        }
+                    );
+                };
+                const backoff = generateBackoff();
+                for (const { sleep, attempts } of backoff) {
+                    try {
+                        await watchChangePage({ attempts });
+                        if (isTranslation) {
+                            contentWindow.viewerController.enableTranslation();
+                        }
+                        return;
+                    } catch (error) {
+                        await sleep(); // wait 100ms, 200ms, 400ms, 800ms ...
+                    }
+                }
+                console.error(new Error("Fail to initialized book viewer"), {
+                    current: bibiFrame.current
+                });
+                alert("Fail to initialize book viewer. Please reload page");
+            } catch (error) {
+                console.error("Error initializing iframe:", error);
+            }
+        },
+        [
+            currentBook,
+            isTranslation,
+            props.bookFileName,
+            props.id,
+            tryToRestoreLastPositionAtFirst,
+            updateBookStatus,
+            onClickMemo,
+            onClickStockMemo
+        ]
+    );
+
+    const onInitializeIframeRef = useCallback(
+        (frameElement: HTMLIFrameElement | null) => {
+            if (!frameElement) return;
+            bibiFrame.current = frameElement;
+            if (bibiFrame.current) {
+                const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+                void initializeViewer(contentWindow);
+            } else {
+                viewerControllerOnChangeMenuRef.current?.();
+                viewerControllerOnChangePageRef.current?.();
+                viewerControllerOnSelectionChangeRef.current?.();
+            }
+        },
+        [initializeViewer]
+    );
+    const onClickJumpLastPage = useCallback(async () => {
+        if (bibiFrame.current && hasDataBook(currentBook) && bookInfo?.lastRead) {
+            const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+            console.debug("jump to Last marker", bookInfo?.lastRead);
+            // @ts-expect-error
+            await contentWindow.viewerController.moveToPositionMarker(bookInfo?.lastRead);
+        }
+    }, [bookInfo?.lastRead, currentBook]);
+
     const enableMemoButton = useMemo(() => {
         if (memoStock.length > 0) {
             return true;
