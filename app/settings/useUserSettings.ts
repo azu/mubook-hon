@@ -1,4 +1,4 @@
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useLocalStorageValue as useLocalStorage } from "@react-hookz/web";
 
 type UserSettings = {
     openNewTab: boolean;

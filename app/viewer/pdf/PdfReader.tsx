@@ -120,7 +120,11 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
                             }
                         });
                     } catch (error) {
-                        console.error("Error fetching book:", error);
+                        console.error(
+                            new Error("fetch book", {
+                                cause: error
+                            })
+                        );
                         return new Response("Error", {
                             status: 500
                         });
@@ -130,27 +134,23 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
 
             return worker;
         };
-        const workerPromise = initWorker()
-            .then((worker: SetupWorker) => {
-                return worker
-                    .start({
-                        onUnhandledRequest: "bypass",
-                        waitUntilReady: true
-                    })
-                    .then(() => {
-                        setIsReady(true);
-                        console.debug("Service Worker is Ready!");
-                        return worker;
-                    });
-            })
-            .catch((error: Error) => {
-                console.error(error);
-                return null;
+        const workerPromise = initWorker().then((worker: SetupWorker) => {
+            return worker.start({
+                onUnhandledRequest: "bypass",
+                waitUntilReady: true
+            }).then(() => {
+                setIsReady(true);
+                console.debug("Service Worker is Ready!");
+                return worker;
             });
+        }).catch((error: Error) => {
+            console.error(error);
+            return null;
+        });
 
         return () => {
             console.debug("Service Worker is stopping");
-            void workerPromise.then((worker) => worker?.stop());
+            void workerPromise.then(worker => worker?.stop());
         };
     }, [bookId, props.src]);
     const [runtimeBookInfo, setRuntimeBookInfo] = React.useState<

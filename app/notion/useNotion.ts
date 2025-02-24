@@ -1,4 +1,4 @@
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useLocalStorageValue as useLocalStorage } from "@react-hookz/web";
 import { useCallback, useMemo } from "react";
 import { Client } from "@notionhq/client";
 import useSWR from "swr";
@@ -18,10 +18,8 @@ const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
     : "http://localhost:3000/api/notion-proxy";
 
 export const useNotionSetting = () => {
-    const { value: notionSetting, set: setNotionSettings } = useLocalStorage<Partial<NotionSetting>>(
-        "mubook-hon-notion",
-        { defaultValue: {} }
-    );
+    const { value: notionSetting, set: setNotionSettings } =
+        useLocalStorage<Partial<NotionSetting>>("mubook-hon-notion");
     const updateNotionSettings = useCallback(
         (notionSetting: Partial<NotionSetting>) => {
             setNotionSettings((prev) => {
@@ -142,9 +140,9 @@ export const NO_BOOK_DATA = Symbol("No Data YET");
 export const hasDataBook = (bookItem: unknown): bookItem is BookItem => {
     return bookItem !== undefined && bookItem !== null && typeof bookItem === "object" && "fileId" in bookItem;
 };
-const escapeMultiSelectValue = (value: string) => {
+const eacapeMultiSelectValue = (value: string) =>{
     return value.replaceAll(",", "");
-};
+}
 export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: string }) => {
     const { notionSetting, hasCompleteNotionSettings: hasCompletedNotionSettings } = useNotionSetting();
     const notionClient = useMemo(() => {
@@ -284,7 +282,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                               multi_select:
                                   bookItem.authors?.map((author) => {
                                       return {
-                                          name: escapeMultiSelectValue(author)
+                                          name: eacapeMultiSelectValue(author)
                                       };
                                   }) ?? []
                           }
@@ -294,7 +292,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                     ? {
                           Publisher: {
                               select: {
-                                  name: escapeMultiSelectValue(bookItem.publisher)
+                                  name: eacapeMultiSelectValue(bookItem.publisher)
                               }
                           }
                       }
