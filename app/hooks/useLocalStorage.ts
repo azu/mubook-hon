@@ -11,7 +11,6 @@ export function useLocalStorage<T>(key: string, options: UseLocalStorageOption<T
         if (typeof window === "undefined") {
             return options.defaultValue as T;
         }
-
         try {
             const item = window.localStorage.getItem(key);
             return item ? (JSON.parse(item) as T) : (options.defaultValue as T);
@@ -21,7 +20,9 @@ export function useLocalStorage<T>(key: string, options: UseLocalStorageOption<T
         }
     }, [options.defaultValue, key]);
 
-    const [storedValue, setStoredValue] = useState<T>(readValue);
+    const [storedValue, setStoredValue] = useState<T>(() => {
+        return readValue();
+    });
 
     const setValue = useCallback(
         (value: T | ((val: T) => T)) => {
@@ -59,14 +60,6 @@ export function useLocalStorage<T>(key: string, options: UseLocalStorageOption<T
             console.warn(`Error removing localStorage key "${key}":`, error);
         }
     }, [key, options.defaultValue]);
-
-    // Re-read from localStorage when the key changes or when the component mounts
-    // This ensures the stored value stays in sync with other components using the same key
-    // This is necessary because localStorage events don't trigger across tabs/windows,
-    // so we need to manually sync the value when the component mounts or the key changes
-    useEffect(() => {
-        setStoredValue(readValue());
-    }, [readValue]);
 
     return {
         value: storedValue,

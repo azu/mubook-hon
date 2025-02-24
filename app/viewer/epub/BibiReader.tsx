@@ -13,7 +13,7 @@ import {
 import { generateBackoff } from "exponential-backoff-generator";
 import { http } from "msw";
 import type { SetupWorker } from "msw/browser";
-import { useToast } from "../useToast";
+import { ToastComponent, useToast } from "../useToast";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useOnetimeStorage } from "../../settings/TemporaryStorage";
 import { Loading } from "../../components/Loading";
@@ -114,9 +114,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
         }
         console.debug("create mock server for", src, bookId);
         const initWorker = async () => {
-            const worker = await (
-                await getSetupWorker()
-            )(
+            const worker = (await getSetupWorker())(
                 // Bibi request
                 // 1. /META-INF/container.xml
                 // 2. /OEBPS/content.opf
@@ -261,7 +259,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         fileId: props.id,
         fileName: props.bookFileName
     });
-    const { showToast, bookInfo, ToastComponent } = useToast();
+    const { showToast, bookInfo, ...toastProps } = useToast();
     const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement | null>(null);
     const router = useRouter();
@@ -599,7 +597,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 id={"bibi-frame"}
                 ref={onInitializeIframeRef}
             ></iframe>
-            <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
+            <ToastComponent {...toastProps} onClickJumpLastPage={onClickJumpLastPage} />
         </div>
     );
 };

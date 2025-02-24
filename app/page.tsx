@@ -7,6 +7,7 @@ import { useNotionList } from "./notion/useNotionList";
 import { Loading } from "./components/Loading";
 import { useUserSettings } from "./settings/useUserSettings";
 import { useDropboxAPI } from "./dropbox/useDropboxAPI";
+import * as Toast from "@radix-ui/react-toast";
 
 const useReady = () => {
     const [ready, setReady] = useState(false);
@@ -265,7 +266,10 @@ const Home: FC = () => {
     // これにより、データ取得中のローディング状態を適切に表示できます。
     return (
         <Suspense fallback={<Loading>Loading...</Loading>}>
-            <HomeContent />
+            <Toast.Provider swipeDirection="right">
+                <HomeContent />
+                <Toast.Viewport className="ToastViewport" />
+            </Toast.Provider>
         </Suspense>
     );
 };
