@@ -197,7 +197,9 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 return worker
                     .start({
                         onUnhandledRequest: "bypass",
-                        waitUntilReady: true
+                        waitUntilReady: true,
+                        // 静的ファイルのキャッシュもする
+                        serviceWorker: { url: "/cacheServiceWorker.js" }
                     })
                     .then(() => {
                         setIsReadyBook(true);
