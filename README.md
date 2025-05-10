@@ -62,6 +62,22 @@ You can use <https://mubook-hon.vercel.app/> as PWA apps.
   - The default CORS Proxy is defined in [pages/api/notion-proxy](pages/api/notion-proxy)
   - You can override it by `localStorage.setItem("USER_DEFINED_NOTION_BASE_URL", "https://your-proxy.test/")`
 
+## Architecture
+
+```mermaid
+flowchart TD
+    P[Viewer Page] -->|register&nbsp;SW| CSW[cacheServiceWorker.js]
+    CSW -->|importScripts| MSW[mockServiceWorker.js]
+```
+
+
+- **cacheServiceWorker.js**  
+  - Cache First for static assets `/bibi/**`・`/_next/static/**`
+  - At last `importScripts('/mockServiceWorker.js')`
+
+- **mockServiceWorker.js (MSW)**  
+  - Modify Request/Response for Blob File
+
 ## LICENSE
 
 MIT (c) azu
