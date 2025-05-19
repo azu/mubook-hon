@@ -55,9 +55,7 @@
     "typescript": "^5.3.3"
   },
   "msw": {
-    "workerDirectory": [
-      "public"
-    ]
+    "workerDirectory": "public"
   },
   "prettier": {
     "singleQuote": false,
