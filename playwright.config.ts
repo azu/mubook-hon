@@ -11,6 +11,8 @@ export default defineConfig({
     outputDir: "playwright-results",
     use: {
         baseURL: "http://localhost:3000",
+        // ヘッドレスモードを強制（デバッグ時は false に変更）
+        headless: true,
         // 失敗時に保存されるデータの設定
         // screenshotは必ずreporterに入る
         screenshot: "on",
