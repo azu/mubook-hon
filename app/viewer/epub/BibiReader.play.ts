@@ -1,10 +1,5 @@
 import { test, expect } from "@playwright/test";
-import {
-    setupTestAuth,
-    setupDropboxFileCache,
-    assertEpubViewerNoErrors,
-    assertNoConsoleErrors
-} from "../../_fake/test-utils";
+import { setupTestAuth, setupDropboxFileCache, assertEpubViewerNoErrors } from "../../_fake/test-utils";
 import * as fs from "fs";
 import * as path from "path";
 
