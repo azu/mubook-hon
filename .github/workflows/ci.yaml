@@ -30,17 +30,21 @@ jobs:
         id: playwright-version
         run: |
           echo "playwright-version=$(node -e "console.log(require('./package.json').devDependencies['@playwright/test'])" | sed 's/[\^~]//')" >> "$GITHUB_OUTPUT"
-      - name: Install dependencies
-        run: npm ci
-      # Next.js build cache
-      - name: Cache .next/cache
+      
+      # Next.js build cache - Following official documentation
+      - name: Cache Next.js build
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: |
-            .next/cache
+            ${{ github.workspace }}/.next/cache
+          # Generate a new cache whenever packages or source files change.
           key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          # If source files changed but packages didn't, rebuild from a prior cache.
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      
+      - name: Install dependencies
+        run: npm ci
       - name: Typecheck
         run: npm run typecheck
       - name: Build
