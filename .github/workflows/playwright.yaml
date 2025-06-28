@@ -1,4 +1,4 @@
-name: CI
+name: playwright test
 
 on:
   push:
