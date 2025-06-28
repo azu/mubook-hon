@@ -16,7 +16,7 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\"",
-    "prepare": "git config --local core.hooksPath .githooks",
+    "prepare": "[ -d .git ] && git config --local core.hooksPath .githooks || echo 'Not a git repository, skipping prepare'",
     "test": "node --test --require=ts-node/register app/**/*.test.ts pages/api/**/*.test.ts",
     "test:playwright:run": "playwright test",
     "test:playwright:ui": "playwright test --ui",
