@@ -18,6 +18,9 @@ jobs:
     outputs:
       playwright-version: ${{ steps.playwright-version.outputs.playwright-version }}
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Get installed Playwright version
         id: playwright-version
         run: |
