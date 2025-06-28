@@ -11,9 +11,15 @@ export default defineConfig({
     outputDir: "playwright-results",
     use: {
         baseURL: "http://localhost:3000",
+        // 失敗時に保存されるデータの設定
+        // screenshotは必ずreporterに入る
+        screenshot: "on",
+        // Record trace only when retrying a test for the first time. See https://playwright.dev/docs/trace-viewer
+        // traceは必ずreporterに入るが、成功したテストには残らない
         trace: "retain-on-failure",
-        screenshot: "only-on-failure",
-        video: process.env.CI ? "retain-on-failure" : "off"
+        // Record video only when retrying a test for the first time.
+        // videは必ずreporterに入る
+        video: "on"
     },
     // CI環境でのタイムアウト設定
     globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10分
