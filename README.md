@@ -60,7 +60,24 @@ npx playwright test --ui
 
 # Run tests in headed mode (visible browser)
 npx playwright test --headed
+
+# CI用にblobレポートで実行
+npm run test:playwright:ci
 ```
+
+#### CI/CD
+
+このプロジェクトはGitHub Actionsを使用してCIを実行します:
+
+- **typecheck**: TypeScriptの型チェック
+- **build**: Next.jsのビルド
+- **playwright-tests**: Playwrightテストを並列実行（2シャード）
+- **merge-reports**: テスト結果をマージしてHTMLレポートを生成
+
+CI実行結果は以下で確認できます:
+- テスト結果: GitHub ActionsのSummaryページ
+- 詳細レポート: ActionsのArtifactsからHTML reportをダウンロード
+- スクリーンショット・動画: テスト失敗時にArtifactsに保存
 
 #### Test Structure
 

@@ -20,7 +20,9 @@
     "test": "node --test --require=ts-node/register app/**/*.test.ts pages/api/**/*.test.ts",
     "test:playwright:run": "playwright test",
     "test:playwright:ui": "playwright test --ui",
-    "test:playwright:onlyChanged": "playwright test --only-changed"
+    "test:playwright:onlyChanged": "playwright test --only-changed",
+    "test:playwright:ci": "playwright test --reporter=blob",
+    "test:playwright:report": "playwright show-report"
   },
   "dependencies": {
     "@notionhq/client": "^2.2.9",

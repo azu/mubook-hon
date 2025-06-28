@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "main"
+      - "playwright"
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  typecheck:
+    permissions:
+      contents: "read"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: package.json
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+
+  build:
+    permissions:
+      contents: "read"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: package.json
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      # Next.js build cache
+      - name: Cache .next/cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      - name: Build
+        run: npm run build
+
+  prebuild-for-playwright:
+    permissions:
+      contents: "read"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      playwright-version: ${{ steps.playwright-version.outputs.playwright-version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: package.json
+          cache: npm
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: |
+          echo "playwright-version=$(node -e "console.log(require('./package.json').devDependencies['@playwright/test'])" | sed 's/[\^~]//')" >> "$GITHUB_OUTPUT"
+      - name: Install dependencies
+        run: npm ci
+      # Next.js build cache
+      - name: Cache .next/cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-playwright-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-nextjs-${{ hashFiles('**/package-lock.json') }}-
+      - name: Build for Playwright
+        run: npm run build
+      - name: Save Next.js build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nextjs-build-${{ github.sha }}
+          path: .next
+          retention-days: 1
+
+  playwright-tests:
+    needs: [typecheck, prebuild-for-playwright]
+    permissions:
+      contents: "read"
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.prebuild-for-playwright.outputs.playwright-version }}-jammy
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Load Next.js build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: nextjs-build-${{ github.sha }}
+          path: .next
+
+      - name: Run Playwright tests
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        env:
+          CI: true
+
+      - name: Upload blob report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-blob-report-${{ matrix.shardIndex }}
+          path: playwright-blob-report
+          retention-days: 1
+
+  # Merge reports after playwright-tests, even if some shards have failed
+  merge-reports:
+    timeout-minutes: 10
+    if: ${{ !cancelled() }}
+    needs: [playwright-tests, prebuild-for-playwright]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: package.json
+
+      - name: Download blob reports from GitHub Actions Artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          path: all-blob-reports
+          pattern: playwright-blob-report-*
+          merge-multiple: true
+
+      - name: Merge into HTML Report
+        run: npx --yes "playwright@${{ needs.prebuild-for-playwright.outputs.playwright-version }}" merge-reports --reporter html ./all-blob-reports
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-html-report--attempt-${{ github.run_attempt }}
+          path: playwright-report
+          retention-days: 7
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
