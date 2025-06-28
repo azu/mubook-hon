@@ -35,6 +35,49 @@ You need to set up Notion before using memo features.
 - Add memo to Notion with selected text
 - Manage book list in Notion
 
+## Development
+
+### Testing
+
+This project uses Playwright for end-to-end testing with a modern test architecture:
+
+- **Test Location**: Tests are colocated with their corresponding page files in the `app/` directory
+- **Test Pattern**: `**/*.play.ts` files contain the tests
+- **Architecture**: Uses Playwright Route API instead of MSW for better test isolation
+- **Fake Utilities**: Shared test utilities are located in `app/_fake/` directory
+
+#### Running Tests
+
+```bash
+# Run all tests
+npx playwright test
+
+# Run tests for a specific page
+npx playwright test app/page.play.ts
+
+# Run tests with UI mode
+npx playwright test --ui
+
+# Run tests in headed mode (visible browser)
+npx playwright test --headed
+```
+
+#### Test Structure
+
+- `app/_fake/types.ts` - Type definitions for test data
+- `app/_fake/dropbox-fake.ts` - Dropbox API mocking utilities
+- `app/_fake/notion-fake.ts` - Notion API mocking utilities  
+- `app/_fake/test-utils.ts` - Common test utilities and setup functions
+- `app/**/*.play.ts` - Test files for each page/component
+
+#### Test Architecture Benefits
+
+- **Isolation**: Each test has its own mock setup, no interference between tests
+- **Parallelization**: Tests run fully parallel for better performance
+- **Type Safety**: Full TypeScript support with proper type checking
+- **Maintainability**: Tests are colocated with source code for easy maintenance
+- **Flexibility**: Easy to create different test scenarios for each page
+
 ## supported format
 
 - [x] epub
