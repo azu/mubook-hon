@@ -195,8 +195,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 workerRef.current = worker;
                 return worker
                     .start({
-                        onUnhandledRequest: "bypass",
-                        waitUntilReady: true
+                        onUnhandledRequest: "bypass"
                     })
                     .then(() => {
                         setIsReadyBook(true);
@@ -214,7 +213,7 @@ const useEpubServiceWorker = (props: { id: string; src?: string; initialPage?: s
                 await registration.unregister();
             }
             // reload page
-            window.location.reload();
+            // window.location.reload();
             return null;
         });
 

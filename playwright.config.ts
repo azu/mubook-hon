@@ -7,7 +7,7 @@ export default defineConfig({
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
     workers: process.env.CI ? 1 : undefined,
-    reporter: process.env.CI ? [["github"], ["blob", { outputDir: "playwright-blob-report" }]] : "html",
+    reporter: process.env.CI ? [["github"], ["blob", { outputDir: "playwright-blob-report" }]] : "list",
     outputDir: "playwright-results",
     use: {
         baseURL: "http://localhost:3000",
