@@ -1,5 +1,5 @@
 "use client";
-import { FC, Suspense, useCallback, useEffect, useState } from "react";
+import { FC, Suspense, useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
@@ -8,12 +8,13 @@ import { Loading } from "./components/Loading";
 import { useUserSettings } from "./settings/useUserSettings";
 import { useDropboxAPI } from "./dropbox/useDropboxAPI";
 
+const emptySubscribe = () => () => {};
 const useReady = () => {
-    const [ready, setReady] = useState(false);
-    useEffect(() => {
-        setReady(true);
-    }, []);
-    return ready;
+    return useSyncExternalStore(
+        emptySubscribe,
+        () => true,
+        () => false
+    );
 };
 const useSearch = (initialSearch: string) => {
     const [searchInput, setSearchInput] = useState(initialSearch);

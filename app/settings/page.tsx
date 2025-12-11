@@ -2,16 +2,17 @@
 import "../sakura.css";
 import { useNotionSetting } from "../notion/useNotion";
 import { useDropbox } from "../dropbox/useDropbox";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useUserSettings } from "./useUserSettings";
 
+const emptySubscribe = () => () => {};
 const useReady = () => {
-    const [ready, setReady] = useState(false);
-    useEffect(() => {
-        setReady(true);
-    }, []);
-    return ready;
+    return useSyncExternalStore(
+        emptySubscribe,
+        () => true,
+        () => false
+    );
 };
 export default function Page() {
     const ready = useReady();

@@ -140,23 +140,24 @@ export const NO_BOOK_DATA = Symbol("No Data YET");
 export const hasDataBook = (bookItem: unknown): bookItem is BookItem => {
     return bookItem !== undefined && bookItem !== null && typeof bookItem === "object" && "fileId" in bookItem;
 };
-const eacapeMultiSelectValue = (value: string) =>{
+const eacapeMultiSelectValue = (value: string) => {
     return value.replaceAll(",", "");
-}
+};
 export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: string }) => {
     const { notionSetting, hasCompleteNotionSettings: hasCompletedNotionSettings } = useNotionSetting();
+    const apiKey = notionSetting?.apiKey;
     const notionClient = useMemo(() => {
         if (!fileId || !fileName) {
             return;
         }
-        if (!notionSetting?.apiKey) {
+        if (!apiKey) {
             return;
         }
         return new Client({
-            auth: notionSetting.apiKey,
+            auth: apiKey,
             baseUrl: NOTION_API_BASE_URL
         });
-    }, [fileId, fileName, notionSetting?.apiKey]);
+    }, [fileId, fileName, apiKey]);
     const { data: currentBook, mutate: mutateCurrentBook } = useSWR<BookItem | typeof NO_BOOK_DATA>(
         () =>
             notionClient

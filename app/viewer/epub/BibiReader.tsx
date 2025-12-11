@@ -302,7 +302,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     });
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
-    const bibiFrame = useRef<HTMLIFrameElement>();
+    const bibiFrame = useRef<HTMLIFrameElement>(null);
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -436,10 +436,13 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
 
     // has selected text or page content
     const [canMemoContent, setCanMemoContent] = useState(false);
-    const viewerControllerOnKeydownRef = useRef<() => void>();
-    const viewerControllerOnChangePageRef = useRef<() => void>();
-    const viewerControllerOnChangeMenuRef = useRef<() => void>();
-    const viewerControllerOnSelectionChangeRef = useRef<() => void>();
+    const viewerControllerOnKeydownRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnChangePageRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnChangeMenuRef = useRef<(() => void) | undefined>(undefined);
+    const viewerControllerOnSelectionChangeRef = useRef<(() => void) | undefined>(undefined);
+    // Refs for memo functions to avoid circular dependency
+    const onClickStockMemoRef = useRef<(() => void) | undefined>(undefined);
+    const onClickMemoRef = useRef<(() => void) | undefined>(undefined);
     const onInitializeIframeRef = useCallback(
         (frameElement: HTMLIFrameElement | null) => {
             if (!frameElement) return;
@@ -478,9 +481,9 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                             viewerControllerOnKeydownRef.current = await contentWindow.viewerController.onKeydown(
                                 (event) => {
                                     if (/* Shift + A */ event.shiftKey && event.key === "A") {
-                                        onClickStockMemo();
+                                        onClickStockMemoRef.current?.();
                                     } else if (/* Shift + S */ event.shiftKey && event.key === "S") {
-                                        onClickMemo();
+                                        onClickMemoRef.current?.();
                                     } else if (/* J */ event.key === "j") {
                                         contentWindow.viewerController.moveNextPage();
                                     } else if (/* K */ event.key === "k") {
@@ -633,6 +636,9 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             }
         }
     }, [addMemo, memoStock]);
+    // Update refs for use in onKeydown handler
+    onClickStockMemoRef.current = onClickStockMemo;
+    onClickMemoRef.current = onClickMemo;
     const onClickOpenNotionPage = useCallback(async () => {
         if (!hasDataBook(currentBook)) {
             return;

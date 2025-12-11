@@ -3,7 +3,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useState } from "reac
 import { useOnetimeStorage } from "../settings/TemporaryStorage";
 import { Dropbox, DropboxResponse } from "dropbox";
 import useSWR, { Fetcher, mutate, SWRConfig } from "swr";
-import { useCacheProvider } from "@piotr-cz/swr-idb-cache";
+import { useIDBCacheProvider } from "../lib/useIDBCacheProvider";
 import { useDropbox } from "../dropbox/useDropbox";
 import "./toast.css";
 import type { BibiReaderProps } from "./epub/BibiReader";
@@ -116,7 +116,7 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache
 
 function ViewerContentInner() {
     const searchParams = useSearchParams();
-    const cacheProvider = useCacheProvider({
+    const cacheProvider = useIDBCacheProvider({
         dbName: "mubook-hon",
         storeName: "mubook-book"
     });
@@ -137,7 +137,7 @@ function ViewerContentInner() {
     return (
         <SWRConfig
             value={{
-                provider: cacheProvider
+                provider: () => cacheProvider
             }}
         >
             <App

@@ -14,15 +14,16 @@ const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
 
 export const useNotionList = () => {
     const { notionSetting, hasCompleteNotionSettings: hasCompletedNotionSettings } = useNotionSetting();
+    const apiKey = notionSetting?.apiKey;
     const notionClient = useMemo(() => {
-        if (!notionSetting?.apiKey) {
+        if (!apiKey) {
             return;
         }
         return new Client({
-            auth: notionSetting.apiKey,
+            auth: apiKey,
             baseUrl: NOTION_API_BASE_URL
         });
-    }, [notionSetting?.apiKey]);
+    }, [apiKey]);
     const { data: recentBooks, isLoading } = useSWR(
         () =>
             notionClient

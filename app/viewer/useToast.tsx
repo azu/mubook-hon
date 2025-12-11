@@ -6,26 +6,28 @@ export const useToast = () => {
     const [open, setOpen] = useState(false);
     const timerRef = useRef(0);
     const [restoreMakers, setRestoreMakers] = useState<{ current: BookMarker; lastRead: BookMarker }>();
+    const currentMarker = restoreMakers?.current;
+    const lastReadMarker = restoreMakers?.lastRead;
     const current = useMemo(() => {
-        if (!restoreMakers?.current) {
+        if (!currentMarker) {
             return "<none>";
         }
-        return isBibiPositionMaker(restoreMakers?.current)
-            ? restoreMakers?.current.ItemIndex
-            : isPdfJsPositionMarker(restoreMakers?.current)
-            ? restoreMakers?.current.currentPage
+        return isBibiPositionMaker(currentMarker)
+            ? currentMarker.ItemIndex
+            : isPdfJsPositionMarker(currentMarker)
+            ? currentMarker.currentPage
             : "";
-    }, [restoreMakers]);
+    }, [currentMarker]);
     const last = useMemo(() => {
-        if (!restoreMakers?.lastRead) {
+        if (!lastReadMarker) {
             return "<none>";
         }
-        return isBibiPositionMaker(restoreMakers?.lastRead)
-            ? restoreMakers?.lastRead.ItemIndex
-            : isPdfJsPositionMarker(restoreMakers?.lastRead)
-            ? restoreMakers?.lastRead.currentPage
+        return isBibiPositionMaker(lastReadMarker)
+            ? lastReadMarker.ItemIndex
+            : isPdfJsPositionMarker(lastReadMarker)
+            ? lastReadMarker.currentPage
             : "";
-    }, [restoreMakers]);
+    }, [lastReadMarker]);
     useEffect(() => {
         return () => clearTimeout(timerRef.current);
     }, []);
