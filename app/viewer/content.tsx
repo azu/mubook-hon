@@ -6,13 +6,17 @@ import useSWR, { Fetcher, mutate, SWRConfig } from "swr";
 import { useIDBCacheProvider } from "../lib/useIDBCacheProvider";
 import { useDropbox } from "../dropbox/useDropbox";
 import "./toast.css";
-import type { BibiReaderProps } from "./epub/BibiReader";
+import type { BibiReaderProps } from "./bibi-epub/BibiReader";
+import type { FoliateReaderProps } from "./epub/FoliateReader";
 import { useSearchParams } from "next/navigation";
 import { files } from "dropbox/types/dropbox_types";
 import { Loading } from "../components/Loading";
 import dynamic from "next/dynamic";
 
-const BibiReader = dynamic(() => import("./epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
+const BibiReader = dynamic(() => import("./bibi-epub/BibiReader").then((mod) => ({ default: mod.BibiReader })), {
+    ssr: false
+});
+const FoliateReader = dynamic(() => import("./epub/FoliateReader").then((mod) => ({ default: mod.FoliateReader })), {
     ssr: false
 });
 const PdfReader = dynamic(() => import("./pdf/PdfReader").then((mod) => ({ default: mod.PdfReader })), { ssr: false });
@@ -138,7 +142,12 @@ function ViewerContentInner() {
     if (!fileId) {
         return <div>ID not found</div>;
     }
-    if (viewerType !== "epub:bibi" && viewerType !== "pdf:pdfjs" && viewerType !== "kindle") {
+    if (
+        viewerType !== "epub:bibi" &&
+        viewerType !== "epub:foliate" &&
+        viewerType !== "pdf:pdfjs" &&
+        viewerType !== "kindle"
+    ) {
         return <div>Invalid viewer type: {viewerType}</div>;
     }
     return (
@@ -177,7 +186,7 @@ const LoadingBook = (props: { tooLoadingLong: boolean; onClickReloadWithoutCache
 
 const App = (
     props: Pick<BibiReaderProps, "id" | "initialPage" | "initialMarker" | "translation"> & {
-        viewerType: "epub:bibi" | "pdf:pdfjs" | "kindle";
+        viewerType: "epub:bibi" | "epub:foliate" | "pdf:pdfjs" | "kindle";
     }
 ) => {
     const id = props.id;
@@ -237,6 +246,26 @@ const App = (
                     }
                 >
                     <BibiReader
+                        id={id}
+                        bookFileName={fileDisplayName}
+                        src={fileBlobUrl}
+                        fileBlob={fileBlob}
+                        initialPage={props.initialPage}
+                        initialMarker={props.initialMarker}
+                        translation={props.translation}
+                    />
+                </Suspense>
+            )}
+            {props.viewerType === "epub:foliate" && (
+                <Suspense
+                    fallback={
+                        <LoadingBook
+                            onClickReloadWithoutCache={onClickReloadWithoutCache}
+                            tooLoadingLong={tooLoadLong}
+                        />
+                    }
+                >
+                    <FoliateReader
                         id={id}
                         bookFileName={fileDisplayName}
                         src={fileBlobUrl}

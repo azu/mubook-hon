@@ -44,6 +44,9 @@ export const useNotionSetting = () => {
 export const isBibiPositionMaker = (marker: unknown): marker is BibiPositionMarker => {
     return typeof marker === "object" && marker !== null && "ItemIndex" in marker;
 };
+export const isFoliatePositionMarker = (marker: unknown): marker is FoliatePositionMarker => {
+    return typeof marker === "object" && marker !== null && "cfi" in marker;
+};
 export const isPdfJsPositionMarker = (marker: unknown): marker is PdfJsPositionMarker => {
     return typeof marker === "object" && marker !== null && "currentPage" in marker;
 };
@@ -61,13 +64,25 @@ export type BibiPositionMarker = {
         end?: string;
     };
 };
+export type FoliatePositionMarker = {
+    cfi: string; // EPUB CFI
+    fraction: number; // Progress 0-1
+    sectionIndex: number; // Section index
+    /**
+     * Highlight Selectors (for memo)
+     */
+    highlightSelectors?: {
+        start?: string;
+        end?: string;
+    };
+};
 export type PdfJsPositionMarker = {
     currentPage: number;
 };
 export type KindlePositionMarker = {
     locationNumber: number;
 };
-export type BookMarker = BibiPositionMarker | PdfJsPositionMarker | KindlePositionMarker;
+export type BookMarker = BibiPositionMarker | FoliatePositionMarker | PdfJsPositionMarker | KindlePositionMarker;
 
 export const encodeBookMarker = (marker?: BookMarker): string => {
     if (!marker) {
@@ -92,15 +107,18 @@ export const supportedViewerType = (viewerType: unknown): viewerType is BookItem
     if (typeof viewerType !== "string") {
         return false;
     }
-    const SUPPORTED_TYPES: BookItem["viewer"][] = ["epub:bibi", "pdf:pdfjs", "kindle"];
+    const SUPPORTED_TYPES: BookItem["viewer"][] = ["epub:bibi", "epub:foliate", "pdf:pdfjs", "kindle"];
     // @ts-expect-error: ok
     return SUPPORTED_TYPES.includes(viewerType);
 };
 
-export const isBibiBookItem = (item: BibiBookItem | PdfJsBookItem | KindleBookItem): item is BibiBookItem => {
+export const isBibiBookItem = (item: BookItem): item is BibiBookItem => {
     return item.viewer === "epub:bibi";
 };
-export const isPdfjsBookItem = (item: BibiBookItem | PdfJsBookItem | KindleBookItem): item is BibiBookItem => {
+export const isFoliateBookItem = (item: BookItem): item is FoliateBookItem => {
+    return item.viewer === "epub:foliate";
+};
+export const isPdfjsBookItem = (item: BookItem): item is PdfJsBookItem => {
     return item.viewer === "pdf:pdfjs";
 };
 export type CommonBookItemProps = {
@@ -119,6 +137,10 @@ export type BibiBookItem = {
     viewer: "epub:bibi";
     lastMarker?: BibiPositionMarker;
 } & CommonBookItemProps;
+export type FoliateBookItem = {
+    viewer: "epub:foliate";
+    lastMarker?: FoliatePositionMarker;
+} & CommonBookItemProps;
 export type PdfJsBookItem = {
     viewer: "pdf:pdfjs";
     lastMarker?: PdfJsPositionMarker;
@@ -127,7 +149,7 @@ export type KindleBookItem = {
     viewer: "kindle";
     lastMarker?: PdfJsPositionMarker;
 } & CommonBookItemProps;
-export type BookItem = BibiBookItem | PdfJsBookItem | KindleBookItem;
+export type BookItem = BibiBookItem | FoliateBookItem | PdfJsBookItem | KindleBookItem;
 type PropertyTypes = ExtractRecordValue<PageObjectResponse["properties"]>;
 type ExtractRecordValue<R> = R extends Record<infer _, infer V> ? V : never;
 export const prop = <F extends PropertyTypes, T extends F["type"]>(o: F, type: T) => {
@@ -351,22 +373,28 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                     totalPage: prop(result.properties.TotalPage, "number").number ?? 0
                 };
-                const bookItem =
-                    viewerType === "epub:bibi"
-                        ? {
-                              ...commonBookItem,
-                              viewer: viewerType,
-                              lastMarker: decodeBookMarker<BibiPositionMarker>(
-                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                              )
-                          }
-                        : {
-                              ...commonBookItem,
-                              viewer: viewerType,
-                              lastMarker: decodeBookMarker<PdfJsPositionMarker>(
-                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                              )
-                          };
+                const lastMarkerText = prop(result.properties.LastMarker, "rich_text").rich_text[0]?.plain_text ?? "";
+                const bookItem = (() => {
+                    if (viewerType === "epub:bibi") {
+                        return {
+                            ...commonBookItem,
+                            viewer: viewerType,
+                            lastMarker: decodeBookMarker<BibiPositionMarker>(lastMarkerText)
+                        };
+                    } else if (viewerType === "epub:foliate") {
+                        return {
+                            ...commonBookItem,
+                            viewer: viewerType,
+                            lastMarker: decodeBookMarker<FoliatePositionMarker>(lastMarkerText)
+                        };
+                    } else {
+                        return {
+                            ...commonBookItem,
+                            viewer: viewerType,
+                            lastMarker: decodeBookMarker<PdfJsPositionMarker>(lastMarkerText)
+                        };
+                    }
+                })();
                 await mutateCurrentBook(bookItem, {
                     populateCache: true, // No revoke fetch again after mutate
                     revalidate: false
@@ -393,22 +421,28 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
                     totalPage: prop(result.properties.TotalPage, "number").number ?? 0
                 };
-                const bookItem =
-                    viewerType === "epub:bibi"
-                        ? {
-                              ...commonBookItem,
-                              viewer: viewerType,
-                              lastMarker: decodeBookMarker<BibiPositionMarker>(
-                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                              )
-                          }
-                        : {
-                              ...commonBookItem,
-                              viewer: viewerType,
-                              lastMarker: decodeBookMarker<PdfJsPositionMarker>(
-                                  prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
-                              )
-                          };
+                const lastMarkerText2 = prop(result.properties.LastMarker, "rich_text").rich_text[0]?.plain_text ?? "";
+                const bookItem = (() => {
+                    if (viewerType === "epub:bibi") {
+                        return {
+                            ...commonBookItem,
+                            viewer: viewerType,
+                            lastMarker: decodeBookMarker<BibiPositionMarker>(lastMarkerText2)
+                        };
+                    } else if (viewerType === "epub:foliate") {
+                        return {
+                            ...commonBookItem,
+                            viewer: viewerType,
+                            lastMarker: decodeBookMarker<FoliatePositionMarker>(lastMarkerText2)
+                        };
+                    } else {
+                        return {
+                            ...commonBookItem,
+                            viewer: viewerType,
+                            lastMarker: decodeBookMarker<PdfJsPositionMarker>(lastMarkerText2)
+                        };
+                    }
+                })();
                 await mutateCurrentBook(bookItem, {
                     populateCache: true, // No revoke fetch again after mutate
                     revalidate: false
