@@ -26,6 +26,9 @@ export default defineConfig({
     // CI環境でのタイムアウト設定
     globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10分
     timeout: process.env.CI ? 60 * 1000 : 30 * 1000, // テスト1つあたり60秒/30秒
+    expect: {
+        timeout: process.env.CI ? 30 * 1000 : 15 * 1000 // expect timeout: CI 30秒 / ローカル 15秒
+    },
 
     projects: [
         {

@@ -3,9 +3,11 @@ import type { NotionPage, NotionDatabaseQueryResponse, NotionUser } from "./type
 
 /**
  * データベース取得をモック (Notion API 2025-09-03: data_source_idの取得に必要)
+ * Matches both direct Notion API and proxy paths
  */
 export async function mockNotionDatabaseRetrieve({ page }: { page: Page }) {
-    await page.route("**/api.notion.com/v1/databases/*", async (route) => {
+    // Match both api.notion.com and proxy paths (/api/notion-proxy/)
+    await page.route("**/v1/databases/*", async (route) => {
         // Skip query endpoint (handled by mockNotionDataSourceQuery)
         if (route.request().url().includes("/query")) {
             return route.fallback();
@@ -26,9 +28,11 @@ export async function mockNotionDatabaseRetrieve({ page }: { page: Page }) {
 
 /**
  * データソースクエリレスポンスをモック (Notion API 2025-09-03)
+ * Matches both direct Notion API and proxy paths
  */
 export async function mockNotionDataSourceQuery({ page, pages }: { page: Page; pages: NotionPage[] }) {
-    await page.route("**/api.notion.com/v1/data_sources/*/query", async (route) => {
+    // Match both api.notion.com and proxy paths (/api/notion-proxy/)
+    await page.route("**/v1/data_sources/*/query", async (route) => {
         const response: NotionDatabaseQueryResponse = {
             object: "list",
             results: pages,
@@ -71,7 +75,7 @@ export async function mockNotionError({
     // Mock database retrieve to return data_source_id
     await mockNotionDatabaseRetrieve({ page });
     // Mock data source query to return error
-    await page.route("**/api.notion.com/v1/data_sources/*/query", async (route) => {
+    await page.route("**/v1/data_sources/*/query", async (route) => {
         await route.fulfill({
             status,
             contentType: "application/json",
@@ -89,7 +93,7 @@ export async function mockNotionError({
  * ページ作成をモック
  */
 export async function mockNotionPageCreation({ page }: { page: Page }) {
-    await page.route("**/api.notion.com/v1/pages", async (route) => {
+    await page.route("**/v1/pages", async (route) => {
         await route.fulfill({
             status: 200,
             contentType: "application/json",
@@ -108,7 +112,7 @@ export async function mockNotionPageCreation({ page }: { page: Page }) {
  * ユーザー情報取得をモック
  */
 export async function mockNotionUserInfo({ page, user }: { page: Page; user?: Partial<NotionUser> }) {
-    await page.route("**/api.notion.com/v1/users/me", async (route) => {
+    await page.route("**/v1/users/me", async (route) => {
         const userResponse: NotionUser = {
             object: "user",
             id: "mock-user-id",
@@ -143,7 +147,7 @@ export async function mockNotionSlowResponse({ page, delayMs = 3000 }: { page: P
     // Mock database retrieve to return data_source_id
     await mockNotionDatabaseRetrieve({ page });
     // Mock data source query with delay
-    await page.route("**/api.notion.com/v1/data_sources/*/query", async (route) => {
+    await page.route("**/v1/data_sources/*/query", async (route) => {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
         const response: NotionDatabaseQueryResponse = {

@@ -184,6 +184,6 @@ export async function assertEpubViewerNoErrors({ page }: { page: Page }) {
     await test.step("Check for BibiReader epub content", async () => {
         await expect(
             page.locator("#bibi-frame").contentFrame().locator(".item").first().contentFrame().locator("#cover-image")
-        ).toBeVisible({ timeout: 30000 }); // CI environments may need longer timeout
+        ).toBeVisible();
     });
 }
