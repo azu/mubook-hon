@@ -311,12 +311,6 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     // currentBookが確定したらファイルアップロードを試みる
     const fileUploadAttemptedRef = useRef(false);
     useEffect(() => {
-        console.log("xxxxx", [
-            isUploadEnabled,
-            hasDataBook(currentBook),
-            props.fileBlob,
-            !fileUploadAttemptedRef.current
-        ]);
         if (isUploadEnabled && hasDataBook(currentBook) && props.fileBlob && !fileUploadAttemptedRef.current) {
             fileUploadAttemptedRef.current = true;
             uploadFile(props.fileBlob).then((result) => {
