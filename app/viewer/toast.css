@@ -1,4 +1,4 @@
-@import "@radix-ui/colors/blackA.css";
+@import "@radix-ui/colors/black-alpha.css";
 @import "@radix-ui/colors/green.css";
 @import "@radix-ui/colors/mauve.css";
 @import "@radix-ui/colors/slate.css";
@@ -26,7 +26,9 @@
 .ToastRoot {
     background-color: white;
     border-radius: 6px;
-    box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px, hsl(206 22% 7% / 20%) 0px 10px 20px -15px;
+    box-shadow:
+        hsl(206 22% 7% / 35%) 0px 10px 38px -10px,
+        hsl(206 22% 7% / 20%) 0px 10px 20px -15px;
     padding: 15px;
     display: grid;
     grid-template-areas: "title action" "description action";
