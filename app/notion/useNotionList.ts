@@ -9,8 +9,8 @@ const USER_DEFINED_NOTION_BASE_URL =
 const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
     ? USER_DEFINED_NOTION_BASE_URL
     : process.env.NODE_ENV === "production"
-    ? "https://mubook-hon.vercel.app/api/notion-proxy"
-    : "http://localhost:3000/api/notion-proxy";
+      ? "https://mubook-hon.vercel.app/api/notion-proxy"
+      : "http://localhost:3000/api/notion-proxy";
 
 export const useNotionList = () => {
     const { notionSetting, hasCompleteNotionSettings: hasCompletedNotionSettings } = useNotionSetting();
@@ -35,8 +35,8 @@ export const useNotionList = () => {
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
-            const response = await notionClient.databases.query({
-                database_id: notionSetting.bookListDatabaseId,
+            const response = await notionClient.dataSources.query({
+                data_source_id: notionSetting.bookListDatabaseId,
                 sorts: [
                     {
                         property: "Created",

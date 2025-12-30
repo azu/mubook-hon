@@ -25,7 +25,7 @@
     "test:playwright:report": "playwright show-report"
   },
   "dependencies": {
-    "@notionhq/client": "^2.2.9",
+    "@notionhq/client": "^5.6.0",
     "@radix-ui/colors": "^3.0.0",
     "@radix-ui/react-toast": "^1.2.15",
     "@react-hookz/web": "^25.2.0",

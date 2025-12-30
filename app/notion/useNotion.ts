@@ -14,8 +14,8 @@ const USER_DEFINED_NOTION_BASE_URL =
 const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
     ? USER_DEFINED_NOTION_BASE_URL
     : process.env.NODE_ENV === "production"
-    ? "https://mubook-hon.vercel.app/api/notion-proxy"
-    : "http://localhost:3000/api/notion-proxy";
+      ? "https://mubook-hon.vercel.app/api/notion-proxy"
+      : "http://localhost:3000/api/notion-proxy";
 
 export const useNotionSetting = () => {
     const { value: notionSetting, set: setNotionSettings } =
@@ -173,8 +173,8 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
             if (!fileId || !fileName) {
                 return NO_BOOK_DATA;
             }
-            const { results } = await notionClient.databases.query({
-                database_id: notionSetting.bookListDatabaseId,
+            const { results } = await notionClient.dataSources.query({
+                data_source_id: notionSetting.bookListDatabaseId,
                 filter: {
                     // Dropbox fileIs is case-sensitive
                     // https://www.dropboxforum.com/t5/Dropbox-API-Support-Feedback/Unique-file-id-not-really-unique/td-p/333590
