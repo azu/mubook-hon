@@ -101,6 +101,12 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache
         }
         return URL.createObjectURL(downloadResponse.fileBlob);
     }, [downloadResponse]);
+    const fileBlob = useMemo(() => {
+        if (!downloadResponse) {
+            return;
+        }
+        return downloadResponse.fileBlob;
+    }, [downloadResponse]);
     const fileDisplayName = useMemo(() => {
         if (!downloadResponse) {
             return "";
@@ -110,6 +116,7 @@ const useDropboxAPI = (dropbox: Dropbox | null, props: { fileId: string; noCache
     return {
         fileDisplayName,
         fileBlobUrl,
+        fileBlob,
         removeCache
     } as const;
 };
@@ -176,7 +183,7 @@ const App = (
     const id = props.id;
     const onetimeStorage = useOnetimeStorage();
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({});
-    const { fileBlobUrl, fileDisplayName, removeCache } = useDropboxAPI(dropboxClient, {
+    const { fileBlobUrl, fileBlob, fileDisplayName, removeCache } = useDropboxAPI(dropboxClient, {
         fileId: id,
         noCache: onetimeStorage.get(id)?.noCache ?? false
     });
@@ -233,6 +240,7 @@ const App = (
                         id={id}
                         bookFileName={fileDisplayName}
                         src={fileBlobUrl}
+                        fileBlob={fileBlob}
                         initialPage={props.initialPage}
                         initialMarker={props.initialMarker}
                         translation={props.translation}

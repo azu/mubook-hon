@@ -10,6 +10,7 @@ import {
     NO_BOOK_DATA,
     useNotion
 } from "../../notion/useNotion";
+import { useNotionFileUpload } from "../../notion/useNotionFileUpload";
 import { generateBackoff } from "exponential-backoff-generator";
 import { http } from "msw";
 import type { SetupWorker } from "msw/browser";
@@ -32,6 +33,7 @@ export type BibiReaderProps = {
     id: string;
     bookFileName: string;
     src: string | undefined;
+    fileBlob?: Blob;
     initialPage?: string;
     initialMarker?: string;
     translation?: boolean;
@@ -300,6 +302,32 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         fileId: props.id,
         fileName: props.bookFileName
     });
+    // ファイルアップロード機能
+    const pageId = hasDataBook(currentBook) ? currentBook.pageId : undefined;
+    const { uploadFile, isUploadEnabled } = useNotionFileUpload({
+        pageId,
+        fileName: props.bookFileName
+    });
+    // currentBookが確定したらファイルアップロードを試みる
+    const fileUploadAttemptedRef = useRef(false);
+    useEffect(() => {
+        console.log("xxxxx", [
+            isUploadEnabled,
+            hasDataBook(currentBook),
+            props.fileBlob,
+            !fileUploadAttemptedRef.current
+        ]);
+        if (isUploadEnabled && hasDataBook(currentBook) && props.fileBlob && !fileUploadAttemptedRef.current) {
+            fileUploadAttemptedRef.current = true;
+            uploadFile(props.fileBlob).then((result) => {
+                if (result.success) {
+                    console.debug("File uploaded to Notion successfully");
+                } else {
+                    console.debug("File upload skipped or failed:", result.error);
+                }
+            });
+        }
+    }, [currentBook, isUploadEnabled, props.fileBlob, uploadFile]);
     const { showToast, bookInfo, ToastComponent } = useToast();
     const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement>(null);
@@ -605,8 +633,8 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             // stock > selected > page
             const selected = stockedMemo
                 ? stockedMemo
-                : (await contentWindow.viewerController.getSelectedText()) ??
-                  (await contentWindow.viewerController.getCurrentPageText());
+                : ((await contentWindow.viewerController.getSelectedText()) ??
+                  (await contentWindow.viewerController.getCurrentPageText()));
             console.debug("selected object", {
                 selected,
                 stockedMemo

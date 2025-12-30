@@ -105,8 +105,26 @@ export default function Page() {
                             checked={userSettings?.openNewTab}
                             onChange={(e) => {
                                 updateUserSettings({
-                                    ...userSettings,
-                                    openNewTab: e.target.checked
+                                    openNewTab: e.target.checked,
+                                    uploadBookToNotion: userSettings?.uploadBookToNotion ?? false
+                                });
+                            }}
+                        />
+                    </div>
+                    <div
+                        style={{
+                            display: "flex"
+                        }}
+                    >
+                        <label htmlFor="upload-book-to-notion">Upload Book to Notion</label>
+                        <input
+                            id="upload-book-to-notion"
+                            type="checkbox"
+                            checked={userSettings?.uploadBookToNotion}
+                            onChange={(e) => {
+                                updateUserSettings({
+                                    openNewTab: userSettings?.openNewTab ?? true,
+                                    uploadBookToNotion: e.target.checked
                                 });
                             }}
                         />
