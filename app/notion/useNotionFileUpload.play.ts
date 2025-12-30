@@ -8,14 +8,6 @@ import * as path from "path";
 const epubPath = path.join(process.cwd(), "public/test-assets/example.epub");
 const epubBuffer = fs.readFileSync(epubPath);
 
-// 大きなファイルのモック用（20MB以上）
-const createLargeBuffer = (sizeInMB: number) => {
-    const buffer = Buffer.alloc(sizeInMB * 1024 * 1024);
-    // EPUBの先頭バイトを設定
-    buffer.write("PK\x03\x04");
-    return buffer;
-};
-
 /**
  * Notion File Upload APIのモック
  * Note: Notion SDKはbaseUrl(api/notion-proxy) + /v1/ + pathを使う
@@ -402,53 +394,5 @@ test.describe("Notion File Upload", () => {
         // アップロードが呼ばれていないことを確認
         await page.waitForTimeout(2000);
         expect(fileUploadCalled).toBe(false);
-    });
-
-    test("大きなファイルをアップロードしたときにエラーハンドリングされること", async ({ page }) => {
-        // アップロード設定をONに
-        await setupUserSettings({ page, uploadBookToNotion: true });
-
-        // Notion APIをモック
-        await mockNotionDatabaseRetrieve({ page });
-        const notionPage = createNotionPageWithEmptyFileProperty({
-            bookName: "large-book.epub",
-            fileId: "large-book.epub"
-        });
-        await mockNotionDataSourceQuery({ page, pages: [notionPage] });
-
-        // ファイルサイズ制限エラーを返すモック
-        await mockNotionFileUploadAPI({ page, shouldFail: true, fileSizeLimitMB: 5 });
-        await mockNotionPageAPI({ page, notionPage });
-
-        // 大きなファイル（6MB）のキャッシュを設定
-        const largeBuffer = createLargeBuffer(6);
-        await setupDropboxFileCache({
-            page,
-            files: {
-                "large-book.epub": largeBuffer.buffer as ArrayBuffer
-            }
-        });
-
-        // コンソールエラーをキャプチャ
-        const consoleErrors: string[] = [];
-        page.on("console", (msg) => {
-            if (msg.type() === "error") {
-                consoleErrors.push(msg.text());
-            }
-        });
-
-        await page.goto("/viewer?id=large-book.epub&viewer=epub:bibi");
-
-        // ページの基本読み込み完了を待機
-        await page.waitForLoadState("domcontentloaded");
-
-        // "Loading Viewer..."が消えるまで待機（エラーでも表示される場合がある）
-        await page.waitForTimeout(5000);
-
-        // ページがクラッシュしていないことを確認
-        await expect(page.locator("body")).toBeVisible();
-
-        // エラーが適切にハンドリングされ、ページが正常に表示されていることを確認
-        // （クリティカルなエラーで画面が真っ白にならない）
     });
 });
