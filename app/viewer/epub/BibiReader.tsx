@@ -304,7 +304,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
     });
     // ファイルアップロード機能
     const pageId = hasDataBook(currentBook) ? currentBook.pageId : undefined;
-    const { uploadFile, isUploadEnabled } = useNotionFileUpload({
+    const { uploadFile, uploadState, isUploadEnabled } = useNotionFileUpload({
         pageId,
         fileName: props.bookFileName
     });
@@ -768,6 +768,59 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 ref={onInitializeIframeRef}
             ></iframe>
             <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
+            {/* アップロードステータスインジケータ */}
+            {uploadState.status === "uploading" && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "rgba(0, 0, 0, 0.7)",
+                        color: "white",
+                        padding: "1rem 2rem",
+                        borderRadius: "8px",
+                        zIndex: 2000
+                    }}
+                >
+                    Uploading to Notion...
+                </div>
+            )}
+            {uploadState.status === "success" && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "rgba(0, 128, 0, 0.8)",
+                        color: "white",
+                        padding: "1rem 2rem",
+                        borderRadius: "8px",
+                        zIndex: 2000
+                    }}
+                >
+                    Uploaded
+                </div>
+            )}
+            {uploadState.status === "error" && (
+                <div
+                    style={{
+                        position: "fixed",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        background: "rgba(200, 0, 0, 0.8)",
+                        color: "white",
+                        padding: "1rem 2rem",
+                        borderRadius: "8px",
+                        zIndex: 2000
+                    }}
+                    title={uploadState.error}
+                >
+                    Upload failed
+                </div>
+            )}
         </div>
     );
 };

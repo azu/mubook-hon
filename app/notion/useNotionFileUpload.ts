@@ -1,8 +1,41 @@
-import { useMemo, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback, useState, useEffect } from "react";
 import { Client } from "@notionhq/client";
 import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
-import { useNotionSetting, hasDataBook, prop } from "./useNotion";
+import { useNotionSetting } from "./useNotion";
 import { useUserSettings } from "../settings/useUserSettings";
+
+// アップロード状態（discriminated union）
+export type UploadState =
+    | { status: "idle" }
+    | { status: "uploading" }
+    | { status: "success" }
+    | { status: "error"; error: string }
+    | { status: "skipped"; reason: string };
+
+/**
+ * WiFi接続かどうかを判定
+ * Network Information APIを使用（Chrome/Edge対応）
+ */
+function isWifiConnection(): boolean {
+    if (typeof navigator === "undefined") return false;
+
+    // Network Information API
+    const connection = (navigator as Navigator & { connection?: { type?: string; effectiveType?: string } }).connection;
+    if (connection) {
+        // type が 'wifi' または 'ethernet' ならOK
+        // type がない場合は effectiveType で判定（4g以上ならOK）
+        if (connection.type) {
+            return connection.type === "wifi" || connection.type === "ethernet";
+        }
+        // effectiveTypeのみの場合、モバイル回線の可能性があるのでfalse
+        // ただし、PCブラウザではtypeがなくても基本的にWiFi/有線
+        // 安全のため、typeがない場合はtrue（アップロード許可）
+        return true;
+    }
+
+    // Network Information APIがない場合はtrue（アップロード許可）
+    return true;
+}
 
 const USER_DEFINED_NOTION_BASE_URL =
     typeof localStorage !== "undefined" && localStorage.getItem("mubook-hon-NOTION_API_BASE_URL");
@@ -76,6 +109,7 @@ export const useNotionFileUpload = ({ pageId, fileName }: { pageId?: string; fil
     const { userSettings } = useUserSettings();
     const apiKey = notionSetting?.apiKey;
     const uploadedRef = useRef(false);
+    const [uploadState, setUploadState] = useState<UploadState>({ status: "idle" });
 
     const notionClient = useMemo(() => {
         if (!pageId || !fileName) {
@@ -94,6 +128,7 @@ export const useNotionFileUpload = ({ pageId, fileName }: { pageId?: string; fil
     /**
      * ファイルがアップロード対象かチェック
      * - 設定でONになっている
+     * - WiFi接続である
      * - Fileプロパティが空
      * - ファイルサイズが制限内
      */
@@ -101,6 +136,11 @@ export const useNotionFileUpload = ({ pageId, fileName }: { pageId?: string; fil
         async (fileBlob: Blob): Promise<{ shouldUpload: boolean; reason?: string }> => {
             if (!userSettings?.uploadBookToNotion) {
                 return { shouldUpload: false, reason: "Upload setting is disabled" };
+            }
+
+            // WiFi接続チェック
+            if (!isWifiConnection()) {
+                return { shouldUpload: false, reason: "Not on WiFi connection" };
             }
 
             if (!hasCompleteNotionSettings || !notionClient || !pageId) {
@@ -149,11 +189,13 @@ export const useNotionFileUpload = ({ pageId, fileName }: { pageId?: string; fil
             const { shouldUpload, reason } = await checkShouldUpload(fileBlob);
             if (!shouldUpload) {
                 console.debug("Skip upload:", reason);
+                setUploadState({ status: "skipped", reason: reason ?? "Unknown reason" });
                 return { success: false, error: reason };
             }
 
             try {
                 uploadedRef.current = true;
+                setUploadState({ status: "uploading" });
 
                 // Notion APIでサポートされていない形式は変換
                 const originalContentType = fileBlob.type || "application/octet-stream";
@@ -212,22 +254,36 @@ export const useNotionFileUpload = ({ pageId, fileName }: { pageId?: string; fil
                 });
 
                 console.debug("File uploaded and attached to page:", pageId);
+                setUploadState({ status: "success" });
                 return { success: true };
             } catch (error) {
                 console.error("Failed to upload file to Notion:", error);
                 uploadedRef.current = false; // 失敗時はリトライを許可
+                const errorMessage = error instanceof Error ? error.message : "Unknown error";
+                setUploadState({ status: "error", error: errorMessage });
                 return {
                     success: false,
-                    error: error instanceof Error ? error.message : "Unknown error"
+                    error: errorMessage
                 };
             }
         },
         [apiKey, checkShouldUpload, fileName, notionClient, pageId]
     );
 
+    // success/error状態を3秒後にidleに戻す
+    useEffect(() => {
+        if (uploadState.status === "success" || uploadState.status === "error") {
+            const timer = setTimeout(() => {
+                setUploadState({ status: "idle" });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [uploadState.status]);
+
     return {
         uploadFile,
         checkShouldUpload,
+        uploadState,
         isUploadEnabled: userSettings?.uploadBookToNotion ?? false
     } as const;
 };
