@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react";
 import { Client } from "@notionhq/client";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
-import type { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import type { DatabaseObjectResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Fetcher } from "swr/_internal";
 
 export type NotionSetting = { apiKey: string; bookListDatabaseId: string; bookMemoDatabaseId: string };
@@ -155,7 +155,9 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
         }
         return new Client({
             auth: apiKey,
-            baseUrl: NOTION_API_BASE_URL
+            baseUrl: NOTION_API_BASE_URL,
+            // SDK v5 requires explicitly bound fetch to avoid "Illegal invocation" error
+            fetch: fetch.bind(globalThis)
         });
     }, [fileId, fileName, apiKey]);
     const { data: currentBook, mutate: mutateCurrentBook } = useSWR<BookItem | typeof NO_BOOK_DATA>(
@@ -173,8 +175,18 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
             if (!fileId || !fileName) {
                 return NO_BOOK_DATA;
             }
+            // Notion API 2025-09-03: databases and data_sources are separate concepts
+            // A database contains one or more data_sources, and we need data_source_id to query
+            // See: https://developers.notion.com/docs/upgrade-guide-2025-09-03
+            const database = (await notionClient.databases.retrieve({
+                database_id: notionSetting.bookListDatabaseId
+            })) as DatabaseObjectResponse;
+            const dataSourceId = database.data_sources[0]?.id;
+            if (!dataSourceId) {
+                throw new Error("No data source found for database");
+            }
             const { results } = await notionClient.dataSources.query({
-                data_source_id: notionSetting.bookListDatabaseId,
+                data_source_id: dataSourceId,
                 filter: {
                     // Dropbox fileIs is case-sensitive
                     // https://www.dropboxforum.com/t5/Dropbox-API-Support-Feedback/Unique-file-id-not-really-unique/td-p/333590

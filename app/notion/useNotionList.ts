@@ -2,7 +2,7 @@ import useSWR from "swr";
 import { useMemo } from "react";
 import { Client } from "@notionhq/client";
 import { decodeBookMarker, prop, supportedViewerType, useNotionSetting } from "./useNotion";
-import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+import { DatabaseObjectResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 const USER_DEFINED_NOTION_BASE_URL =
     typeof localStorage !== "undefined" && localStorage.getItem("mubook-hon-NOTION_API_BASE_URL");
@@ -21,7 +21,9 @@ export const useNotionList = () => {
         }
         return new Client({
             auth: apiKey,
-            baseUrl: NOTION_API_BASE_URL
+            baseUrl: NOTION_API_BASE_URL,
+            // SDK v5 requires explicitly bound fetch to avoid "Illegal invocation" error
+            fetch: fetch.bind(globalThis)
         });
     }, [apiKey]);
     const { data: recentBooks, isLoading } = useSWR(
@@ -35,8 +37,18 @@ export const useNotionList = () => {
             if (!notionClient || !notionSetting?.bookListDatabaseId) {
                 throw new Error("notion client is not initialized");
             }
+            // Notion API 2025-09-03: databases and data_sources are separate concepts
+            // A database contains one or more data_sources, and we need data_source_id to query
+            // See: https://developers.notion.com/docs/upgrade-guide-2025-09-03
+            const database = (await notionClient.databases.retrieve({
+                database_id: notionSetting.bookListDatabaseId
+            })) as DatabaseObjectResponse;
+            const dataSourceId = database.data_sources[0]?.id;
+            if (!dataSourceId) {
+                throw new Error("No data source found for database");
+            }
             const response = await notionClient.dataSources.query({
-                data_source_id: notionSetting.bookListDatabaseId,
+                data_source_id: dataSourceId,
                 sorts: [
                     {
                         property: "Created",
