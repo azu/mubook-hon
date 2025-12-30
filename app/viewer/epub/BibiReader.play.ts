@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { setupTestAuth, setupDropboxFileCache, assertEpubViewerNoErrors } from "../../_fake/test-utils";
+import { mockNotionDatabaseQuery } from "../../_fake/notion-fake";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -14,6 +15,9 @@ test.describe("EPUBリーダー", () => {
 
     test("EPUB書籍の表示", async ({ page }) => {
         console.log("Starting EPUB test...");
+        // Notion APIをモック（最後の読書位置などを取得するため）
+        await mockNotionDatabaseQuery({ page, pages: [] });
+
         // テスト用のDropboxキャッシュを設定
         await setupDropboxFileCache({
             page,
