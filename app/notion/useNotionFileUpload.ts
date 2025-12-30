@@ -52,10 +52,7 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 // Notion File Upload APIがサポートしていない形式の変換マップ
 // Note: EPUBなどはapplication/msword + .doc拡張子で送信（ブラウザがダウンロードする形式）
 const UNSUPPORTED_EXTENSIONS: Record<string, { contentType: string; addExtension: string }> = {
-    ".epub": { contentType: "application/msword", addExtension: ".doc" },
-    ".mobi": { contentType: "application/msword", addExtension: ".doc" },
-    ".azw": { contentType: "application/msword", addExtension: ".doc" },
-    ".azw3": { contentType: "application/msword", addExtension: ".doc" }
+    ".epub": { contentType: "application/msword", addExtension: ".doc" }
 };
 
 /**
@@ -198,7 +195,7 @@ export const useNotionFileUpload = ({ pageId, fileName }: { pageId?: string; fil
                 setUploadState({ status: "uploading" });
 
                 // Notion APIでサポートされていない形式は変換
-                const originalContentType = fileBlob.type || "application/octet-stream";
+                const originalContentType = fileBlob.type;
                 const { uploadFileName, contentType } = convertFileInfo(fileName, originalContentType);
 
                 // 1. File Upload オブジェクトを作成
