@@ -43,6 +43,9 @@ export type NotionDatabaseQueryResponse = {
     results: NotionPage[];
     next_cursor: string | null;
     has_more: boolean;
+    // Notion API 2025-09-03 fields
+    type?: "page_or_database";
+    page_or_database?: Record<string, never>;
 };
 
 export type NotionUser = {
