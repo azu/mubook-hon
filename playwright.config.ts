@@ -46,12 +46,9 @@ export default defineConfig({
         // },
     ],
 
-    webServer: process.env.SKIP_WEBSERVER
-        ? undefined
-        : {
-              command: "npm run dev",
-              url: "http://localhost:3000",
-              reuseExistingServer: !process.env.CI,
-              timeout: 120000 // 2 minutes
-          }
+    webServer: {
+        command: "npm run dev",
+        port: 3000,
+        reuseExistingServer: true
+    }
 });
