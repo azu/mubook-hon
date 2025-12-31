@@ -1,6 +1,22 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookMarker, isBibiBookItem, isBibiPositionMaker, isPdfJsPositionMarker } from "../notion/useNotion";
+import { BookMarker, isBibiPositionMaker, isFoliatePositionMarker, isPdfJsPositionMarker } from "../notion/useNotion";
 import * as Toast from "@radix-ui/react-toast";
+
+const formatMarkerPosition = (marker: BookMarker | undefined): string | number => {
+    if (!marker) {
+        return "<none>";
+    }
+    if (isBibiPositionMaker(marker)) {
+        return marker.ItemIndex;
+    }
+    if (isFoliatePositionMarker(marker)) {
+        return `${Math.round(marker.fraction * 100)}%`;
+    }
+    if (isPdfJsPositionMarker(marker)) {
+        return marker.currentPage;
+    }
+    return "";
+};
 
 export const useToast = () => {
     const [open, setOpen] = useState(false);
@@ -8,26 +24,8 @@ export const useToast = () => {
     const [restoreMakers, setRestoreMakers] = useState<{ current: BookMarker; lastRead: BookMarker }>();
     const currentMarker = restoreMakers?.current;
     const lastReadMarker = restoreMakers?.lastRead;
-    const current = useMemo(() => {
-        if (!currentMarker) {
-            return "<none>";
-        }
-        return isBibiPositionMaker(currentMarker)
-            ? currentMarker.ItemIndex
-            : isPdfJsPositionMarker(currentMarker)
-            ? currentMarker.currentPage
-            : "";
-    }, [currentMarker]);
-    const last = useMemo(() => {
-        if (!lastReadMarker) {
-            return "<none>";
-        }
-        return isBibiPositionMaker(lastReadMarker)
-            ? lastReadMarker.ItemIndex
-            : isPdfJsPositionMarker(lastReadMarker)
-            ? lastReadMarker.currentPage
-            : "";
-    }, [lastReadMarker]);
+    const current = useMemo(() => formatMarkerPosition(currentMarker), [currentMarker]);
+    const last = useMemo(() => formatMarkerPosition(lastReadMarker), [lastReadMarker]);
     useEffect(() => {
         return () => clearTimeout(timerRef.current);
     }, []);

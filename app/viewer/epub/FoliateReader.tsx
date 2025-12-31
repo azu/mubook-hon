@@ -372,6 +372,43 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         viewerState.status
     ]);
 
+    // Show toast for saved reading position from Notion after view is ready
+    const hasShownPositionToast = useRef(false);
+    useEffect(() => {
+        if (
+            viewerState.status === "ready" &&
+            viewRef.current &&
+            hasDataBook(currentBook) &&
+            isFoliateBookItem(currentBook) &&
+            currentBook.lastMarker?.cfi &&
+            !hasShownPositionToast.current
+        ) {
+            hasShownPositionToast.current = true;
+            const view = viewRef.current;
+            const lastMarker = currentBook.lastMarker;
+            const currentFraction = view.lastLocation?.fraction ?? 0;
+
+            // Show toast if position differs significantly (more than 5%)
+            const isDifferentPosition = Math.abs(currentFraction - lastMarker.fraction) > 0.05;
+            console.debug("Position check:", {
+                currentFraction,
+                lastMarkerFraction: lastMarker.fraction,
+                isDifferentPosition
+            });
+
+            if (isDifferentPosition) {
+                showToast({
+                    current: {
+                        cfi: view.lastLocation?.cfi ?? "",
+                        fraction: currentFraction,
+                        sectionIndex: 0
+                    },
+                    lastRead: lastMarker
+                });
+            }
+        }
+    }, [viewerState.status, currentBook, showToast]);
+
     // Register new book if not found
     useEffect(() => {
         if (currentBook === NO_BOOK_DATA && viewRef.current && isInitialized.current) {
