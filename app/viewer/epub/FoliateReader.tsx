@@ -162,6 +162,7 @@ type ViewerState =
 export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [viewerState, setViewerState] = useState<ViewerState>({ status: "waiting-src" });
     const [menuState, setMenuState] = useState<"open" | "closed">("closed");
+    const [layoutMode, setLayoutMode] = useState<"paginated" | "scrolled">("paginated");
     const viewRef = useRef<FoliateView | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const isInitialized = useRef(false);
@@ -283,7 +284,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
 
                 // Append to container
                 if (containerRef.current) {
-                    view.style.cssText = "width: 100%; height: 100%;";
+                    // Disable horizontal swipe gestures, allow vertical scroll and pinch zoom
+                    view.style.cssText = "width: 100%; height: 100%; touch-action: pan-y pinch-zoom;";
                     containerRef.current.appendChild(view);
                 }
 
@@ -672,6 +674,14 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         setMenuState((prev) => (prev === "open" ? "closed" : "open"));
     }, []);
 
+    const toggleLayoutMode = useCallback(() => {
+        setLayoutMode((prev) => {
+            const newMode = prev === "paginated" ? "scrolled" : "paginated";
+            viewRef.current?.renderer?.setAttribute?.("flow", newMode);
+            return newMode;
+        });
+    }, []);
+
     const enableMemoButton = useMemo(() => {
         if (memoStock.length > 0) return true;
         return canMemoContent && !isAddingMemo;
@@ -708,6 +718,15 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     <Loading>Loading Viewer...</Loading>
                 </div>
             )}
+            {/* Menu trigger area - tap to open menu */}
+            {viewerState.status === "ready" && menuState === "closed" && (
+                <button
+                    className={styles.menuTrigger}
+                    onClick={toggleMenu}
+                    title="Tap to open menu"
+                    aria-label="Open menu"
+                />
+            )}
             {/* Top menu bar */}
             <div
                 className={styles.menuBar}
@@ -731,6 +750,16 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         N
                     </button>
                 )}
+                <button
+                    className={styles.menuButton}
+                    onClick={toggleLayoutMode}
+                    title={layoutMode === "paginated" ? "Switch to scroll mode" : "Switch to page mode"}
+                >
+                    {layoutMode === "paginated" ? "Scroll" : "Page"}
+                </button>
+                <button className={styles.menuButton} onClick={toggleMenu} title="Close menu">
+                    ✕
+                </button>
             </div>
 
             {/* TOC Sidebar */}
@@ -752,7 +781,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 className={styles.navButton}
                 style={{
                     left: 0,
-                    display: viewerState.status === "ready" && menuState === "closed" ? "block" : "none"
+                    display: viewerState.status === "ready" && menuState === "closed" ? "flex" : "none"
                 }}
                 onClick={onClickPrev}
                 title="Previous page"
@@ -765,7 +794,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 className={styles.navButton}
                 style={{
                     right: 0,
-                    display: viewerState.status === "ready" && menuState === "closed" ? "block" : "none"
+                    display: viewerState.status === "ready" && menuState === "closed" ? "flex" : "none"
                 }}
                 onClick={onClickNext}
                 title="Next page"
