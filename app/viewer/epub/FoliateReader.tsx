@@ -167,6 +167,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const isInitialized = useRef(false);
     // Prevent duplicate book creation when multiple relocate events fire before first creation completes
     const isBookCreatingRef = useRef(false);
+    // Store latest relocate detail for updating book status (state to trigger effects)
+    const [latestRelocateDetail, setLatestRelocateDetail] = useState<RelocateDetail | null>(null);
 
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
@@ -251,39 +253,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     const detail = (e as CustomEvent<RelocateDetail>).detail;
                     console.debug("relocate", detail);
                     setCanMemoContent(true);
-
-                    // Update book status
-                    if (isInitialized.current && view.book?.metadata) {
-                        // Skip if already creating book to prevent duplicate entries
-                        if (isBookCreatingRef.current) {
-                            console.debug("Skipping updateBookStatus: already creating book");
-                            return;
-                        }
-                        isBookCreatingRef.current = true;
-
-                        const metadata = view.book.metadata;
-                        const authorString = getAuthorString(metadata.author);
-                        updateBookStatus({
-                            viewer: "epub:foliate",
-                            fileId: props.id,
-                            fileName: props.bookFileName,
-                            publisher: getPublisherString(metadata.publisher),
-                            title: getTitleString(metadata.title),
-                            authors: authorString
-                                .split(/[,、]/)
-                                .map((a) => a.trim())
-                                .filter(Boolean),
-                            currentPage: detail.location?.current ?? Math.floor(detail.fraction * 100),
-                            totalPage: detail.location?.total ?? 100,
-                            lastMarker: {
-                                cfi: detail.cfi,
-                                fraction: detail.fraction,
-                                sectionIndex: 0 // Will be updated when we have proper section info
-                            }
-                        }).finally(() => {
-                            isBookCreatingRef.current = false;
-                        });
-                    }
+                    // Store latest relocate detail for use when updating book status
+                    setLatestRelocateDetail(detail);
                 });
 
                 view.addEventListener("load", (e: Event) => {
@@ -409,10 +380,11 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         }
     }, [viewerState.status, currentBook, showToast]);
 
-    // Register new book if not found
+    // Register new book if not found (only place where new books are created)
     useEffect(() => {
-        if (currentBook === NO_BOOK_DATA && viewRef.current && isInitialized.current) {
+        if (currentBook === NO_BOOK_DATA && viewRef.current && isInitialized.current && latestRelocateDetail) {
             // Skip if already creating book to prevent duplicate entries
+            // Important: Don't reset this flag until currentBook has actual data
             if (isBookCreatingRef.current) {
                 return;
             }
@@ -420,6 +392,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             const metadata = view.book?.metadata;
             if (metadata) {
                 isBookCreatingRef.current = true;
+                console.debug("Creating new book entry in Notion");
                 const authorString = getAuthorString(metadata.author);
                 updateBookStatus({
                     viewer: "epub:foliate",
@@ -431,19 +404,74 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         .split(/[,、]/)
                         .map((a) => a.trim())
                         .filter(Boolean),
-                    currentPage: 0,
-                    totalPage: 100,
+                    currentPage:
+                        latestRelocateDetail.location?.current ?? Math.floor(latestRelocateDetail.fraction * 100),
+                    totalPage: latestRelocateDetail.location?.total ?? 100,
                     lastMarker: {
-                        cfi: "",
-                        fraction: 0,
+                        cfi: latestRelocateDetail.cfi,
+                        fraction: latestRelocateDetail.fraction,
                         sectionIndex: 0
                     }
-                }).finally(() => {
-                    isBookCreatingRef.current = false;
                 });
+                // Note: Don't reset isBookCreatingRef here - it will be reset when currentBook changes to have data
             }
         }
-    }, [currentBook, props.bookFileName, props.id, updateBookStatus]);
+    }, [currentBook, latestRelocateDetail, props.bookFileName, props.id, updateBookStatus]);
+
+    // Reset the creating flag when book data is available
+    useEffect(() => {
+        if (hasDataBook(currentBook) && isBookCreatingRef.current) {
+            console.debug("Book created successfully, resetting isBookCreatingRef");
+            isBookCreatingRef.current = false;
+        }
+    }, [currentBook]);
+
+    // Update existing book status when navigating (debounced)
+    const updateTimeoutRef = useRef<number | null>(null);
+    useEffect(() => {
+        // Only update if book already exists and we have relocate data
+        if (!hasDataBook(currentBook) || !viewRef.current || !isInitialized.current || !latestRelocateDetail) {
+            return;
+        }
+
+        // Debounce updates to avoid too many API calls
+        if (updateTimeoutRef.current) {
+            window.clearTimeout(updateTimeoutRef.current);
+        }
+
+        updateTimeoutRef.current = window.setTimeout(() => {
+            const view = viewRef.current;
+            if (!view?.book?.metadata || !latestRelocateDetail) return;
+
+            console.debug("Updating existing book status");
+            const metadata = view.book.metadata;
+            const authorString = getAuthorString(metadata.author);
+            updateBookStatus({
+                viewer: "epub:foliate",
+                fileId: props.id,
+                fileName: props.bookFileName,
+                publisher: getPublisherString(metadata.publisher),
+                title: getTitleString(metadata.title),
+                authors: authorString
+                    .split(/[,、]/)
+                    .map((a) => a.trim())
+                    .filter(Boolean),
+                currentPage: latestRelocateDetail.location?.current ?? Math.floor(latestRelocateDetail.fraction * 100),
+                totalPage: latestRelocateDetail.location?.total ?? 100,
+                lastMarker: {
+                    cfi: latestRelocateDetail.cfi,
+                    fraction: latestRelocateDetail.fraction,
+                    sectionIndex: 0
+                }
+            });
+        }, 1000); // 1 second debounce
+
+        return () => {
+            if (updateTimeoutRef.current) {
+                window.clearTimeout(updateTimeoutRef.current);
+            }
+        };
+    }, [currentBook, latestRelocateDetail, props.bookFileName, props.id, updateBookStatus]);
 
     // Keyboard handler
     const handleKeydown = useCallback(
