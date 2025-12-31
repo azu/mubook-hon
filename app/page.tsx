@@ -242,7 +242,9 @@ const HomeContent: FC = () => {
                                             query: {
                                                 // @ts-ignore
                                                 id: item.id,
-                                                viewer: item.path_lower?.endsWith(".epub") ? "epub:bibi" : "pdf:pdfjs"
+                                                viewer: item.path_lower?.endsWith(".epub")
+                                                    ? "epub:foliate"
+                                                    : "pdf:pdfjs"
                                             }
                                         }}
                                         target={userSettings?.openNewTab ? "_blank" : ""}
