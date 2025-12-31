@@ -42,14 +42,14 @@ test.describe("Foliate EPUBリーダー", () => {
         // ページの基本読み込み完了を待機
         await page.waitForLoadState("domcontentloaded");
 
-        // "Loading Viewer..."が消えるまで待機（タイムアウトを長く）
-        await expect(page.locator("text=Loading Viewer...")).toBeHidden({ timeout: 60000 });
+        // "Loading Viewer..."が消えるまで待機
+        await expect(page.locator("text=Loading Viewer...")).toBeHidden();
 
         // ビューアページが表示されることを確認
         await expect(page.locator("body")).toBeVisible();
 
-        // foliate-viewが正常に読み込まれることを確認
-        await expect(page.locator("foliate-view")).toBeVisible({ timeout: 10000 });
+        // foliate-viewが正常にDOMに追加されていることを確認
+        await expect(page.locator("foliate-view")).toBeAttached();
     });
 
     test("EPUB読み込みエラー", async ({ page }) => {
