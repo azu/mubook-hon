@@ -4,40 +4,42 @@
 
 .menuTrigger {
     position: fixed;
-    top: 0;
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    width: 120px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: transparent;
     border: none;
     cursor: pointer;
     z-index: 500;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .menuTrigger::after {
     content: "";
     position: absolute;
-    bottom: 8px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 3px;
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 1.5px;
 }
 
 /* Mobile: larger menu trigger area */
 @media (pointer: coarse) {
     .menuTrigger {
-        width: 200px;
-        height: 60px;
+        width: 64px;
+        height: 48px;
+        top: 4px;
     }
 
     .menuTrigger::after {
-        width: 60px;
-        height: 5px;
-        bottom: 12px;
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
     }
 }
 
