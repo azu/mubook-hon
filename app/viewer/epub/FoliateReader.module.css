@@ -80,30 +80,16 @@
     height: 100%;
     background: transparent;
     border: none;
-    font-size: 48px;
-    color: rgba(0, 0, 0, 0.2);
+    font-size: 0;
+    color: transparent;
     cursor: pointer;
     z-index: 100;
-    transition: color 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.navButton:hover {
-    color: rgba(0, 0, 0, 0.5);
 }
 
 /* Mobile: larger tap target */
 @media (pointer: coarse) {
     .navButton {
         width: 80px;
-        opacity: 0;
-    }
-
-    .navButton:active {
-        opacity: 1;
-        background: rgba(0, 0, 0, 0.05);
     }
 }
 
