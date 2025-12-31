@@ -327,6 +327,16 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     showTextStart: !lastLocation
                 });
 
+                // Disable swipe gestures to prevent conflict with text selection
+                // Runtime patch: capture touchmove and stop propagation to foliate-js
+                const disableSwipe = (e: TouchEvent) => {
+                    // Allow pinch zoom (multi-touch)
+                    if (e.touches.length > 1) return;
+                    // Stop swipe from triggering page turn
+                    e.stopImmediatePropagation();
+                };
+                view.addEventListener("touchmove", disableSwipe, { capture: true });
+
                 isInitialized.current = true;
                 setViewerState({ status: "ready" });
             } catch (error) {
