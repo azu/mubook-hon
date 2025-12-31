@@ -16,11 +16,29 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+.menuTrigger::after {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: rgba(128, 128, 128, 0.25);
+    border-radius: 50%;
+}
+
 /* Mobile: larger menu trigger area */
 @media (pointer: coarse) {
     .menuTrigger {
         width: 200px;
         height: 60px;
+    }
+
+    .menuTrigger::after {
+        width: 8px;
+        height: 8px;
+        top: 16px;
     }
 }
 
