@@ -21,7 +21,7 @@ const openDB = (dbName: string, storeName: string): Promise<IDBDatabase> => {
     });
 };
 
-const createIDBCache = <Data = unknown>(db: IDBDatabase, storeName: string): Cache<Data> => {
+const createIDBCache = async <Data = unknown>(db: IDBDatabase, storeName: string): Promise<Cache<Data>> => {
     const memoryCache = new Map<string, CacheEntry<Data>>();
 
     // Load all data from IndexedDB into memory cache
@@ -68,8 +68,8 @@ const createIDBCache = <Data = unknown>(db: IDBDatabase, storeName: string): Cac
         }
     };
 
-    // Initialize by loading from DB
-    loadFromDB().catch((e) => console.error("Failed to load from IndexedDB:", e));
+    // Wait for data to be loaded from DB before returning cache
+    await loadFromDB();
 
     return {
         get(key: string): State<Data> | undefined {
@@ -106,9 +106,10 @@ export const useIDBCacheProvider = <Data = unknown>(options: UseIDBCacheProvider
         let mounted = true;
 
         openDB(options.dbName, options.storeName)
-            .then((db) => {
+            .then(async (db) => {
+                const idbCache = await createIDBCache<Data>(db, options.storeName);
                 if (mounted) {
-                    setCache(createIDBCache<Data>(db, options.storeName));
+                    setCache(idbCache);
                 }
             })
             .catch((e) => {

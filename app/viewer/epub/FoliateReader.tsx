@@ -115,6 +115,13 @@ const getTitleString = (title: BookMetadata["title"]): string => {
     return getStringFromLanguageMap(title);
 };
 
+// Helper to get publisher string from various formats
+const getPublisherString = (publisher: BookMetadata["publisher"]): string => {
+    if (!publisher) return "";
+    if (typeof publisher === "string") return publisher;
+    return getStringFromLanguageMap(publisher.name);
+};
+
 const getCSS = (options: { spacing: number; justify: boolean; hyphenate: boolean }) => `
     @namespace epub "http://www.idpf.org/2007/ops";
     html {
@@ -260,7 +267,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                             viewer: "epub:foliate",
                             fileId: props.id,
                             fileName: props.bookFileName,
-                            publisher: metadata.publisher ?? "",
+                            publisher: getPublisherString(metadata.publisher),
                             title: getTitleString(metadata.title),
                             authors: authorString
                                 .split(/[,、]/)
@@ -381,7 +388,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     viewer: "epub:foliate",
                     fileId: props.id,
                     fileName: props.bookFileName,
-                    publisher: metadata.publisher ?? "",
+                    publisher: getPublisherString(metadata.publisher),
                     title: getTitleString(metadata.title),
                     authors: authorString
                         .split(/[,、]/)

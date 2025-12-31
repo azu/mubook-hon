@@ -311,19 +311,13 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                         }
                     ]
                 },
-                ...(() => {
-                    // Filter out empty author names to avoid Notion API validation error
-                    const validAuthors = bookItem.authors?.filter((author) => author.trim() !== "") ?? [];
-                    return validAuthors.length > 0
-                        ? {
-                              Author: {
-                                  multi_select: validAuthors.map((author) => ({
-                                      name: eacapeMultiSelectValue(author)
-                                  }))
-                              }
-                          }
-                        : {};
-                })(),
+                Author: {
+                    multi_select: (bookItem.authors ?? [])
+                        .filter((author) => author.trim() !== "")
+                        .map((author) => ({
+                            name: eacapeMultiSelectValue(author)
+                        }))
+                },
                 ...(bookItem.publisher
                     ? {
                           Publisher: {
