@@ -44,7 +44,24 @@ const createIDBCache = <Data = unknown>(db: IDBDatabase, storeName: string): Cac
         });
     };
 
+    // Check if value can be cloned (Symbols cannot be stored in IndexedDB)
+    const isCloneable = (value: unknown): boolean => {
+        if (typeof value === "symbol") return false;
+        if (value === null || value === undefined) return true;
+        if (typeof value !== "object") return true;
+        // Check object properties recursively (shallow check for performance)
+        for (const key of Object.keys(value as object)) {
+            const v = (value as Record<string, unknown>)[key];
+            if (typeof v === "symbol") return false;
+        }
+        return true;
+    };
+
     const saveToDB = (key: string, value: CacheEntry<Data>): void => {
+        // Skip saving if value contains non-cloneable data (like Symbols)
+        if (!isCloneable(value.state?.data)) {
+            return;
+        }
         try {
             const transaction = db.transaction(storeName, "readwrite");
             const store = transaction.objectStore(storeName);

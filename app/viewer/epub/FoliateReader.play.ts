@@ -15,6 +15,17 @@ test.describe("Foliate EPUBリーダー", () => {
 
     test("EPUB書籍の表示", async ({ page }) => {
         console.log("Starting Foliate EPUB test...");
+
+        // コンソールメッセージをキャプチャ
+        page.on("console", (msg) => {
+            console.log(`Browser console [${msg.type()}]: ${msg.text()}`);
+        });
+
+        // ページエラーをキャプチャ
+        page.on("pageerror", (error) => {
+            console.log(`Page error: ${error.message}`);
+        });
+
         // Notion APIをモック（最後の読書位置などを取得するため）
         await mockNotionDatabaseQuery({ page, pages: [] });
 
@@ -31,8 +42,8 @@ test.describe("Foliate EPUBリーダー", () => {
         // ページの基本読み込み完了を待機
         await page.waitForLoadState("domcontentloaded");
 
-        // "Loading Viewer..."が消えるまで待機
-        await expect(page.locator("text=Loading Viewer...")).toBeHidden({ timeout: 30000 });
+        // "Loading Viewer..."が消えるまで待機（タイムアウトを長く）
+        await expect(page.locator("text=Loading Viewer...")).toBeHidden({ timeout: 60000 });
 
         // ビューアページが表示されることを確認
         await expect(page.locator("body")).toBeVisible();

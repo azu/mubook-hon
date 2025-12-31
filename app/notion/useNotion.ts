@@ -257,7 +257,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
             return currentBook;
         }) as Fetcher<BookItem>
     );
-    const { trigger: updateBookStatus } = useSWRMutation(
+    const { trigger: updateBookStatus, isMutating: isUpdatingBookStatus } = useSWRMutation(
         () =>
             notionClient
                 ? {
@@ -311,18 +311,19 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                         }
                     ]
                 },
-                ...(bookItem.authors?.length > 0
-                    ? {
-                          Author: {
-                              multi_select:
-                                  bookItem.authors?.map((author) => {
-                                      return {
-                                          name: eacapeMultiSelectValue(author)
-                                      };
-                                  }) ?? []
+                ...(() => {
+                    // Filter out empty author names to avoid Notion API validation error
+                    const validAuthors = bookItem.authors?.filter((author) => author.trim() !== "") ?? [];
+                    return validAuthors.length > 0
+                        ? {
+                              Author: {
+                                  multi_select: validAuthors.map((author) => ({
+                                      name: eacapeMultiSelectValue(author)
+                                  }))
+                              }
                           }
-                      }
-                    : {}),
+                        : {};
+                })(),
                 ...(bookItem.publisher
                     ? {
                           Publisher: {
@@ -518,6 +519,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
         hasCompletedNotionSettings,
         currentBook,
         updateBookStatus,
+        isUpdatingBookStatus,
         addMemo
     } as const;
 };

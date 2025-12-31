@@ -29,8 +29,13 @@ export type FoliateReaderProps = {
 
 type BookMetadata = {
     title?: string | Record<string, string>;
-    author?: string | string[] | { name: string }[];
-    publisher?: string;
+    // author can be: string, array of strings, array of contributor objects, or single contributor object
+    author?:
+        | string
+        | string[]
+        | { name: string | Record<string, string> }[]
+        | { name: string | Record<string, string> };
+    publisher?: string | { name: string | Record<string, string> };
     language?: string;
 };
 
@@ -75,37 +80,47 @@ type FoliateView = HTMLElement & {
     getCFI: (index: number, range?: Range) => string;
 };
 
+// Helper to get string from language map (e.g., { ja: "著者名", en: "Author Name" } or "Author Name")
+const getStringFromLanguageMap = (value: string | Record<string, string> | undefined): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    const keys = Object.keys(value);
+    return keys.length > 0 ? value[keys[0]] : "";
+};
+
 // Helper to get author string from various formats
+// metadata.author can be: string | string[] | { name: string | LanguageMap }[] | { name: string | LanguageMap }
 const getAuthorString = (author: BookMetadata["author"]): string => {
     if (!author) return "";
     if (typeof author === "string") return author;
     if (Array.isArray(author)) {
         return author
-            .map((a) => (typeof a === "string" ? a : a.name))
+            .map((a) => {
+                if (typeof a === "string") return a;
+                // a.name can be a string or a language map object
+                return getStringFromLanguageMap(a.name as string | Record<string, string>);
+            })
             .filter(Boolean)
             .join(", ");
+    }
+    // Single object case: { name: string | LanguageMap, ... }
+    if (typeof author === "object" && "name" in author) {
+        return getStringFromLanguageMap(author.name as string | Record<string, string>);
     }
     return "";
 };
 
 // Helper to get title string from various formats
 const getTitleString = (title: BookMetadata["title"]): string => {
-    if (!title) return "";
-    if (typeof title === "string") return title;
-    // Handle language map like { ja: "草枕", en: "Kusamakura" }
-    const keys = Object.keys(title);
-    return keys.length > 0 ? title[keys[0]] : "";
+    return getStringFromLanguageMap(title);
 };
 
 const getCSS = (options: { spacing: number; justify: boolean; hyphenate: boolean }) => `
     @namespace epub "http://www.idpf.org/2007/ops";
     html {
-        color-scheme: light dark;
-    }
-    @media (prefers-color-scheme: dark) {
-        a:link {
-            color: lightblue;
-        }
+        color-scheme: light only;
+        background: white;
+        color: black;
     }
     p, li, blockquote, dd {
         line-height: ${options.spacing};
@@ -130,13 +145,21 @@ const getCSS = (options: { spacing: number; justify: boolean; hyphenate: boolean
     }
 `;
 
+// Discriminated union for viewer state
+type ViewerState =
+    | { status: "waiting-src" }
+    | { status: "loading" }
+    | { status: "ready" }
+    | { status: "error"; error: string };
+
 export const FoliateReader: FC<FoliateReaderProps> = (props) => {
-    const [isReady, setIsReady] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [viewerState, setViewerState] = useState<ViewerState>({ status: "waiting-src" });
     const [menuState, setMenuState] = useState<"open" | "closed">("closed");
     const viewRef = useRef<FoliateView | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const isInitialized = useRef(false);
+    // Prevent duplicate book creation when multiple relocate events fire before first creation completes
+    const isBookCreatingRef = useRef(false);
 
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
@@ -177,12 +200,41 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
 
     // Initialize foliate-view
     useEffect(() => {
-        if (!props.src || isReady) return;
+        // Only initialize once when we have src and are in waiting-src state
+        if (!props.src || viewerState.status !== "waiting-src") {
+            return;
+        }
 
+        setViewerState({ status: "loading" });
         const initFoliate = async () => {
             try {
-                // Import foliate-js view module
-                await import("../../../lib/foliate-js/view.js");
+                // Import foliate-js view module from public directory
+                // foliate-js uses native ESM, so we load it via dynamic import in browser
+                if (!customElements.get("foliate-view")) {
+                    // Use dynamic import to load the module
+                    const script = document.createElement("script");
+                    script.type = "module";
+                    script.textContent = `
+                        import '/foliate-js/view.js';
+                        window.dispatchEvent(new Event('foliate-loaded'));
+                    `;
+                    document.head.appendChild(script);
+
+                    // Wait for the module to load
+                    await new Promise<void>((resolve) => {
+                        const checkLoaded = () => {
+                            if (customElements.get("foliate-view")) {
+                                resolve();
+                            } else {
+                                setTimeout(checkLoaded, 50);
+                            }
+                        };
+                        // Listen for our custom event
+                        window.addEventListener("foliate-loaded", () => resolve(), { once: true });
+                        // Also poll as fallback
+                        setTimeout(checkLoaded, 100);
+                    });
+                }
 
                 const view = document.createElement("foliate-view") as FoliateView;
                 viewRef.current = view;
@@ -195,6 +247,13 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
 
                     // Update book status
                     if (isInitialized.current && view.book?.metadata) {
+                        // Skip if already creating book to prevent duplicate entries
+                        if (isBookCreatingRef.current) {
+                            console.debug("Skipping updateBookStatus: already creating book");
+                            return;
+                        }
+                        isBookCreatingRef.current = true;
+
                         const metadata = view.book.metadata;
                         const authorString = getAuthorString(metadata.author);
                         updateBookStatus({
@@ -203,7 +262,10 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                             fileName: props.bookFileName,
                             publisher: metadata.publisher ?? "",
                             title: getTitleString(metadata.title),
-                            authors: authorString.split(/[,、]/).map((a) => a.trim()),
+                            authors: authorString
+                                .split(/[,、]/)
+                                .map((a) => a.trim())
+                                .filter(Boolean),
                             currentPage: detail.location?.current ?? Math.floor(detail.fraction * 100),
                             totalPage: detail.location?.total ?? 100,
                             lastMarker: {
@@ -211,6 +273,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                                 fraction: detail.fraction,
                                 sectionIndex: 0 // Will be updated when we have proper section info
                             }
+                        }).finally(() => {
+                            isBookCreatingRef.current = false;
                         });
                     }
                 });
@@ -276,11 +340,10 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 });
 
                 isInitialized.current = true;
-                setIsReady(true);
-                setIsLoading(false);
+                setViewerState({ status: "ready" });
             } catch (error) {
                 console.error("Failed to initialize foliate reader:", error);
-                setIsLoading(false);
+                setViewerState({ status: "error", error: error instanceof Error ? error.message : "Unknown error" });
             }
         };
 
@@ -291,14 +354,28 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 viewRef.current.close();
             }
         };
-    }, [props.src, props.bookFileName, props.id, props.initialMarker, currentBook, updateBookStatus, isReady]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        props.src,
+        props.bookFileName,
+        props.id,
+        props.initialMarker,
+        currentBook,
+        updateBookStatus,
+        viewerState.status
+    ]);
 
     // Register new book if not found
     useEffect(() => {
         if (currentBook === NO_BOOK_DATA && viewRef.current && isInitialized.current) {
+            // Skip if already creating book to prevent duplicate entries
+            if (isBookCreatingRef.current) {
+                return;
+            }
             const view = viewRef.current;
             const metadata = view.book?.metadata;
             if (metadata) {
+                isBookCreatingRef.current = true;
                 const authorString = getAuthorString(metadata.author);
                 updateBookStatus({
                     viewer: "epub:foliate",
@@ -306,7 +383,10 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     fileName: props.bookFileName,
                     publisher: metadata.publisher ?? "",
                     title: getTitleString(metadata.title),
-                    authors: authorString.split(/[,、]/).map((a) => a.trim()),
+                    authors: authorString
+                        .split(/[,、]/)
+                        .map((a) => a.trim())
+                        .filter(Boolean),
                     currentPage: 0,
                     totalPage: 100,
                     lastMarker: {
@@ -314,6 +394,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         fraction: 0,
                         sectionIndex: 0
                     }
+                }).finally(() => {
+                    isBookCreatingRef.current = false;
                 });
             }
         }
@@ -491,12 +573,37 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         return canMemoContent && !isAddingMemo;
     }, [canMemoContent, isAddingMemo, memoStock.length]);
 
-    if (isLoading) {
-        return <Loading>Loading Viewer...</Loading>;
+    // Show error if foliate failed to initialize
+    if (viewerState.status === "error") {
+        return (
+            <div style={{ padding: "20px", color: "red" }}>
+                <h2>Failed to load EPUB viewer</h2>
+                <p>{viewerState.error}</p>
+            </div>
+        );
     }
 
     return (
         <div style={{ height: "100dvh" }} className="full-page">
+            {/* Loading overlay */}
+            {(viewerState.status === "waiting-src" || viewerState.status === "loading") && (
+                <div
+                    style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 9999,
+                        background: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                    }}
+                >
+                    <Loading>Loading Viewer...</Loading>
+                </div>
+            )}
             {/* Top menu bar */}
             <div
                 className={styles.menuBar}
@@ -539,7 +646,10 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             {/* Navigation buttons - left */}
             <button
                 className={styles.navButton}
-                style={{ left: 0, display: menuState === "closed" ? "block" : "none" }}
+                style={{
+                    left: 0,
+                    display: viewerState.status === "ready" && menuState === "closed" ? "block" : "none"
+                }}
                 onClick={onClickPrev}
                 title="Previous page"
             >
@@ -549,7 +659,10 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             {/* Navigation buttons - right */}
             <button
                 className={styles.navButton}
-                style={{ right: 0, display: menuState === "closed" ? "block" : "none" }}
+                style={{
+                    right: 0,
+                    display: viewerState.status === "ready" && menuState === "closed" ? "block" : "none"
+                }}
                 onClick={onClickNext}
                 title="Next page"
             >
@@ -557,7 +670,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             </button>
 
             {/* Memo buttons */}
-            {hasCompletedNotionSettings && menuState === "closed" && (
+            {hasCompletedNotionSettings && viewerState.status === "ready" && menuState === "closed" && (
                 <>
                     <button
                         className={`Button small violet ${styles.memoButton}`}
