@@ -169,11 +169,19 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const isBookCreatingRef = useRef(false);
     // Store latest relocate detail for updating book status (state to trigger effects)
     const [latestRelocateDetail, setLatestRelocateDetail] = useState<RelocateDetail | null>(null);
+    // Track the last fraction we updated to Notion to avoid unnecessary updates
+    const lastUpdatedFractionRef = useRef<number | null>(null);
 
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
         fileName: props.bookFileName
     });
+
+    // Ref to access current book without adding to useEffect dependencies (avoids update loop)
+    const currentBookRef = useRef(currentBook);
+    useEffect(() => {
+        currentBookRef.current = currentBook;
+    }, [currentBook]);
 
     // File upload
     const pageId = hasDataBook(currentBook) ? currentBook.pageId : undefined;
@@ -426,11 +434,20 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         }
     }, [currentBook]);
 
-    // Update existing book status when navigating (debounced)
+    // Update existing book status when navigating (debounced, only when position changes significantly)
     const updateTimeoutRef = useRef<number | null>(null);
     useEffect(() => {
         // Only update if book already exists and we have relocate data
-        if (!hasDataBook(currentBook) || !viewRef.current || !isInitialized.current || !latestRelocateDetail) {
+        if (!viewRef.current || !isInitialized.current || !latestRelocateDetail) {
+            return;
+        }
+
+        // Skip if position hasn't changed significantly (less than 1%)
+        const currentFraction = latestRelocateDetail.fraction;
+        if (
+            lastUpdatedFractionRef.current !== null &&
+            Math.abs(currentFraction - lastUpdatedFractionRef.current) < 0.01
+        ) {
             return;
         }
 
@@ -443,7 +460,22 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             const view = viewRef.current;
             if (!view?.book?.metadata || !latestRelocateDetail) return;
 
-            console.debug("Updating existing book status");
+            // Double-check position change in case it reverted during debounce
+            if (
+                lastUpdatedFractionRef.current !== null &&
+                Math.abs(latestRelocateDetail.fraction - lastUpdatedFractionRef.current) < 0.01
+            ) {
+                return;
+            }
+
+            // Only update if book already exists (use ref to avoid dependency loop)
+            if (!hasDataBook(currentBookRef.current)) {
+                return;
+            }
+
+            console.debug("Updating existing book status", { fraction: latestRelocateDetail.fraction });
+            lastUpdatedFractionRef.current = latestRelocateDetail.fraction;
+
             const metadata = view.book.metadata;
             const authorString = getAuthorString(metadata.author);
             updateBookStatus({
@@ -471,7 +503,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 window.clearTimeout(updateTimeoutRef.current);
             }
         };
-    }, [currentBook, latestRelocateDetail, props.bookFileName, props.id, updateBookStatus]);
+    }, [latestRelocateDetail, props.bookFileName, props.id, updateBookStatus]);
 
     // Keyboard handler
     const handleKeydown = useCallback(
