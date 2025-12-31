@@ -84,6 +84,13 @@
     color: transparent;
     cursor: pointer;
     z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    outline: none;
+}
+
+.navButton:focus {
+    outline: none;
 }
 
 /* Mobile: larger tap target */
