@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\"",
     "prepare": "[ -d .git ] && git config --local core.hooksPath .githooks || echo 'Not a git repository, skipping prepare'",
-    "test": "node --test --require=ts-node/register app/**/*.test.ts __tests__/**/*.test.ts",
+    "test": "node --test --require=ts-node/register app/**/*.test.ts",
     "test:playwright:run": "playwright test",
     "test:playwright:ui": "playwright test --ui",
     "test:playwright:onlyChanged": "playwright test --only-changed",

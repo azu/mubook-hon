@@ -11,11 +11,13 @@ export type NotionSetting = { apiKey: string; bookListDatabaseId: string; bookMe
 
 const USER_DEFINED_NOTION_BASE_URL =
     typeof localStorage !== "undefined" && localStorage.getItem("mubook-hon-NOTION_API_BASE_URL");
+// Cloudflare Workers経由でNotion APIにアクセス
+// 本番: 同一オリジン（/notion/v1/...）、開発: localhost:8787/notion
 const NOTION_API_BASE_URL = USER_DEFINED_NOTION_BASE_URL
     ? USER_DEFINED_NOTION_BASE_URL
     : process.env.NODE_ENV === "production"
-      ? "https://mubook-hon.vercel.app/api/notion-proxy"
-      : "http://localhost:3000/api/notion-proxy";
+      ? "/notion"
+      : "http://localhost:8787/notion";
 
 export const useNotionSetting = () => {
     const { value: notionSetting, set: setNotionSettings } =

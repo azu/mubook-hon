@@ -1,0 +1,13 @@
+name = "mubook-hon"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+# Next.jsのStatic Export出力を静的アセットとして提供
+[assets]
+directory = "../../out"
+
+# /v1/* へのリクエストはワーカーで処理（Notion APIプロキシ）
+# それ以外は静的アセットを返す
+
+[env.preview]
+name = "mubook-hon-preview"
