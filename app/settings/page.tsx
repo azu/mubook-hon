@@ -5,6 +5,7 @@ import { useDropbox } from "../dropbox/useDropbox";
 import { useMemo, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useUserSettings } from "./useUserSettings";
+import { TapZoneSettings } from "./TapZoneSettings";
 
 const emptySubscribe = () => () => {};
 const useReady = () => {
@@ -129,6 +130,10 @@ export default function Page() {
                             }}
                         />
                     </div>
+                </div>
+                <div>
+                    <h2>Viewer</h2>
+                    <TapZoneSettings />
                 </div>
                 <div>
                     <h2>Tools</h2>

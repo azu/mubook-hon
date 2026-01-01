@@ -9,6 +9,7 @@ import {
     useNotion
 } from "../../notion/useNotion";
 import { useNotionFileUpload } from "../../notion/useNotionFileUpload";
+import { useUserSettings, TapAction, TAP_PRESET_DEFAULT } from "../../settings/useUserSettings";
 import { useToast } from "../useToast";
 import { Loading } from "../../components/Loading";
 import { joinMemoStock } from "../../utils/joinMemoStock";
@@ -226,6 +227,15 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         fileId: props.id,
         fileName: props.bookFileName
     });
+
+    // Tap zone settings
+    const { userSettings } = useUserSettings();
+    const tapZones = userSettings?.tapZones?.zones ?? TAP_PRESET_DEFAULT;
+    // Ref to access tapZones in event handlers without adding to useEffect dependencies
+    const tapZonesRef = useRef(tapZones);
+    useEffect(() => {
+        tapZonesRef.current = tapZones;
+    }, [tapZones]);
 
     // Ref to access current book without adding to useEffect dependencies (avoids update loop)
     const currentBookRef = useRef(currentBook);
@@ -446,32 +456,49 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                             return;
                         }
 
-                        // Calculate tap position relative to viewport
+                        // Calculate tap position relative to the main window
+                        // Use screenX/screenY for reliable cross-iframe coordinate calculation
+                        const windowScreenX = window.top?.screenX ?? window.screenX ?? 0;
+                        const windowScreenY = window.top?.screenY ?? window.screenY ?? 0;
                         const viewportWidth = window.top?.innerWidth ?? window.innerWidth;
-                        const navTapWidth = Math.max(60, Math.min(150, viewportWidth * 0.2));
+                        const viewportHeight = window.top?.innerHeight ?? window.innerHeight;
 
-                        // For column-based layouts (pagination), clientX is relative to the full document
-                        // We need to subtract the scroll position to get the position within the visible viewport
-                        const scrollX = detail.doc.documentElement.scrollLeft || detail.doc.body.scrollLeft || 0;
-                        const xInViewport = e.clientX - scrollX;
+                        // Get position relative to the main window
+                        const xInWindow = e.screenX - windowScreenX;
+                        const yInWindow = e.screenY - windowScreenY;
 
-                        console.debug("[FoliateReader] tap position", {
-                            xInViewport,
-                            navTapWidth,
+                        // Determine which zone (3x3 grid) was tapped
+                        const col = xInWindow < viewportWidth / 3 ? 0 : xInWindow < (viewportWidth * 2) / 3 ? 1 : 2;
+                        const row = yInWindow < viewportHeight / 3 ? 0 : yInWindow < (viewportHeight * 2) / 3 ? 1 : 2;
+                        const action = tapZonesRef.current[row][col];
+
+                        console.debug("[FoliateReader] tap zone", {
+                            xInWindow,
+                            yInWindow,
                             viewportWidth,
-                            scrollX,
-                            clientX: e.clientX,
-                            screenX: e.screenX
+                            viewportHeight,
+                            row,
+                            col,
+                            action
                         });
 
-                        if (xInViewport < navTapWidth) {
-                            console.debug("[FoliateReader] -> goLeft (tap)");
-                            navigate(view, "left");
-                        } else if (xInViewport > viewportWidth - navTapWidth) {
-                            console.debug("[FoliateReader] -> goRight (tap)");
-                            navigate(view, "right");
-                        } else {
-                            console.debug("[FoliateReader] -> center tap (no action)");
+                        // Execute the action
+                        switch (action) {
+                            case "next":
+                                navigate(view, "right");
+                                break;
+                            case "prev":
+                                navigate(view, "left");
+                                break;
+                            case "menu":
+                                setMenuState((prev) => (prev === "open" ? "closed" : "open"));
+                                break;
+                            case "close":
+                                window.location.href = "/";
+                                break;
+                            case "none":
+                                // Do nothing
+                                break;
                         }
                     });
 
@@ -901,14 +928,6 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         }
     }, [bookInfo?.lastRead, currentBook]);
 
-    const onClickPrev = useCallback(() => {
-        viewRef.current?.goLeft();
-    }, []);
-
-    const onClickNext = useCallback(() => {
-        viewRef.current?.goRight();
-    }, []);
-
     const onClickTOCItem = useCallback((href: string) => {
         viewRef.current?.goTo(href);
         setShowTOC(false);
@@ -1053,15 +1072,6 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 >
                     <Loading>Loading Viewer...</Loading>
                 </div>
-            )}
-            {/* Menu trigger area - tap to open menu */}
-            {viewerState.status === "ready" && menuState === "closed" && (
-                <button
-                    className={styles.menuTrigger}
-                    onClick={toggleMenu}
-                    title="Tap to open menu"
-                    aria-label="Open menu"
-                />
             )}
             {/* Top menu bar */}
             <div
