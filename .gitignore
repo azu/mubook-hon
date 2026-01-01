@@ -40,6 +40,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare
+.wrangler
+
 # typescript
 *.tsbuildinfo
 .playwright-mcp/

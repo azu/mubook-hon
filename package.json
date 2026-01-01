@@ -10,11 +10,12 @@
     "viewer"
   ],
   "scripts": {
-    "dev": "pnpm run --parallel dev:next dev:worker",
+    "dev": "pnpm run /^dev:/",
     "dev:next": "next dev",
-    "dev:worker": "pnpm --filter mubook-notion-proxy run dev",
+    "dev:worker": "wrangler dev",
     "typecheck": "tsc -p .",
     "build": "next build",
+    "deploy": "wrangler deploy",
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\"",
@@ -49,6 +50,7 @@
     "swr": "^2.3.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
     "@playwright/test": "^1.57.0",
     "@types/node": "^20.11.16",
     "@types/react": "^19.0.0",
@@ -59,7 +61,8 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.0.0"
   },
   "msw": {
     "workerDirectory": "public"
