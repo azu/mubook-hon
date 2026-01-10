@@ -152,12 +152,13 @@ const getPublisherString = (publisher: BookMetadata["publisher"]): string => {
     return getStringFromLanguageMap(publisher.name);
 };
 
-// Navigation helper
-const navigate = async (view: FoliateView, direction: "left" | "right") => {
-    if (direction === "left") {
-        await view.goLeft();
+// Navigation helper - uses next/prev for consistent page number progression
+// regardless of book reading direction (LTR/RTL)
+const navigate = async (view: FoliateView, direction: "next" | "prev") => {
+    if (direction === "next") {
+        await view.next();
     } else {
-        await view.goRight();
+        await view.prev();
     }
 };
 
@@ -604,10 +605,10 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         // Execute the action
                         switch (action) {
                             case "next":
-                                navigate(view, "right");
+                                navigate(view, "next");
                                 break;
                             case "prev":
-                                navigate(view, "left");
+                                navigate(view, "prev");
                                 break;
                             case "menu":
                                 setMenuState((prev) => (prev === "open" ? "closed" : "open"));
@@ -921,9 +922,11 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 // Save memo
                 onClickMemo();
             } else if (event.key === "j" || event.key === "ArrowRight") {
-                navigate(view, "right");
+                // Next page (increase page number)
+                navigate(view, "next");
             } else if (event.key === "k" || event.key === "ArrowLeft") {
-                navigate(view, "left");
+                // Previous page (decrease page number)
+                navigate(view, "prev");
             }
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
