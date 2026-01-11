@@ -348,6 +348,11 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [memoStock, setMemoStock] = useState<MemoStockItem[]>([]);
     const [canMemoContent, setCanMemoContent] = useState(false);
     const [isAddingMemo, setIsAddingMemo] = useState(false);
+    // Web Share API support
+    const [canShare, setCanShare] = useState(false);
+    useEffect(() => {
+        setCanShare(typeof navigator !== "undefined" && !!navigator.share);
+    }, []);
     const [showTOC, setShowTOC] = useState(false);
     const [toc, setToc] = useState<TOCItem[]>([]);
     // Position indicator visibility (for temporary display on page turn)
@@ -1004,6 +1009,26 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         setMemoStock((prev) => addToMemoStock(prev, selected));
     }, [getSelectedText, getCurrentPageText]);
 
+    const onClickShare = useCallback(async () => {
+        const selected = getSelectedText();
+        if (!selected?.text) {
+            return;
+        }
+        if (!navigator.share) {
+            return;
+        }
+        try {
+            await navigator.share({
+                text: selected.text
+            });
+        } catch (e) {
+            // User cancelled or share failed - ignore
+            if (e instanceof Error && e.name !== "AbortError") {
+                console.error("Share failed:", e);
+            }
+        }
+    }, [getSelectedText]);
+
     const onClickMemo = useCallback(async () => {
         const view = viewRef.current;
         if (!view?.lastLocation) return;
@@ -1265,8 +1290,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 </div>
             )}
 
-            {/* Memo buttons */}
-            {hasCompletedNotionSettings && viewerState.status === "ready" && menuState === "closed" && (
+            {/* Memo and Share buttons */}
+            {(hasCompletedNotionSettings || canShare) && viewerState.status === "ready" && menuState === "closed" && (
                 <div
                     style={{
                         position: "fixed",
@@ -1284,30 +1309,51 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         zIndex: 1000
                     }}
                 >
-                    <button
-                        className={`Button small violet ${styles.memoButton}`}
-                        disabled={!canMemoContent || isAddingMemo}
-                        title="Stock Memo"
-                        style={{
-                            pointerEvents: "auto",
-                            marginLeft: "env(safe-area-inset-left, 0)"
-                        }}
-                        onClick={onClickStockMemo}
-                    >
-                        📁+{memoStock.length}
-                    </button>
-                    <button
-                        className={`Button small violet ${styles.memoButton}`}
-                        disabled={!enableMemoButton}
-                        title="Add Memo"
-                        style={{
-                            pointerEvents: "auto",
-                            marginRight: "env(safe-area-inset-right, 0)"
-                        }}
-                        onClick={onClickMemo}
-                    >
-                        Memo
-                    </button>
+                    {hasCompletedNotionSettings ? (
+                        <button
+                            className={`Button small violet ${styles.memoButton}`}
+                            disabled={!canMemoContent || isAddingMemo}
+                            title="Stock Memo"
+                            style={{
+                                pointerEvents: "auto",
+                                marginLeft: "env(safe-area-inset-left, 0)"
+                            }}
+                            onClick={onClickStockMemo}
+                        >
+                            📁+{memoStock.length}
+                        </button>
+                    ) : (
+                        <div />
+                    )}
+                    {canShare && (
+                        <button
+                            className={`Button small violet ${styles.memoButton}`}
+                            disabled={!canMemoContent}
+                            title="Share selected text"
+                            style={{
+                                pointerEvents: "auto"
+                            }}
+                            onClick={onClickShare}
+                        >
+                            Share
+                        </button>
+                    )}
+                    {hasCompletedNotionSettings ? (
+                        <button
+                            className={`Button small violet ${styles.memoButton}`}
+                            disabled={!enableMemoButton}
+                            title="Add Memo"
+                            style={{
+                                pointerEvents: "auto",
+                                marginRight: "env(safe-area-inset-right, 0)"
+                            }}
+                            onClick={onClickMemo}
+                        >
+                            Memo
+                        </button>
+                    ) : (
+                        <div />
+                    )}
                 </div>
             )}
 

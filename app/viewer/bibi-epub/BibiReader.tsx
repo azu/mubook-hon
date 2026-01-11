@@ -458,6 +458,11 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
 
     // has selected text or page content
     const [canMemoContent, setCanMemoContent] = useState(false);
+    // Web Share API support
+    const [canShare, setCanShare] = useState(false);
+    useEffect(() => {
+        setCanShare(typeof navigator !== "undefined" && !!navigator.share);
+    }, []);
     const viewerControllerOnKeydownRef = useRef<(() => void) | undefined>(undefined);
     const viewerControllerOnChangePageRef = useRef<(() => void) | undefined>(undefined);
     const viewerControllerOnChangeMenuRef = useRef<(() => void) | undefined>(undefined);
@@ -611,6 +616,26 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         }
     }, []);
 
+    const onClickShare = useCallback(async () => {
+        if (!bibiFrame.current) return;
+        if (!navigator.share) return;
+        const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
+        const selected = await contentWindow.viewerController.getSelectedText();
+        if (!selected?.text) {
+            return;
+        }
+        try {
+            await navigator.share({
+                text: selected.text
+            });
+        } catch (e) {
+            // User cancelled or share failed - ignore
+            if (e instanceof Error && e.name !== "AbortError") {
+                console.error("Share failed:", e);
+            }
+        }
+    }, []);
+
     const onClickMemo = useCallback(async () => {
         if (bibiFrame.current) {
             const contentWindow = bibiFrame.current.contentWindow as ContentWindow;
@@ -735,6 +760,24 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 onClick={onClickStockMemo}
             >
                 📁+{memoStock.length}
+            </button>
+            <button
+                className={`Button small violet ${styles.memoButton}`}
+                hidden={!canShare || menuState === "open"}
+                disabled={!canMemoContent}
+                title={"Share selected text"}
+                style={{
+                    position: "fixed",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    bottom: "env(safe-area-inset-bottom, 0)",
+                    zIndex: 1000,
+                    padding: "1rem",
+                    fontSize: "1rem"
+                }}
+                onClick={onClickShare}
+            >
+                Share
             </button>
             <button
                 className={`Button small violet ${styles.memoButton}`}
