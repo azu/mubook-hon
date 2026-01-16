@@ -172,14 +172,17 @@ const getCSS = (options: { spacing: number; justify: boolean; hyphenate: boolean
         color-scheme: light only;
         background: white;
         color: black;
-        font-size: ${BASE_FONT_SIZE_PX * (options.fontSize / 100)}px !important;
+        /* Define normalized font size as CSS variable for consistent sizing across all chapters */
+        --normalized-font-size: ${BASE_FONT_SIZE_PX * (options.fontSize / 100)}px;
+        font-size: var(--normalized-font-size) !important;
     }
     body {
-        font-size: 1rem !important;
+        font-size: var(--normalized-font-size) !important;
     }
-    /* Force text elements to inherit font-size from html/body (excludes headings) */
+    /* Force text elements to use normalized font-size directly (not inherit from parent) */
+    /* This ensures consistent sizing even when parent elements have different font-sizes */
     p, span, div, li, blockquote, dd, a, em, strong, b, i {
-        font-size: inherit !important;
+        font-size: var(--normalized-font-size) !important;
     }
     p, li, blockquote, dd {
         line-height: ${options.spacing};
