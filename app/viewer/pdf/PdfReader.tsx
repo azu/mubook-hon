@@ -10,6 +10,7 @@ import "@react-pdf-viewer/full-screen/lib/styles/index.css";
 import { BookItem, decodeBookMarker, hasDataBook, isPdfJsPositionMarker, useNotion } from "../../notion/useNotion";
 import { useHotkeys } from "react-hotkeys-hook";
 import { http } from "msw";
+import { saveLastRead } from "../../lib/usePWAFreshLaunch";
 // Import styles
 
 import type { SetupWorker } from "msw/browser";
@@ -134,23 +135,27 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
 
             return worker;
         };
-        const workerPromise = initWorker().then((worker: SetupWorker) => {
-            return worker.start({
-                onUnhandledRequest: "bypass",
-                waitUntilReady: true
-            }).then(() => {
-                setIsReady(true);
-                console.debug("Service Worker is Ready!");
-                return worker;
+        const workerPromise = initWorker()
+            .then((worker: SetupWorker) => {
+                return worker
+                    .start({
+                        onUnhandledRequest: "bypass",
+                        waitUntilReady: true
+                    })
+                    .then(() => {
+                        setIsReady(true);
+                        console.debug("Service Worker is Ready!");
+                        return worker;
+                    });
+            })
+            .catch((error: Error) => {
+                console.error(error);
+                return null;
             });
-        }).catch((error: Error) => {
-            console.error(error);
-            return null;
-        });
 
         return () => {
             console.debug("Service Worker is stopping");
-            void workerPromise.then(worker => worker?.stop());
+            void workerPromise.then((worker) => worker?.stop());
         };
     }, [bookId, props.src]);
     const [runtimeBookInfo, setRuntimeBookInfo] = React.useState<
@@ -164,11 +169,12 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
         async (event: DocumentLoadEvent) => {
             const metadata = await event.doc.getMetadata();
             const totalPage = event.doc.numPages;
+            const title = metadata.info.Title || props.bookFileName.replace(/\.pdf$/, "");
             const runtimeBookInfo = {
                 viewer: "pdf:pdfjs",
                 fileId: props.id,
                 fileName: props.bookFileName,
-                title: metadata.info.Title || props.bookFileName.replace(/\.pdf$/, ""),
+                title,
                 authors:
                     metadata.info?.Author?.split(/[,、]/)
                         .map((author) => author.trim())
@@ -177,6 +183,14 @@ export const PdfReader: FC<PdfReaderProps> = (props) => {
             } as const;
             setRuntimeBookInfo(runtimeBookInfo);
             setCurrentDoc(event.doc);
+
+            // 最後に読んだ書籍として保存（PWA自動遷移用）
+            saveLastRead({
+                fileId: props.id,
+                fileName: props.bookFileName,
+                title,
+                viewer: "pdf:pdfjs"
+            });
         },
         [props.bookFileName, props.id]
     );

@@ -1,8 +1,23 @@
 import useSWR from "swr";
 import { useMemo } from "react";
 import { Client } from "@notionhq/client";
-import { decodeBookMarker, prop, supportedViewerType, useNotionSetting } from "./useNotion";
+import { BookItem, decodeBookMarker, prop, supportedViewerType, useNotionSetting } from "./useNotion";
 import { DatabaseObjectResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
+
+export type RecentBookItem = {
+    viewer: BookItem["viewer"];
+    pageId: string;
+    pageUrl: string;
+    fileId: string;
+    fileName: string;
+    title: string;
+    authors: string[];
+    publisher: string | undefined;
+    lastMarker: unknown;
+    currentPage: number;
+    totalPage: number;
+    lastEditedTime: string;
+};
 
 const USER_DEFINED_NOTION_BASE_URL =
     typeof localStorage !== "undefined" && localStorage.getItem("mubook-hon-NOTION_API_BASE_URL");
@@ -69,7 +84,7 @@ export const useNotionList = () => {
             });
             const results = response.results as PageObjectResponse[];
             console.debug("⭐ Fetch recent books 📚", results);
-            const bookItems = results.map((result) => {
+            const bookItems: RecentBookItem[] = results.map((result) => {
                 const viewerType = prop(result.properties.Viewer, "select").select?.name;
                 if (!supportedViewerType(viewerType)) {
                     throw new Error("not supported viewer type:" + viewerType);
@@ -87,7 +102,8 @@ export const useNotionList = () => {
                         prop(result.properties.LastMarker, "rich_text").rich_text[0].plain_text
                     ),
                     currentPage: prop(result.properties.CurrentPage, "number").number ?? 0,
-                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0
+                    totalPage: prop(result.properties.TotalPage, "number").number ?? 0,
+                    lastEditedTime: result.last_edited_time
                 };
             });
             return bookItems;

@@ -1,5 +1,5 @@
 "use client";
-import { FC, Suspense, useCallback, useState, useSyncExternalStore } from "react";
+import { FC, Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
@@ -7,6 +7,7 @@ import { useNotionList } from "./notion/useNotionList";
 import { Loading } from "./components/Loading";
 import { useUserSettings } from "./settings/useUserSettings";
 import { useDropboxAPI } from "./dropbox/useDropboxAPI";
+import { usePWAFreshLaunch, useLastRead } from "./lib/usePWAFreshLaunch";
 
 const emptySubscribe = () => () => {};
 const useReady = () => {
@@ -26,6 +27,9 @@ const useSearch = (initialSearch: string) => {
         onInputSearch
     };
 };
+// 24時間をミリ秒で表現
+const RESUME_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
 const HomeContent: FC = () => {
     const ready = useReady();
     const { userSettings } = useUserSettings();
@@ -41,6 +45,40 @@ const HomeContent: FC = () => {
         filterQuery: searchInput,
         path: currentPath ?? ""
     });
+
+    // PWA新規起動判定
+    const isFreshLaunch = usePWAFreshLaunch();
+    const lastRead = useLastRead();
+    const [isAutoNavigating, setIsAutoNavigating] = useState(false);
+
+    // PWA起動時の自動遷移
+    useEffect(() => {
+        if (!isFreshLaunch || !lastRead) {
+            return;
+        }
+
+        // 24時間以内かチェック
+        const now = Date.now();
+        const isWithin24Hours = now - lastRead.timestamp < RESUME_THRESHOLD_MS;
+
+        if (!isWithin24Hours) {
+            return;
+        }
+
+        // 自動遷移を実行
+        setIsAutoNavigating(true);
+        const targetUrl = `/viewer?id=${encodeURIComponent(lastRead.fileId)}&viewer=${encodeURIComponent(lastRead.viewer)}`;
+        window.location.href = targetUrl;
+    }, [isFreshLaunch, lastRead]);
+
+    // 自動遷移中はローディング表示
+    if (isAutoNavigating && lastRead) {
+        return (
+            <div className={"main"}>
+                <Loading>Resuming: {lastRead.title || lastRead.fileName}...</Loading>
+            </div>
+        );
+    }
 
     return (
         <div className={"main"}>
