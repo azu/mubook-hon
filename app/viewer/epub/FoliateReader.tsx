@@ -228,6 +228,8 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [fontSize, setFontSize] = useState(100); // percentage
     const viewRef = useRef<FoliateView | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    // Store current styles for reapplication on section load
+    const currentStylesRef = useRef<string | null>(null);
     const isInitialized = useRef(false);
     // Prevent duplicate book creation when multiple relocate events fire before first creation completes
     const isBookCreatingRef = useRef(false);
@@ -472,6 +474,11 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         docTitle: detail.doc?.title
                     });
 
+                    // Reapply styles to ensure consistent font sizing across all sections
+                    if (currentStylesRef.current && viewRef.current?.renderer?.setStyles) {
+                        viewRef.current.renderer.setStyles(currentStylesRef.current);
+                    }
+
                     // Add keyboard event listener to the loaded document
                     detail.doc.addEventListener("keydown", handleKeydown);
 
@@ -688,14 +695,14 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 }
 
                 // Set styles (fontSize: 100 = 16px base)
-                view.renderer.setStyles?.(
-                    getCSS({
-                        spacing: 1.4,
-                        justify: true,
-                        hyphenate: true,
-                        fontSize: 100
-                    })
-                );
+                const initialCSS = getCSS({
+                    spacing: 1.4,
+                    justify: true,
+                    hyphenate: true,
+                    fontSize: 100
+                });
+                currentStylesRef.current = initialCSS;
+                view.renderer.setStyles?.(initialCSS);
 
                 // Set TOC
                 if (view.book?.toc) {
@@ -1088,14 +1095,14 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const applyFontSize = useCallback((size: number) => {
         const view = viewRef.current;
         if (!view?.renderer?.setStyles) return;
-        view.renderer.setStyles(
-            getCSS({
-                spacing: 1.4,
-                justify: true,
-                hyphenate: true,
-                fontSize: size
-            })
-        );
+        const css = getCSS({
+            spacing: 1.4,
+            justify: true,
+            hyphenate: true,
+            fontSize: size
+        });
+        currentStylesRef.current = css;
+        view.renderer.setStyles(css);
     }, []);
 
     const increaseFontSize = useCallback(() => {
