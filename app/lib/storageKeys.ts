@@ -91,3 +91,66 @@ export const SESSION_KEYS = {
 export type SessionSchema = {
     [SESSION_KEYS.PWA_SESSION_ACTIVE]: "true";
 };
+
+// ========================================
+// 型安全なストレージラッパー
+// ========================================
+
+type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
+type SessionKey = (typeof SESSION_KEYS)[keyof typeof SESSION_KEYS];
+
+/**
+ * 型安全なlocalStorageラッパー
+ */
+export const typedStorage = {
+    get<K extends StorageKey>(key: K): StorageSchema[K] | null {
+        if (typeof window === "undefined") return null;
+        const data = localStorage.getItem(key);
+        if (!data) return null;
+        try {
+            return JSON.parse(data) as StorageSchema[K];
+        } catch {
+            return null;
+        }
+    },
+    set<K extends StorageKey>(key: K, value: StorageSchema[K]): void {
+        if (typeof window === "undefined") return;
+        localStorage.setItem(key, JSON.stringify(value));
+    },
+    delete<K extends StorageKey>(key: K): void {
+        if (typeof window === "undefined") return;
+        localStorage.removeItem(key);
+    },
+    clear(): void {
+        if (typeof window === "undefined") return;
+        // アプリ用のキーのみ削除
+        Object.values(STORAGE_KEYS).forEach((key) => {
+            localStorage.removeItem(key);
+        });
+    }
+};
+
+/**
+ * 型安全なsessionStorageラッパー
+ */
+export const typedSessionStorage = {
+    get<K extends SessionKey>(key: K): SessionSchema[K] | null {
+        if (typeof window === "undefined") return null;
+        return sessionStorage.getItem(key) as SessionSchema[K] | null;
+    },
+    set<K extends SessionKey>(key: K, value: SessionSchema[K]): void {
+        if (typeof window === "undefined") return;
+        sessionStorage.setItem(key, value);
+    },
+    delete<K extends SessionKey>(key: K): void {
+        if (typeof window === "undefined") return;
+        sessionStorage.removeItem(key);
+    },
+    clear(): void {
+        if (typeof window === "undefined") return;
+        // アプリ用のキーのみ削除
+        Object.values(SESSION_KEYS).forEach((key) => {
+            sessionStorage.removeItem(key);
+        });
+    }
+};
