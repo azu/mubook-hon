@@ -16,6 +16,7 @@ import { joinMemoStock } from "../../utils/joinMemoStock";
 import { addToMemoStock, MemoStockItem } from "../../utils/addToMemoStock";
 import { clearIndexedDBCache } from "../../lib/clearIndexedDBCache";
 import { extractFullText } from "./extractFullText";
+import { isPWAStandaloneMode } from "../../lib/pwa";
 import styles from "./FoliateReader.module.css";
 
 export type FoliateReaderProps = {
@@ -218,18 +219,6 @@ type ViewerState =
 // Height of memo button area (to prevent content from rendering under buttons)
 const MEMO_BUTTON_AREA_HEIGHT = 20;
 const MEMO_BUTTON_AREA_HEIGHT_PWA = 60;
-
-/**
- * Check if the app is running in PWA standalone mode
- */
-function isPWAStandaloneMode(): boolean {
-    if (typeof window === "undefined") return false;
-    return (
-        ("standalone" in navigator && (navigator as Navigator & { standalone: boolean }).standalone) ||
-        window.matchMedia("(display-mode: standalone)").matches ||
-        window.matchMedia("(display-mode: fullscreen)").matches
-    );
-}
 
 export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [viewerState, setViewerState] = useState<ViewerState>({ status: "waiting-src" });

@@ -1,12 +1,13 @@
 "use client";
-import { FC, Suspense, useCallback, useState, useSyncExternalStore } from "react";
+import { FC, Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useDropbox } from "./dropbox/useDropbox";
 import { useSearchParams } from "next/navigation";
-import { useNotionList } from "./notion/useNotionList";
+import { useNotionList, useLastReadBook } from "./notion/useNotionList";
 import { Loading } from "./components/Loading";
 import { useUserSettings } from "./settings/useUserSettings";
 import { useDropboxAPI } from "./dropbox/useDropboxAPI";
+import { usePWAFreshLaunch } from "./lib/usePWAFreshLaunch";
 
 const emptySubscribe = () => () => {};
 const useReady = () => {
@@ -26,11 +27,17 @@ const useSearch = (initialSearch: string) => {
         onInputSearch
     };
 };
+// 24 hours in milliseconds
+const FRESH_READ_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
 const HomeContent: FC = () => {
     const ready = useReady();
     const { userSettings } = useUserSettings();
     const searchParams = useSearchParams();
     const { recentBooks, isLoadingRecentBooks } = useNotionList();
+    const { lastReadBook, isLoadingLastReadBook } = useLastReadBook();
+    const isFreshPWALaunch = usePWAFreshLaunch();
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const path = searchParams?.get("code");
     const { dropboxClient, accessTokenStatus, AuthUrl } = useDropbox({
         code: path ?? undefined
@@ -41,6 +48,39 @@ const HomeContent: FC = () => {
         filterQuery: searchInput,
         path: currentPath ?? ""
     });
+
+    // PWA fresh launch auto-redirect to last read book
+    useEffect(() => {
+        // Skip if not a fresh PWA launch
+        if (!isFreshPWALaunch) return;
+        // Skip if still loading
+        if (isLoadingLastReadBook) return;
+        // Skip if no last read book
+        if (!lastReadBook) return;
+        // Skip if already redirecting
+        if (isRedirecting) return;
+
+        // Check if last read was within 24 hours
+        const lastEditedTime = new Date(lastReadBook.lastEditedTime).getTime();
+        const now = Date.now();
+        const isWithin24Hours = now - lastEditedTime < FRESH_READ_THRESHOLD_MS;
+
+        if (isWithin24Hours) {
+            console.debug("[PWA] Fresh launch detected, redirecting to last read book:", lastReadBook.fileName);
+            setIsRedirecting(true);
+            // Use window.location.href to ensure full page load (not SPA navigation)
+            window.location.href = `/viewer?id=${encodeURIComponent(lastReadBook.fileId)}&viewer=${encodeURIComponent(lastReadBook.viewer)}`;
+        }
+    }, [isFreshPWALaunch, isLoadingLastReadBook, lastReadBook, isRedirecting]);
+
+    // Show loading while redirecting to last read book
+    if (isRedirecting) {
+        return (
+            <div className={"main"}>
+                <Loading>Resuming last book...</Loading>
+            </div>
+        );
+    }
 
     return (
         <div className={"main"}>
