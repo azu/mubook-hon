@@ -84,12 +84,26 @@ export type SessionSchema = {
 // 型安全なストレージラッパー
 // ========================================
 
+const isBrowser = typeof window !== "undefined";
+
+/** localStorageの全キー */
+const STORAGE_KEYS: (keyof StorageSchema)[] = [
+    "mubook-hon-dropbox-tokens",
+    "mubook-hon-notion",
+    "mubook-hon-NOTION_API_BASE_URL",
+    "mubook-hon-user-settings",
+    "mubook-hon-last-read"
+];
+
+/** sessionStorageの全キー */
+const SESSION_KEYS: (keyof SessionSchema)[] = ["mubook-hon-pwa-session-active"];
+
 /**
  * 型安全なlocalStorageラッパー
  */
 export const typedStorage = {
     get<K extends keyof StorageSchema>(key: K): StorageSchema[K] | null {
-        if (typeof window === "undefined") return null;
+        if (!isBrowser) return null;
         const data = localStorage.getItem(key);
         if (!data) return null;
         try {
@@ -99,23 +113,16 @@ export const typedStorage = {
         }
     },
     set<K extends keyof StorageSchema>(key: K, value: StorageSchema[K]): void {
-        if (typeof window === "undefined") return;
+        if (!isBrowser) return;
         localStorage.setItem(key, JSON.stringify(value));
     },
     delete<K extends keyof StorageSchema>(key: K): void {
-        if (typeof window === "undefined") return;
+        if (!isBrowser) return;
         localStorage.removeItem(key);
     },
     clear(): void {
-        if (typeof window === "undefined") return;
-        const keys: (keyof StorageSchema)[] = [
-            "mubook-hon-dropbox-tokens",
-            "mubook-hon-notion",
-            "mubook-hon-NOTION_API_BASE_URL",
-            "mubook-hon-user-settings",
-            "mubook-hon-last-read"
-        ];
-        keys.forEach((key) => localStorage.removeItem(key));
+        if (!isBrowser) return;
+        STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
     }
 };
 
@@ -124,20 +131,19 @@ export const typedStorage = {
  */
 export const typedSessionStorage = {
     get<K extends keyof SessionSchema>(key: K): SessionSchema[K] | null {
-        if (typeof window === "undefined") return null;
+        if (!isBrowser) return null;
         return sessionStorage.getItem(key) as SessionSchema[K] | null;
     },
     set<K extends keyof SessionSchema>(key: K, value: SessionSchema[K]): void {
-        if (typeof window === "undefined") return;
+        if (!isBrowser) return;
         sessionStorage.setItem(key, value);
     },
     delete<K extends keyof SessionSchema>(key: K): void {
-        if (typeof window === "undefined") return;
+        if (!isBrowser) return;
         sessionStorage.removeItem(key);
     },
     clear(): void {
-        if (typeof window === "undefined") return;
-        const keys: (keyof SessionSchema)[] = ["mubook-hon-pwa-session-active"];
-        keys.forEach((key) => sessionStorage.removeItem(key));
+        if (!isBrowser) return;
+        SESSION_KEYS.forEach((key) => sessionStorage.removeItem(key));
     }
 };
