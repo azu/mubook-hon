@@ -208,7 +208,50 @@ const getCSS = (options: { spacing: number; justify: boolean; hyphenate: boolean
     aside[epub|type~="rearnote"] {
         display: none;
     }
+    /* Heading sizes relative to base font */
+    h1 { font-size: 1.5em !important; }
+    h2 { font-size: 1.3em !important; }
+    h3 { font-size: 1.15em !important; }
+    h4 { font-size: 1.05em !important; }
+    h5, h6 { font-size: 1em !important; }
 `;
+
+// Remove font-size declarations from book's original CSS
+const removeFontSizeFromDocument = (doc: Document) => {
+    // Remove font-size from inline style attributes
+    for (const el of doc.querySelectorAll("[style]")) {
+        const htmlEl = el as HTMLElement;
+        if (htmlEl.style.fontSize) {
+            htmlEl.style.removeProperty("font-size");
+        }
+    }
+
+    // Remove font-size from <style> tags
+    for (const styleTag of doc.querySelectorAll("style")) {
+        if (styleTag.textContent) {
+            styleTag.textContent = styleTag.textContent.replace(/font-size\s*:[^;]+;?/gi, "");
+        }
+    }
+
+    // Remove font-size from CSSStyleSheet API (for embedded styles)
+    try {
+        for (const sheet of doc.styleSheets) {
+            try {
+                if (!sheet.cssRules) continue;
+                for (let i = 0; i < sheet.cssRules.length; i++) {
+                    const rule = sheet.cssRules[i] as CSSStyleRule;
+                    if (rule.style?.fontSize) {
+                        rule.style.removeProperty("font-size");
+                    }
+                }
+            } catch {
+                // External stylesheets may throw SecurityError, skip them
+            }
+        }
+    } catch {
+        // Ignore errors accessing styleSheets
+    }
+};
 
 // Discriminated union for viewer state
 type ViewerState =
@@ -471,6 +514,9 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                         index: detail.index,
                         docTitle: detail.doc?.title
                     });
+
+                    // Remove book's original font-size declarations before applying our styles
+                    removeFontSizeFromDocument(detail.doc);
 
                     // Apply styles after fonts are ready
                     // At this point, paginator's internal view is properly set
