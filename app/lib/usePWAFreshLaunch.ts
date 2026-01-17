@@ -1,17 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { isPWAStandaloneMode } from "./pwa";
+import { SESSION_KEYS, STORAGE_KEYS, LastReadInfo } from "./storageKeys";
 
-const SESSION_KEY = "mubook-hon-pwa-session-active";
-const LAST_READ_KEY = "mubook-hon-last-read";
-
-export type LastReadInfo = {
-    fileId: string;
-    fileName: string;
-    title: string;
-    viewer: string;
-    timestamp: number; // Unix timestamp in milliseconds
-};
+export type { LastReadInfo };
 
 /**
  * 最後に読んだ書籍の情報をlocalStorageに保存
@@ -22,7 +14,7 @@ export const saveLastRead = (info: Omit<LastReadInfo, "timestamp">): void => {
         ...info,
         timestamp: Date.now()
     };
-    localStorage.setItem(LAST_READ_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEYS.LAST_READ, JSON.stringify(data));
 };
 
 /**
@@ -30,7 +22,7 @@ export const saveLastRead = (info: Omit<LastReadInfo, "timestamp">): void => {
  */
 export const getLastRead = (): LastReadInfo | null => {
     if (typeof window === "undefined") return null;
-    const data = localStorage.getItem(LAST_READ_KEY);
+    const data = localStorage.getItem(STORAGE_KEYS.LAST_READ);
     if (!data) return null;
     try {
         return JSON.parse(data) as LastReadInfo;
@@ -59,12 +51,12 @@ export const usePWAFreshLaunch = (): boolean => {
         if (!isPWAStandaloneMode()) return;
 
         // セッションフラグを確認
-        const hasFlag = sessionStorage.getItem(SESSION_KEY);
+        const hasFlag = sessionStorage.getItem(SESSION_KEYS.PWA_SESSION_ACTIVE);
 
         if (!hasFlag) {
             // フラグがない = 新規起動
             setIsFreshLaunch(true);
-            sessionStorage.setItem(SESSION_KEY, "true");
+            sessionStorage.setItem(SESSION_KEYS.PWA_SESSION_ACTIVE, "true");
         }
         // フラグがある = アプリ内遷移（何もしない）
     }, []);
