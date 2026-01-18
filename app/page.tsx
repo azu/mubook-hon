@@ -64,6 +64,16 @@ const HomeContent: FC = () => {
 
     // PWA起動時の自動遷移
     useEffect(() => {
+        // 認証状態が確定するまで待つ
+        if (accessTokenStatus === "none") {
+            return;
+        }
+
+        // 認証が無効なら遷移しない（認証画面を表示する）
+        if (accessTokenStatus === "invalid") {
+            return;
+        }
+
         if (!isFreshLaunch || !lastRead) {
             return;
         }
@@ -80,7 +90,7 @@ const HomeContent: FC = () => {
         setIsAutoNavigating(true);
         const targetUrl = `/viewer?id=${encodeURIComponent(lastRead.fileId)}&viewer=${encodeURIComponent(lastRead.viewer)}`;
         window.location.href = targetUrl;
-    }, [isFreshLaunch, lastRead]);
+    }, [isFreshLaunch, lastRead, accessTokenStatus]);
 
     // 自動遷移中はローディング表示
     if (isAutoNavigating && lastRead) {
