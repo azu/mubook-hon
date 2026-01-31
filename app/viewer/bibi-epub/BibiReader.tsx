@@ -478,6 +478,9 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     try {
                         // First ensure content window is loaded
                         await waitContentWindowLoad(contentWindow);
+                        // Set book title
+                        const bookInfo = await contentWindow.viewerController.getBookInfo();
+                        setBookTitle(bookInfo.title || props.bookFileName);
                         // Then restore position if needed
                         if (!isInitialized.current) {
                             await tryToRestoreLastPositionAtFirst();

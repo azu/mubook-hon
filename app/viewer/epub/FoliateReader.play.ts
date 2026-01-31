@@ -52,6 +52,28 @@ test.describe("Foliate EPUBリーダー", () => {
         await expect(page.locator("foliate-view")).toBeAttached();
     });
 
+    test("EPUB書籍のタイトルがブラウザタブに表示される", async ({ page }) => {
+        // Notion APIをモック
+        await mockNotionDatabaseQuery({ page, pages: [] });
+
+        // テスト用のDropboxキャッシュを設定
+        await setupDropboxFileCache({
+            page,
+            files: {
+                "test-book.epub": epubBuffer.buffer as ArrayBuffer
+            }
+        });
+
+        await page.goto("/viewer?id=test-book.epub&viewer=epub:foliate");
+
+        // Loadingが消えるまで待機
+        await expect(page.getByRole("status", { name: "Loading" })).toBeHidden();
+
+        // ブラウザタブのタイトルが書籍タイトルになっていることを確認
+        // example.epubのタイトルは "Accessible EPUB 3"
+        await expect(page).toHaveTitle("Accessible EPUB 3");
+    });
+
     test("EPUB読み込みエラー", async ({ page }) => {
         // 存在しないファイルの場合、キャッシュは設定しない
         await page.goto("/viewer?id=nonexistent.epub&viewer=epub:foliate");
