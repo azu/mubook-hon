@@ -298,6 +298,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         initialPage: props.initialPage
     });
     const [menuState, setMenuState] = useState<"open" | "closed">("closed");
+    const [bookTitle, setBookTitle] = useState<string>();
     const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
         fileId: props.id,
         fileName: props.bookFileName
@@ -435,6 +436,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                 (async function registerBook() {
                     const contentWindow = current.contentWindow as ContentWindow;
                     const bookInfo = await contentWindow.viewerController.getBookInfo();
+                    setBookTitle(bookInfo.title || props.bookFileName);
                     const currentPage = await contentWindow.viewerController.getCurrentPage();
                     const totalPage = await contentWindow.viewerController.getTotalPage();
                     const lastMarker = await contentWindow.viewerController.getCurrentPositionMaker();
@@ -677,144 +679,147 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
         return <Loading>Loading Viewer...</Loading>;
     }
     return (
-        <div style={{ height: "100dvh" }} className={"full-page"}>
-            <div
-                hidden={menuState === "closed"}
-                style={{
-                    position: "fixed",
-                    top: 0,
-                    left: "calc(50vw - 50px)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "100px",
-                    margin: "auto"
-                }}
-            >
-                <button
-                    className="Button small violet"
+        <>
+            {bookTitle && <title>{bookTitle}</title>}
+            <div style={{ height: "100dvh" }} className={"full-page"}>
+                <div
+                    hidden={menuState === "closed"}
                     style={{
-                        height: "32px",
-                        margin: "6px 6px",
-                        background: isTranslation ? "#ddd" : "#fff",
-                        border: "1px solid #ddd"
+                        position: "fixed",
+                        top: 0,
+                        left: "calc(50vw - 50px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "100px",
+                        margin: "auto"
                     }}
-                    title={"Translate Page"}
-                    onClick={onClickTranslationButton}
                 >
-                    A
+                    <button
+                        className="Button small violet"
+                        style={{
+                            height: "32px",
+                            margin: "6px 6px",
+                            background: isTranslation ? "#ddd" : "#fff",
+                            border: "1px solid #ddd"
+                        }}
+                        title={"Translate Page"}
+                        onClick={onClickTranslationButton}
+                    >
+                        A
+                    </button>
+                    <button
+                        className="Button small violet"
+                        hidden={!hasCompletedNotionSettings}
+                        title={"Open Notion Page"}
+                        style={{
+                            height: "32px",
+                            margin: "6px 6px",
+                            background: "#fff",
+                            border: "1px solid #ddd"
+                        }}
+                        onClick={onClickOpenNotionPage}
+                    >
+                        N
+                    </button>
+                </div>
+                <button
+                    className={`Button small violet ${styles.memoButton}`}
+                    hidden={!hasCompletedNotionSettings || menuState === "open"}
+                    disabled={!canMemoContent || isAddingMemo}
+                    title={"Stock Memo"}
+                    style={{
+                        position: "fixed",
+                        left: "env(safe-area-inset-left, 0)",
+                        bottom: "env(safe-area-inset-bottom, 0)",
+                        zIndex: 1000,
+                        padding: "1rem",
+                        fontSize: "1rem"
+                    }}
+                    onClick={onClickStockMemo}
+                >
+                    📁+{memoStock.length}
                 </button>
                 <button
-                    className="Button small violet"
-                    hidden={!hasCompletedNotionSettings}
-                    title={"Open Notion Page"}
+                    className={`Button small violet ${styles.memoButton}`}
+                    hidden={!hasCompletedNotionSettings || menuState === "open"}
+                    disabled={!enableMemoButton}
+                    title={"Add Memo"}
                     style={{
-                        height: "32px",
-                        margin: "6px 6px",
-                        background: "#fff",
-                        border: "1px solid #ddd"
+                        position: "fixed",
+                        right: "env(safe-area-inset-right, 0)",
+                        bottom: "env(safe-area-inset-bottom, 0)",
+                        zIndex: 1000,
+                        padding: "1rem",
+                        fontSize: "1rem"
                     }}
-                    onClick={onClickOpenNotionPage}
+                    onClick={onClickMemo}
                 >
-                    N
+                    Memo
                 </button>
+                <iframe
+                    src={bookUrl}
+                    width={"100%"}
+                    height={"100%"}
+                    className={"bibi-frame"}
+                    id={"bibi-frame"}
+                    ref={onInitializeIframeRef}
+                ></iframe>
+                <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
+                {/* アップロードステータスインジケータ */}
+                {uploadState.status === "uploading" && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            background: "rgba(0, 0, 0, 0.7)",
+                            color: "white",
+                            padding: "1rem 2rem",
+                            borderRadius: "8px",
+                            zIndex: 2000
+                        }}
+                    >
+                        Uploading to Notion...
+                    </div>
+                )}
+                {uploadState.status === "success" && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            background: "rgba(0, 128, 0, 0.8)",
+                            color: "white",
+                            padding: "1rem 2rem",
+                            borderRadius: "8px",
+                            zIndex: 2000
+                        }}
+                    >
+                        Uploaded
+                    </div>
+                )}
+                {uploadState.status === "error" && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: "50%",
+                            left: "50%",
+                            transform: "translate(-50%, -50%)",
+                            background: "rgba(200, 0, 0, 0.8)",
+                            color: "white",
+                            padding: "1rem 2rem",
+                            borderRadius: "8px",
+                            zIndex: 2000
+                        }}
+                        title={uploadState.error}
+                    >
+                        Upload failed
+                    </div>
+                )}
             </div>
-            <button
-                className={`Button small violet ${styles.memoButton}`}
-                hidden={!hasCompletedNotionSettings || menuState === "open"}
-                disabled={!canMemoContent || isAddingMemo}
-                title={"Stock Memo"}
-                style={{
-                    position: "fixed",
-                    left: "env(safe-area-inset-left, 0)",
-                    bottom: "env(safe-area-inset-bottom, 0)",
-                    zIndex: 1000,
-                    padding: "1rem",
-                    fontSize: "1rem"
-                }}
-                onClick={onClickStockMemo}
-            >
-                📁+{memoStock.length}
-            </button>
-            <button
-                className={`Button small violet ${styles.memoButton}`}
-                hidden={!hasCompletedNotionSettings || menuState === "open"}
-                disabled={!enableMemoButton}
-                title={"Add Memo"}
-                style={{
-                    position: "fixed",
-                    right: "env(safe-area-inset-right, 0)",
-                    bottom: "env(safe-area-inset-bottom, 0)",
-                    zIndex: 1000,
-                    padding: "1rem",
-                    fontSize: "1rem"
-                }}
-                onClick={onClickMemo}
-            >
-                Memo
-            </button>
-            <iframe
-                src={bookUrl}
-                width={"100%"}
-                height={"100%"}
-                className={"bibi-frame"}
-                id={"bibi-frame"}
-                ref={onInitializeIframeRef}
-            ></iframe>
-            <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
-            {/* アップロードステータスインジケータ */}
-            {uploadState.status === "uploading" && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        background: "rgba(0, 0, 0, 0.7)",
-                        color: "white",
-                        padding: "1rem 2rem",
-                        borderRadius: "8px",
-                        zIndex: 2000
-                    }}
-                >
-                    Uploading to Notion...
-                </div>
-            )}
-            {uploadState.status === "success" && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        background: "rgba(0, 128, 0, 0.8)",
-                        color: "white",
-                        padding: "1rem 2rem",
-                        borderRadius: "8px",
-                        zIndex: 2000
-                    }}
-                >
-                    Uploaded
-                </div>
-            )}
-            {uploadState.status === "error" && (
-                <div
-                    style={{
-                        position: "fixed",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        background: "rgba(200, 0, 0, 0.8)",
-                        color: "white",
-                        padding: "1rem 2rem",
-                        borderRadius: "8px",
-                        zIndex: 2000
-                    }}
-                    title={uploadState.error}
-                >
-                    Upload failed
-                </div>
-            )}
-        </div>
+        </>
     );
 };

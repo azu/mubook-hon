@@ -217,6 +217,7 @@ const MEMO_BUTTON_AREA_HEIGHT_PWA = 60;
 
 export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [viewerState, setViewerState] = useState<ViewerState>({ status: "waiting-src" });
+    const [bookTitle, setBookTitle] = useState<string>();
     const [menuState, setMenuState] = useState<"open" | "closed">("closed");
     const [layoutMode, setLayoutMode] = useState<"paginated" | "scrolled">("paginated");
     const [fontSize, setFontSize] = useState(() => {
@@ -748,12 +749,14 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
 
                 // 最後に読んだ書籍として保存（PWA自動遷移用）
                 const metadata = view.book?.metadata;
+                const title = getTitleString(metadata?.title) || props.bookFileName;
                 saveLastRead({
                     fileId: props.id,
                     fileName: props.bookFileName,
-                    title: getTitleString(metadata?.title) || props.bookFileName,
+                    title: title,
                     viewer: "epub:foliate"
                 });
+                setBookTitle(title);
 
                 setViewerState({ status: "ready" });
             } catch (error) {
@@ -1227,161 +1230,168 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     }
 
     return (
-        <div style={{ height: "100dvh" }} className="full-page">
-            {/* Loading overlay */}
-            {(viewerState.status === "waiting-src" || viewerState.status === "loading") && (
+        <>
+            {bookTitle && <title>{bookTitle}</title>}
+            <div style={{ height: "100dvh" }} className="full-page">
+                {/* Loading overlay */}
+                {(viewerState.status === "waiting-src" || viewerState.status === "loading") && (
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 9999,
+                            background: "white",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                        }}
+                    >
+                        <Loading>Loading Viewer...</Loading>
+                    </div>
+                )}
+                {/* Top menu bar */}
                 <div
+                    className={styles.menuBar}
                     style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 9999,
-                        background: "white",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
+                        display: menuState === "open" ? "flex" : "none"
                     }}
                 >
-                    <Loading>Loading Viewer...</Loading>
-                </div>
-            )}
-            {/* Top menu bar */}
-            <div
-                className={styles.menuBar}
-                style={{
-                    display: menuState === "open" ? "flex" : "none"
-                }}
-            >
-                <button
-                    className={styles.menuButton}
-                    onClick={() => (window.location.href = "/")}
-                    title="Back to book list"
-                >
-                    ←
-                </button>
-                <button className={styles.menuButton} onClick={() => setShowTOC(!showTOC)} title="Table of Contents">
-                    ☰
-                </button>
-                {hasCompletedNotionSettings && (
-                    <button className={styles.menuButton} onClick={onClickOpenNotionPage} title="Open Notion Page">
-                        N
+                    <button
+                        className={styles.menuButton}
+                        onClick={() => (window.location.href = "/")}
+                        title="Back to book list"
+                    >
+                        ←
                     </button>
-                )}
-                <button
-                    className={styles.menuButton}
-                    onClick={toggleLayoutMode}
-                    title={layoutMode === "paginated" ? "Switch to scroll mode" : "Switch to page mode"}
-                >
-                    {layoutMode === "paginated" ? "Scroll" : "Page"}
-                </button>
-                <button className={styles.menuButton} onClick={decreaseFontSize} title="Decrease font size">
-                    A-
-                </button>
-                <span style={{ fontSize: "12px", minWidth: "36px", textAlign: "center" }}>{fontSize}%</span>
-                <button className={styles.menuButton} onClick={increaseFontSize} title="Increase font size">
-                    A+
-                </button>
-                <button className={styles.menuButton} onClick={toggleMenu} title="Close menu">
-                    ✕
-                </button>
-            </div>
+                    <button
+                        className={styles.menuButton}
+                        onClick={() => setShowTOC(!showTOC)}
+                        title="Table of Contents"
+                    >
+                        ☰
+                    </button>
+                    {hasCompletedNotionSettings && (
+                        <button className={styles.menuButton} onClick={onClickOpenNotionPage} title="Open Notion Page">
+                            N
+                        </button>
+                    )}
+                    <button
+                        className={styles.menuButton}
+                        onClick={toggleLayoutMode}
+                        title={layoutMode === "paginated" ? "Switch to scroll mode" : "Switch to page mode"}
+                    >
+                        {layoutMode === "paginated" ? "Scroll" : "Page"}
+                    </button>
+                    <button className={styles.menuButton} onClick={decreaseFontSize} title="Decrease font size">
+                        A-
+                    </button>
+                    <span style={{ fontSize: "12px", minWidth: "36px", textAlign: "center" }}>{fontSize}%</span>
+                    <button className={styles.menuButton} onClick={increaseFontSize} title="Increase font size">
+                        A+
+                    </button>
+                    <button className={styles.menuButton} onClick={toggleMenu} title="Close menu">
+                        ✕
+                    </button>
+                </div>
 
-            {/* TOC Sidebar */}
-            {showTOC && (
-                <div className={styles.tocOverlay} onClick={() => setShowTOC(false)}>
-                    <div className={styles.tocSidebar} onClick={(e) => e.stopPropagation()}>
-                        <h3>Table of Contents</h3>
-                        <div className={styles.tocList}>
-                            {toc.map((item, index) => (
-                                <TOCItemComponent key={index} item={item} onClickItem={onClickTOCItem} />
-                            ))}
+                {/* TOC Sidebar */}
+                {showTOC && (
+                    <div className={styles.tocOverlay} onClick={() => setShowTOC(false)}>
+                        <div className={styles.tocSidebar} onClick={(e) => e.stopPropagation()}>
+                            <h3>Table of Contents</h3>
+                            <div className={styles.tocList}>
+                                {toc.map((item, index) => (
+                                    <TOCItemComponent key={index} item={item} onClickItem={onClickTOCItem} />
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Memo buttons */}
-            {hasCompletedNotionSettings && viewerState.status === "ready" && menuState === "closed" && (
+                {/* Memo buttons */}
+                {hasCompletedNotionSettings && viewerState.status === "ready" && menuState === "closed" && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            height: "60px",
+                            paddingBottom: "env(safe-area-inset-bottom, 0)",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-end",
+                            pointerEvents: "none",
+                            userSelect: "none",
+                            WebkitUserSelect: "none",
+                            zIndex: 1000
+                        }}
+                    >
+                        <button
+                            className={`Button small violet ${styles.memoButton}`}
+                            disabled={!canMemoContent || isAddingMemo}
+                            title="Stock Memo"
+                            style={{
+                                pointerEvents: "auto",
+                                marginLeft: "env(safe-area-inset-left, 0)"
+                            }}
+                            onClick={onClickStockMemo}
+                        >
+                            📁+{memoStock.length}
+                        </button>
+                        <button
+                            className={`Button small violet ${styles.memoButton}`}
+                            disabled={!enableMemoButton}
+                            title="Add Memo"
+                            style={{
+                                pointerEvents: "auto",
+                                marginRight: "env(safe-area-inset-right, 0)"
+                            }}
+                            onClick={onClickMemo}
+                        >
+                            Memo
+                        </button>
+                    </div>
+                )}
+
+                {/* Foliate view container */}
                 <div
+                    ref={containerRef}
+                    className={styles.viewerContainer}
                     style={{
-                        position: "fixed",
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: "60px",
-                        paddingBottom: "env(safe-area-inset-bottom, 0)",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-end",
-                        pointerEvents: "none",
-                        userSelect: "none",
-                        WebkitUserSelect: "none",
-                        zIndex: 1000
+                        width: "100%",
+                        height: hasCompletedNotionSettings
+                            ? `calc(100% - ${isPWAStandaloneMode() ? MEMO_BUTTON_AREA_HEIGHT_PWA : MEMO_BUTTON_AREA_HEIGHT}px)`
+                            : "100%"
                     }}
-                >
-                    <button
-                        className={`Button small violet ${styles.memoButton}`}
-                        disabled={!canMemoContent || isAddingMemo}
-                        title="Stock Memo"
-                        style={{
-                            pointerEvents: "auto",
-                            marginLeft: "env(safe-area-inset-left, 0)"
-                        }}
-                        onClick={onClickStockMemo}
+                />
+
+                <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
+
+                {/* Position indicator - temporary on page turn, always visible when menu is open */}
+                {viewerState.status === "ready" && latestRelocateDetail && (
+                    <div
+                        className={`${styles.positionIndicator} ${positionIndicatorVisible || menuState === "open" ? styles.visible : styles.fadeOut}`}
                     >
-                        📁+{memoStock.length}
-                    </button>
-                    <button
-                        className={`Button small violet ${styles.memoButton}`}
-                        disabled={!enableMemoButton}
-                        title="Add Memo"
-                        style={{
-                            pointerEvents: "auto",
-                            marginRight: "env(safe-area-inset-right, 0)"
-                        }}
-                        onClick={onClickMemo}
-                    >
-                        Memo
-                    </button>
-                </div>
-            )}
+                        <span className={styles.current}>
+                            {latestRelocateDetail.location?.current ?? Math.round(latestRelocateDetail.fraction * 100)}
+                        </span>
+                        <span className={styles.delimiter}>/</span>
+                        <span>{latestRelocateDetail.location?.total ?? 100}</span>
+                        <span className={styles.percent}>
+                            (<span className={styles.current}>{Math.round(latestRelocateDetail.fraction * 100)}</span>
+                            <span className={styles.unit}>%</span>)
+                        </span>
+                    </div>
+                )}
 
-            {/* Foliate view container */}
-            <div
-                ref={containerRef}
-                className={styles.viewerContainer}
-                style={{
-                    width: "100%",
-                    height: hasCompletedNotionSettings
-                        ? `calc(100% - ${isPWAStandaloneMode() ? MEMO_BUTTON_AREA_HEIGHT_PWA : MEMO_BUTTON_AREA_HEIGHT}px)`
-                        : "100%"
-                }}
-            />
-
-            <ToastComponent onClickJumpLastPage={onClickJumpLastPage} />
-
-            {/* Position indicator - temporary on page turn, always visible when menu is open */}
-            {viewerState.status === "ready" && latestRelocateDetail && (
-                <div
-                    className={`${styles.positionIndicator} ${positionIndicatorVisible || menuState === "open" ? styles.visible : styles.fadeOut}`}
-                >
-                    <span className={styles.current}>
-                        {latestRelocateDetail.location?.current ?? Math.round(latestRelocateDetail.fraction * 100)}
-                    </span>
-                    <span className={styles.delimiter}>/</span>
-                    <span>{latestRelocateDetail.location?.total ?? 100}</span>
-                    <span className={styles.percent}>
-                        (<span className={styles.current}>{Math.round(latestRelocateDetail.fraction * 100)}</span>
-                        <span className={styles.unit}>%</span>)
-                    </span>
-                </div>
-            )}
-
-            {/* Upload status indicator */}
-            {isUploading && <div className={styles.uploadStatus}>Uploading to Notion...</div>}
-        </div>
+                {/* Upload status indicator */}
+                {isUploading && <div className={styles.uploadStatus}>Uploading to Notion...</div>}
+            </div>
+        </>
     );
 };
 
