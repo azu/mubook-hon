@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { parseOreillyCsv, convertCsvToImportBookMemo, isOreillyCsv } from "./parseOreillyCsv.ts";
+import { parseOreillyCsv, convertCsvToImportBookMemo } from "./parseOreillyCsv.ts";
 
 describe("parseOreillyCsv", () => {
     it("parses a simple CSV row", () => {
@@ -97,19 +97,5 @@ My Book,Chapter 1,2026-03-15,https://learning.oreilly.com/library/view/-/1234567
     it("returns null for empty rows", () => {
         const result = convertCsvToImportBookMemo([]);
         assert.strictEqual(result, null);
-    });
-});
-
-describe("isOreillyCsv", () => {
-    it("returns true for O'Reilly CSV header", () => {
-        assert.strictEqual(isOreillyCsv("Book Title,Chapter Title,Date of Highlight"), true);
-    });
-
-    it("returns true with leading whitespace", () => {
-        assert.strictEqual(isOreillyCsv("  Book Title,Chapter Title,Date of Highlight"), true);
-    });
-
-    it("returns false for JSON", () => {
-        assert.strictEqual(isOreillyCsv('{"fileId": "123"}'), false);
     });
 });

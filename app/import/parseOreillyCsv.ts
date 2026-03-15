@@ -159,7 +159,3 @@ export const convertCsvToImportBookMemo = (rows: OreillyCsvRow[]): ImportBookMem
         memos
     };
 };
-
-export const isOreillyCsv = (text: string): boolean => {
-    return text.trimStart().startsWith("Book Title,Chapter Title,");
-};

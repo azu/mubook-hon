@@ -2,7 +2,7 @@
 import "../sakura.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KindlePositionMarker, useNotion } from "../notion/useNotion";
-import { convertCsvToImportBookMemo, isOreillyCsv, parseOreillyCsv } from "./parseOreillyCsv";
+import { convertCsvToImportBookMemo, parseOreillyCsv } from "./parseOreillyCsv";
 
 const bookmarkletButtonStyle = `
 .bookmarklet-button:hover {
@@ -153,48 +153,34 @@ const useImport = () => {
             });
         }
     }, [addMemo, importJSON, updateBookStatus]);
-    const [csvConverted, setCsvConverted] = useState(false);
-    const setImportText = useCallback(
-        (text: string) => {
-            if (isOreillyCsv(text)) {
-                const rows = parseOreillyCsv(text);
-                const result = convertCsvToImportBookMemo(rows);
-                if (result) {
-                    setImportJSONText(JSON.stringify(result, null, 2));
-                    setCsvConverted(true);
-                    return;
-                }
-            }
-            setCsvConverted(false);
-            setImportJSONText(text);
-        },
-        [setImportJSONText]
-    );
     const handleCsvFile = useCallback(
         (file: File) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target?.result;
                 if (typeof text === "string") {
-                    setImportText(text);
+                    const rows = parseOreillyCsv(text);
+                    const result = convertCsvToImportBookMemo(rows);
+                    if (result) {
+                        setImportJSONText(JSON.stringify(result, null, 2));
+                    }
                 }
             };
             reader.readAsText(file);
         },
-        [setImportText]
+        [setImportJSONText]
     );
     return {
         importBook,
         importJSON,
         importJSONText,
-        setImportText,
+        setImportJSONText,
         isValidJSON,
-        csvConverted,
         handleCsvFile
     } as const;
 };
 const ImportPage = () => {
-    const { importBook, importJSONText, setImportText, isValidJSON, csvConverted, handleCsvFile } = useImport();
+    const { importBook, importJSONText, setImportJSONText, isValidJSON, handleCsvFile } = useImport();
     const [isImporting, setIsImporting] = useState(false);
     const [importSuccess, setImportSuccess] = useState(false);
 
@@ -204,7 +190,7 @@ const ImportPage = () => {
         try {
             await importBook();
             setImportSuccess(true);
-            setImportText("");
+            setImportJSONText("");
         } catch (error) {
             console.error("Import failed:", error);
         } finally {
@@ -264,9 +250,6 @@ const ImportPage = () => {
                         }
                     }}
                 />
-                <p>
-                    <small>CSVのテキストをそのまま下のテキストエリアに貼り付けることもできます。</small>
-                </p>
             </details>
 
             <details>
@@ -294,8 +277,8 @@ const ImportPage = () => {
             <p>JSONデータを貼り付けてください：</p>
             <textarea
                 value={importJSONText}
-                onChange={(event) => setImportText(event.target.value)}
-                placeholder="JSONまたはO'Reilly CSVを貼り付け"
+                onChange={(event) => setImportJSONText(event.target.value)}
+                placeholder='{"fileId": "...", "fileName": "...", "title": "...", "authors": [...], "memos": [...]}'
                 style={{ width: "100%", minHeight: "200px", fontFamily: "monospace" }}
             />
 
@@ -305,12 +288,7 @@ const ImportPage = () => {
                 </button>
 
                 {!isValidJSON && importJSONText && <span style={{ color: "red" }}>無効なJSON形式です</span>}
-                {isValidJSON && csvConverted && !importSuccess && (
-                    <span style={{ color: "green" }}>CSVをJSONに変換しました</span>
-                )}
-                {isValidJSON && !csvConverted && !importSuccess && (
-                    <span style={{ color: "green" }}>有効なJSON形式です</span>
-                )}
+                {isValidJSON && !importSuccess && <span style={{ color: "green" }}>有効なJSON形式です</span>}
                 {importSuccess && <span style={{ color: "green" }}>✅ インポートが完了しました！</span>}
             </div>
 
