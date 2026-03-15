@@ -2,6 +2,7 @@
 import "../sakura.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KindlePositionMarker, useNotion } from "../notion/useNotion";
+import { convertCsvToImportBookMemo, isOreillyCsv, parseOreillyCsv } from "./parseOreillyCsv";
 
 const bookmarkletButtonStyle = `
 .bookmarklet-button:hover {
@@ -152,16 +153,48 @@ const useImport = () => {
             });
         }
     }, [addMemo, importJSON, updateBookStatus]);
+    const [csvConverted, setCsvConverted] = useState(false);
+    const setImportText = useCallback(
+        (text: string) => {
+            if (isOreillyCsv(text)) {
+                const rows = parseOreillyCsv(text);
+                const result = convertCsvToImportBookMemo(rows);
+                if (result) {
+                    setImportJSONText(JSON.stringify(result, null, 2));
+                    setCsvConverted(true);
+                    return;
+                }
+            }
+            setCsvConverted(false);
+            setImportJSONText(text);
+        },
+        [setImportJSONText]
+    );
+    const handleCsvFile = useCallback(
+        (file: File) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target?.result;
+                if (typeof text === "string") {
+                    setImportText(text);
+                }
+            };
+            reader.readAsText(file);
+        },
+        [setImportText]
+    );
     return {
         importBook,
         importJSON,
         importJSONText,
-        setImportJSONText,
-        isValidJSON
+        setImportText,
+        isValidJSON,
+        csvConverted,
+        handleCsvFile
     } as const;
 };
 const ImportPage = () => {
-    const { importBook, importJSONText, setImportJSONText, isValidJSON } = useImport();
+    const { importBook, importJSONText, setImportText, isValidJSON, csvConverted, handleCsvFile } = useImport();
     const [isImporting, setIsImporting] = useState(false);
     const [importSuccess, setImportSuccess] = useState(false);
 
@@ -171,7 +204,7 @@ const ImportPage = () => {
         try {
             await importBook();
             setImportSuccess(true);
-            setImportJSONText("");
+            setImportText("");
         } catch (error) {
             console.error("Import failed:", error);
         } finally {
@@ -209,7 +242,36 @@ const ImportPage = () => {
 
             <details>
                 <summary>
-                    <strong>O&apos;Reilly Learning からインポート</strong>
+                    <strong>O&apos;Reilly Learning からインポート（CSV）</strong>
+                </summary>
+                <ol>
+                    <li>
+                        <a href="https://learning.oreilly.com/highlights" target="_blank" rel="noopener noreferrer">
+                            O&apos;Reilly Highlights
+                        </a>
+                        を開く
+                    </li>
+                    <li>「Export Highlights for this Title」をクリックしてCSVをダウンロード</li>
+                    <li>ダウンロードしたCSVファイルを選択</li>
+                </ol>
+                <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                            handleCsvFile(file);
+                        }
+                    }}
+                />
+                <p>
+                    <small>CSVのテキストをそのまま下のテキストエリアに貼り付けることもできます。</small>
+                </p>
+            </details>
+
+            <details>
+                <summary>
+                    <strong>O&apos;Reilly Learning からインポート（ブックマークレット）</strong>
                 </summary>
                 <ol>
                     <li>
@@ -232,8 +294,8 @@ const ImportPage = () => {
             <p>JSONデータを貼り付けてください：</p>
             <textarea
                 value={importJSONText}
-                onChange={(event) => setImportJSONText(event.target.value)}
-                placeholder='{"fileId": "...", "fileName": "...", "title": "...", "authors": [...], "memos": [...]}'
+                onChange={(event) => setImportText(event.target.value)}
+                placeholder="JSONまたはO'Reilly CSVを貼り付け"
                 style={{ width: "100%", minHeight: "200px", fontFamily: "monospace" }}
             />
 
@@ -242,8 +304,13 @@ const ImportPage = () => {
                     {isImporting ? "インポート中..." : "Import"}
                 </button>
 
-                {!isValidJSON && importJSONText && <span style={{ color: "red" }}>❌ 無効なJSON形式です</span>}
-                {isValidJSON && !importSuccess && <span style={{ color: "green" }}>✅ 有効なJSON形式です</span>}
+                {!isValidJSON && importJSONText && <span style={{ color: "red" }}>無効なJSON形式です</span>}
+                {isValidJSON && csvConverted && !importSuccess && (
+                    <span style={{ color: "green" }}>CSVをJSONに変換しました</span>
+                )}
+                {isValidJSON && !csvConverted && !importSuccess && (
+                    <span style={{ color: "green" }}>有効なJSON形式です</span>
+                )}
                 {importSuccess && <span style={{ color: "green" }}>✅ インポートが完了しました！</span>}
             </div>
 
