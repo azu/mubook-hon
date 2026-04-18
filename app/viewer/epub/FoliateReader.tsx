@@ -998,17 +998,30 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         const contents = view.renderer.getContents();
         for (const { doc, index } of contents) {
             const selection = doc.getSelection();
-            if (selection && selection.toString().trim()) {
+            const text = selection?.toString().trim();
+            if (!selection || !text) continue;
+            // A selection can read non-empty text while rangeCount is 0 (e.g. while
+            // a paginated renderer is rebuilding ranges as the selection crosses
+            // the page edge). Skip until the range is observable.
+            if (selection.rangeCount === 0) continue;
+            let cfi: string;
+            try {
                 const range = selection.getRangeAt(0);
-                const cfi = view.getCFI(index, range);
-                return {
-                    text: selection.toString(),
-                    selectors: {
-                        start: cfi,
-                        end: cfi
-                    }
-                };
+                cfi = view.getCFI(index, range);
+            } catch (error) {
+                // getCFI can throw when the range spans content outside the current
+                // section (e.g. extending selection past the visible page end).
+                // Fall back to the page-level location so memo creation still works.
+                console.warn("[FoliateReader] getCFI failed for selection, using page CFI", error);
+                cfi = view.lastLocation?.cfi ?? "";
             }
+            return {
+                text: selection.toString(),
+                selectors: {
+                    start: cfi,
+                    end: cfi
+                }
+            };
         }
         return null;
     }, []);
@@ -1034,37 +1047,43 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     }, []);
 
     const onClickStockMemo = useCallback(() => {
-        const selected = getSelectedText() ?? getCurrentPageText();
-        if (!selected?.text) {
-            return;
+        try {
+            const selected = getSelectedText() ?? getCurrentPageText();
+            if (!selected?.text) {
+                return;
+            }
+            setMemoStock((prev) => addToMemoStock(prev, selected));
+        } catch (error) {
+            console.error("[FoliateReader] onClickStockMemo failed", error);
+            notify({ title: "Failed to stock memo", type: "error" });
         }
-        setMemoStock((prev) => addToMemoStock(prev, selected));
-    }, [getSelectedText, getCurrentPageText]);
+    }, [getSelectedText, getCurrentPageText, notify]);
 
     const onClickMemo = useCallback(async () => {
         const view = viewRef.current;
         if (!view?.lastLocation) return;
 
-        const stockedMemo =
-            memoStock.length > 0
-                ? {
-                      text: joinMemoStock(memoStock.map((memo) => memo.text)),
-                      selectors: {
-                          start: memoStock.at(0)?.selectors.start,
-                          end: memoStock.at(-1)?.selectors.end
-                      }
-                  }
-                : undefined;
-
-        const selected = stockedMemo ?? getSelectedText() ?? getCurrentPageText();
-
-        if (!selected?.text) {
-            window.alert("Please select text to add memo");
-            return;
-        }
-
         try {
             setIsAddingMemo(true);
+
+            const stockedMemo =
+                memoStock.length > 0
+                    ? {
+                          text: joinMemoStock(memoStock.map((memo) => memo.text)),
+                          selectors: {
+                              start: memoStock.at(0)?.selectors.start,
+                              end: memoStock.at(-1)?.selectors.end
+                          }
+                      }
+                    : undefined;
+
+            const selected = stockedMemo ?? getSelectedText() ?? getCurrentPageText();
+
+            if (!selected?.text) {
+                window.alert("Please select text to add memo");
+                return;
+            }
+
             const currentPage = view.lastLocation.location?.current ?? Math.floor(view.lastLocation.fraction * 100);
             await addMemo({
                 memo: selected.text,
@@ -1082,10 +1101,13 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             for (const { doc } of contents) {
                 doc.getSelection()?.removeAllRanges();
             }
+        } catch (error) {
+            console.error("[FoliateReader] onClickMemo failed", error);
+            notify({ title: "Failed to add memo", type: "error" });
         } finally {
             setIsAddingMemo(false);
         }
-    }, [addMemo, getSelectedText, getCurrentPageText, memoStock]);
+    }, [addMemo, getSelectedText, getCurrentPageText, memoStock, notify]);
 
     const onClickOpenNotionPage = useCallback(() => {
         if (!hasDataBook(currentBook)) return;
