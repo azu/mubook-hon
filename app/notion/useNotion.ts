@@ -5,6 +5,7 @@ import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import type { DatabaseObjectResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { Fetcher } from "swr/_internal";
+import { getBookPageTitle } from "./getBookPageTitle";
 
 export type NotionSetting = { apiKey: string; bookListDatabaseId: string; bookMemoDatabaseId: string };
 // User can define own proxy url
@@ -209,6 +210,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
             if (!fileId || !fileName) {
                 return NO_BOOK_DATA;
             }
+            const bookPageTitle = getBookPageTitle(fileName);
             // Notion API 2025-09-03: databases and data_sources are separate concepts
             // A database contains one or more data_sources, and we need data_source_id to query
             // See: https://developers.notion.com/docs/upgrade-guide-2025-09-03
@@ -236,10 +238,21 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                             }
                         },
                         {
-                            property: "FileName",
-                            title: {
-                                equals: fileName
-                            }
+                            // Keep matching pages saved before extensions were removed from the page title.
+                            or: [
+                                {
+                                    property: "FileName",
+                                    title: {
+                                        equals: bookPageTitle
+                                    }
+                                },
+                                {
+                                    property: "FileName",
+                                    title: {
+                                        equals: fileName
+                                    }
+                                }
+                            ]
                         }
                     ]
                 }
@@ -309,7 +322,7 @@ export const useNotion = ({ fileId, fileName }: { fileId?: string; fileName?: st
                     title: [
                         {
                             text: {
-                                content: fileName
+                                content: getBookPageTitle(fileName)
                             }
                         }
                     ]
