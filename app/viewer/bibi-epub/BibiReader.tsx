@@ -323,7 +323,7 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
             });
         }
     }, [currentBook, isUploadEnabled, props.fileBlob, uploadFile]);
-    const { showToast, bookInfo, ToastComponent } = useToast();
+    const { showToast, bookInfo, notify, ToastComponent } = useToast();
     const isInitialized = useRef(false);
     const bibiFrame = useRef<HTMLIFrameElement>(null);
     const router = useRouter();
@@ -654,15 +654,28 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                         ...currentMarker,
                         highlightSelectors: selected.selectors
                     }
-                }).then(() => {
-                    setMemoStock([]);
-                    return contentWindow.viewerController.removeSelection();
+                });
+                setMemoStock([]);
+                // 選択解除は後始末なので、失敗してもメモ追加の失敗として扱わない
+                try {
+                    await contentWindow.viewerController.removeSelection();
+                } catch (error) {
+                    console.warn("[BibiReader] failed to clear selection", error);
+                }
+            } catch (error) {
+                console.error("[BibiReader] onClickMemo failed", error);
+                // ストックを残すと次回も同じ内容で失敗し続けるため、失敗時はストックを破棄する
+                const hasStockedMemo = memoStock.length > 0;
+                setMemoStock([]);
+                notify({
+                    title: hasStockedMemo ? "Failed to add memo (stocked memo was cleared)" : "Failed to add memo",
+                    type: "error"
                 });
             } finally {
                 setIsAddingMemo(false);
             }
         }
-    }, [addMemo, memoStock]);
+    }, [addMemo, memoStock, notify]);
     // Update refs for use in onKeydown handler
     onClickStockMemoRef.current = onClickStockMemo;
     onClickMemoRef.current = onClickMemo;

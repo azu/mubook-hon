@@ -1097,13 +1097,24 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             });
             setMemoStock([]);
             // Clear selection
-            const contents = view.renderer.getContents();
-            for (const { doc } of contents) {
-                doc.getSelection()?.removeAllRanges();
+            // 選択解除は後始末なので、失敗してもメモ追加の失敗として扱わない
+            try {
+                const contents = view.renderer.getContents();
+                for (const { doc } of contents) {
+                    doc.getSelection()?.removeAllRanges();
+                }
+            } catch (error) {
+                console.warn("[FoliateReader] failed to clear selection", error);
             }
         } catch (error) {
             console.error("[FoliateReader] onClickMemo failed", error);
-            notify({ title: "Failed to add memo", type: "error" });
+            // ストックを残すと次回も同じ内容で失敗し続けるため、失敗時はストックを破棄する
+            const hasStockedMemo = memoStock.length > 0;
+            setMemoStock([]);
+            notify({
+                title: hasStockedMemo ? "Failed to add memo (stocked memo was cleared)" : "Failed to add memo",
+                type: "error"
+            });
         } finally {
             setIsAddingMemo(false);
         }
