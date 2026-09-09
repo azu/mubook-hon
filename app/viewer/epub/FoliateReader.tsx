@@ -1103,7 +1103,13 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             }
         } catch (error) {
             console.error("[FoliateReader] onClickMemo failed", error);
-            notify({ title: "Failed to add memo", type: "error" });
+            // ストックを残すと次回も同じ内容で失敗し続けるため、失敗時はストックを破棄する
+            const hasStockedMemo = memoStock.length > 0;
+            setMemoStock([]);
+            notify({
+                title: hasStockedMemo ? "Failed to add memo (stocked memo was cleared)" : "Failed to add memo",
+                type: "error"
+            });
         } finally {
             setIsAddingMemo(false);
         }
