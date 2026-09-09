@@ -656,7 +656,12 @@ export const BibiReader: FC<BibiReaderProps> = (props) => {
                     }
                 });
                 setMemoStock([]);
-                await contentWindow.viewerController.removeSelection();
+                // 選択解除は後始末なので、失敗してもメモ追加の失敗として扱わない
+                try {
+                    await contentWindow.viewerController.removeSelection();
+                } catch (error) {
+                    console.warn("[BibiReader] failed to clear selection", error);
+                }
             } catch (error) {
                 console.error("[BibiReader] onClickMemo failed", error);
                 // ストックを残すと次回も同じ内容で失敗し続けるため、失敗時はストックを破棄する

@@ -1097,9 +1097,14 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             });
             setMemoStock([]);
             // Clear selection
-            const contents = view.renderer.getContents();
-            for (const { doc } of contents) {
-                doc.getSelection()?.removeAllRanges();
+            // 選択解除は後始末なので、失敗してもメモ追加の失敗として扱わない
+            try {
+                const contents = view.renderer.getContents();
+                for (const { doc } of contents) {
+                    doc.getSelection()?.removeAllRanges();
+                }
+            } catch (error) {
+                console.warn("[FoliateReader] failed to clear selection", error);
             }
         } catch (error) {
             console.error("[FoliateReader] onClickMemo failed", error);
