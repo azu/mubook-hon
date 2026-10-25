@@ -12,10 +12,12 @@
   "scripts": {
     "dev": "pnpm run /^dev:/",
     "dev:next": "next dev",
-    "dev:worker": "wrangler dev",
+    "dev:worker": "wrangler dev --x-new-config",
     "typecheck": "tsc -p .",
     "build": "next build",
-    "deploy": "wrangler deploy",
+    "build:worker": "wrangler build --x-new-config --x-cf-build-output",
+    "deploy": "pnpm run build && pnpm run build:worker && cf deploy --prebuilt",
+    "deploy:preview": "pnpm run build && pnpm run build:worker --env preview && cf deploy --prebuilt --mode preview",
     "start": "next start",
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css}\"",
@@ -56,13 +58,14 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@typescript-eslint/parser": "^8.51.0",
+    "cf": "1.0.0-beta.21",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.1",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.152.0"
   },
   "msw": {
     "workerDirectory": "public"
