@@ -29,5 +29,5 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: mubook-hon-production
   cancel-in-progress: false
