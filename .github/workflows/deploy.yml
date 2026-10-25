@@ -11,6 +11,9 @@ jobs:
     name: Deploy
     # 本番Workerへのデプロイはmainからのみ行う（pendingのrunが置き換わっても常に最新のmainがデプロイされる）
     if: github.ref == 'refs/heads/main'
+    concurrency:
+      group: mubook-hon-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -30,6 +33,3 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-concurrency:
-  group: mubook-hon-production
-  cancel-in-progress: false
