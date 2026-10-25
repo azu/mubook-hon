@@ -1,4 +1,4 @@
 - Next.js/Cloudflare Workersでホスティング
 - ProxyはNotionのCORS対応のために使用
 - epubはFoliateReader
-- bibi版はメンテナンスしていないので、指定されてない場合は調査しない
+- bibi版はメンテナンスしていないので、指定されてない場合は調査しない- デプロイは `pnpm run deploy`（`cf deploy --prebuilt`）。設定は `cloudflare.config.ts` と `wrangler.config.ts`

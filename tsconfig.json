@@ -41,6 +41,8 @@
   "exclude": [
     "node_modules",
     "src/worker",
+    "cloudflare.config.ts",
+    "wrangler.config.ts",
     "**/*.test.ts",
     "**/*.test.tsx"
   ]
