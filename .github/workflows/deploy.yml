@@ -9,6 +9,8 @@ permissions:
 jobs:
   deploy:
     name: Deploy
+    # 本番Workerへのデプロイはmainからのみ行う（pendingのrunが置き換わっても常に最新のmainがデプロイされる）
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
