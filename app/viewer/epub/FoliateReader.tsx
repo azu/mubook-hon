@@ -221,6 +221,26 @@ type ViewerState =
 const MEMO_BUTTON_AREA_HEIGHT = 20;
 const MEMO_BUTTON_AREA_HEIGHT_PWA = 60;
 
+// foliate-js paginator gap (default is 7%)
+// When the screen has left/right safe area (e.g. the status bar on the side in portrait),
+// the viewer container is already inset by the safe area, so use a smaller gap
+// to show the text as wide as possible without overlapping the system UI
+const DEFAULT_PAGINATOR_GAP = "7%";
+const SAFE_AREA_PAGINATOR_GAP = "3%";
+
+const hasHorizontalSafeAreaInset = (): boolean => {
+    if (typeof document === "undefined") return false;
+    const probe = document.createElement("div");
+    probe.style.cssText =
+        "position:fixed;visibility:hidden;pointer-events:none;" +
+        "padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px);";
+    document.body.appendChild(probe);
+    const style = getComputedStyle(probe);
+    const inset = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    probe.remove();
+    return inset > 0;
+};
+
 export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [viewerState, setViewerState] = useState<ViewerState>({ status: "waiting-src" });
     const [bookTitle, setBookTitle] = useState<string>();
@@ -364,6 +384,20 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         };
         window.addEventListener("pageshow", handlePageShow);
         return () => window.removeEventListener("pageshow", handlePageShow);
+    }, []);
+
+    // Shrink paginator gap when the viewer is inset by left/right safe area
+    const applySafeAreaGap = () => {
+        viewRef.current?.renderer?.setAttribute?.(
+            "gap",
+            hasHorizontalSafeAreaInset() ? SAFE_AREA_PAGINATOR_GAP : DEFAULT_PAGINATOR_GAP
+        );
+    };
+    // Safe area changes on rotation
+    useEffect(() => {
+        const handleResize = () => applySafeAreaGap();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
     }, []);
 
     // Initialize foliate-view
@@ -744,6 +778,7 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     lastLocation,
                     showTextStart: !lastLocation
                 });
+                applySafeAreaGap();
 
                 // Also add to view itself for redundancy
                 view.addEventListener("touchstart", disablePaginatorTouch, { capture: true });
@@ -1402,6 +1437,9 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     className={styles.viewerContainer}
                     style={{
                         width: "100%",
+                        // Avoid system UI on the side (e.g. status bar on the right in portrait)
+                        paddingLeft: "env(safe-area-inset-left, 0px)",
+                        paddingRight: "env(safe-area-inset-right, 0px)",
                         height: hasCompletedNotionSettings
                             ? `calc(100% - ${isPWAStandaloneMode() ? MEMO_BUTTON_AREA_HEIGHT_PWA : MEMO_BUTTON_AREA_HEIGHT}px)`
                             : "100%"
