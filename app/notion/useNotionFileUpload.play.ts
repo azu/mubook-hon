@@ -23,7 +23,7 @@ async function mockNotionFileUploadAPI({
 }) {
     // 1. Create file upload endpoint (Notion SDK経由)
     // パターン: /api/notion-proxy/v1/file_uploads
-    await page.route("**/v1/file_uploads", async (route) => {
+    await page.context().route("**/v1/file_uploads", async (route) => {
         // send エンドポイントは別途処理
         if (route.request().url().includes("/send")) {
             return route.fallback();
@@ -62,7 +62,7 @@ async function mockNotionFileUploadAPI({
 
     // 2. Send file upload endpoint (fetch直接呼び出し)
     // パターン: /api/notion-proxy/v1/file_uploads/*/send
-    await page.route("**/v1/file_uploads/*/send", async (route) => {
+    await page.context().route("**/v1/file_uploads/*/send", async (route) => {
         if (route.request().method() !== "POST") {
             return route.fallback();
         }
@@ -94,7 +94,7 @@ async function mockNotionFileUploadAPI({
     });
 
     // 3. Complete file upload endpoint (not used for small files but mock anyway)
-    await page.route("**/v1/file_uploads/*/complete", async (route) => {
+    await page.context().route("**/v1/file_uploads/*/complete", async (route) => {
         if (route.request().method() !== "POST") {
             return route.fallback();
         }
@@ -124,7 +124,7 @@ async function mockNotionPageAPI({
     notionPage: ReturnType<typeof createNotionPageWithEmptyFileProperty>;
     captureUpdateRequest?: (body: any) => void;
 }) {
-    await page.route("**/v1/pages/*", async (route) => {
+    await page.context().route("**/v1/pages/*", async (route) => {
         const method = route.request().method();
 
         if (method === "GET") {
@@ -362,7 +362,7 @@ test.describe("Notion File Upload", () => {
 
         // File Upload APIのモック（呼ばれないはず）
         let fileUploadCalled = false;
-        await page.route("**/v1/file_uploads", async (route) => {
+        await page.context().route("**/v1/file_uploads", async (route) => {
             fileUploadCalled = true;
             await route.fulfill({
                 status: 200,
