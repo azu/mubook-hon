@@ -107,6 +107,7 @@ type FoliateView = HTMLElement & {
         setStyles?: (css: string) => void;
         setAttribute: (name: string, value: string) => void;
         getContents: () => { doc: Document; index: number }[];
+        render?: () => void;
     };
     isFixedLayout?: boolean;
     lastLocation?: RelocateDetail;
@@ -364,6 +365,57 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
         };
         window.addEventListener("pageshow", handlePageShow);
         return () => window.removeEventListener("pageshow", handlePageShow);
+    }, []);
+
+    // iOS (特にホーム画面に追加したPWA) では、ホーム画面などから復帰したときに
+    // 100dvh やレイアウトの高さが復帰直後の誤った値のまま残り、本文の表示領域が狭くなることがある。
+    // 実際のウィンドウの高さを CSS 変数に反映し、スクロール位置を戻して、foliate を再レイアウトする。
+    const fullPageRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const timeoutIds: number[] = [];
+        const syncViewportHeight = () => {
+            const height = window.innerHeight;
+            if (height > 0) {
+                fullPageRef.current?.style.setProperty("--app-height", `${height}px`);
+            }
+        };
+        const relayout = () => {
+            syncViewportHeight();
+            // 復帰時に document がずれてスクロールされたままになるのを戻す
+            if (window.scrollX !== 0 || window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+            }
+            viewRef.current?.renderer?.render?.();
+        };
+        // iOS は復帰直後に古いサイズを返し、少し遅れて正しいサイズに更新することがあるため、何度か再計算する
+        const relayoutWithRetry = () => {
+            timeoutIds.splice(0).forEach((id) => window.clearTimeout(id));
+            relayout();
+            for (const delay of [100, 300, 1000]) {
+                timeoutIds.push(window.setTimeout(relayout, delay));
+            }
+        };
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                relayoutWithRetry();
+            }
+        };
+        syncViewportHeight();
+        window.addEventListener("resize", syncViewportHeight);
+        window.addEventListener("orientationchange", relayoutWithRetry);
+        window.addEventListener("pageshow", relayoutWithRetry);
+        window.addEventListener("focus", relayoutWithRetry);
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.visualViewport?.addEventListener("resize", syncViewportHeight);
+        return () => {
+            timeoutIds.forEach((id) => window.clearTimeout(id));
+            window.removeEventListener("resize", syncViewportHeight);
+            window.removeEventListener("orientationchange", relayoutWithRetry);
+            window.removeEventListener("pageshow", relayoutWithRetry);
+            window.removeEventListener("focus", relayoutWithRetry);
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            window.visualViewport?.removeEventListener("resize", syncViewportHeight);
+        };
     }, []);
 
     // Initialize foliate-view
@@ -1271,7 +1323,16 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     return (
         <>
             {bookTitle && <title>{bookTitle}</title>}
-            <div style={{ height: "100dvh" }} className="full-page">
+            <div
+                ref={fullPageRef}
+                style={{
+                    // 復帰時にページがずれないよう、ビューポートに固定する
+                    position: "fixed",
+                    inset: 0,
+                    height: "var(--app-height, 100dvh)"
+                }}
+                className="full-page"
+            >
                 {/* Loading overlay */}
                 {(viewerState.status === "waiting-src" || viewerState.status === "loading") && (
                     <div
