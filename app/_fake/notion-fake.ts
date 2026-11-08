@@ -5,7 +5,7 @@ import type { NotionPage, NotionDatabaseQueryResponse, NotionUser } from "./type
 // BibiReader/PdfReader は MSW の Service Worker を起動するため、Service Worker が有効になった後の
 // fetch は Service Worker 経由になり、page.route では捕まえられない（実サーバーへ送られて失敗する）。
 // page.context().route は Service Worker からのリクエストも捕まえられる（Chromiumのみ）。
-// https://playwright.dev/docs/service-workers-experimental
+// https://playwright.dev/docs/service-workers
 
 /**
  * データベース取得をモック (Notion API 2025-09-03: data_source_idの取得に必要)
