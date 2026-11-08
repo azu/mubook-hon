@@ -368,11 +368,15 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     }, []);
 
     // iOS (特にホーム画面に追加したPWA) では、ホーム画面などから復帰したときに
-    // 100dvh やレイアウトの高さが復帰直後の誤った値のまま残り、本文の表示領域が狭くなることがある。
-    // 実際のウィンドウの高さを CSS 変数に反映し、スクロール位置を戻して、foliate を再レイアウトする。
+    // WebKit がビューポートの高さを誤った値のまま保持し、本文の表示領域が狭くなることがある。
+    // 高さの指定を変えるだけでは直らないため、全体を一度 display: none にして WebKit にレイアウトを
+    // 計算し直させ、foliate を再描画する。
+    // 参考: https://dev.to/cederhook/fixing-the-ios-standalone-pwa-keyboard-bug-that-shrinks-your-viewport-for-good-63d
     const fullPageRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         const timeoutIds: number[] = [];
+        const getViewportKey = () => `${window.innerWidth}x${window.innerHeight}`;
+        let lastViewportKey = getViewportKey();
         const syncViewportHeight = () => {
             const height = window.innerHeight;
             if (height > 0) {
@@ -380,39 +384,57 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
             }
         };
         const relayout = () => {
+            const fullPage = fullPageRef.current;
+            if (fullPage) {
+                // display を切り替えて同期的にリフローさせ、WebKit にビューポートを測り直させる
+                fullPage.style.display = "none";
+                void fullPage.offsetHeight;
+                fullPage.style.display = "";
+            }
             syncViewportHeight();
             // 復帰時に document がずれてスクロールされたままになるのを戻す
             if (window.scrollX !== 0 || window.scrollY !== 0) {
                 window.scrollTo(0, 0);
             }
+            // display: none でスクロール位置が失われるため、foliate に現在位置で描画し直させる
             viewRef.current?.renderer?.render?.();
+            lastViewportKey = getViewportKey();
         };
-        // iOS は復帰直後に古いサイズを返し、少し遅れて正しいサイズに更新することがあるため、何度か再計算する
-        const relayoutWithRetry = () => {
+        // iOS は復帰直後に古いサイズを返し、少し遅れて正しいサイズに更新することがあるため、
+        // サイズが変わっていたらもう一度やり直す
+        const relayoutOnResume = () => {
             timeoutIds.splice(0).forEach((id) => window.clearTimeout(id));
             relayout();
-            for (const delay of [100, 300, 1000]) {
-                timeoutIds.push(window.setTimeout(relayout, delay));
+            for (const delay of [300, 1000]) {
+                timeoutIds.push(
+                    window.setTimeout(() => {
+                        if (getViewportKey() !== lastViewportKey) {
+                            relayout();
+                        }
+                    }, delay)
+                );
             }
         };
         const handleVisibilityChange = () => {
             if (document.visibilityState === "visible") {
-                relayoutWithRetry();
+                relayoutOnResume();
             }
+        };
+        const handlePageShow = (e: PageTransitionEvent) => {
+            if (!e.persisted) return;
+            relayoutOnResume();
         };
         syncViewportHeight();
         window.addEventListener("resize", syncViewportHeight);
-        window.addEventListener("orientationchange", relayoutWithRetry);
-        window.addEventListener("pageshow", relayoutWithRetry);
-        window.addEventListener("focus", relayoutWithRetry);
+        window.addEventListener("orientationchange", relayoutOnResume);
+        window.addEventListener("pageshow", handlePageShow);
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.visualViewport?.addEventListener("resize", syncViewportHeight);
         return () => {
             timeoutIds.forEach((id) => window.clearTimeout(id));
             window.removeEventListener("resize", syncViewportHeight);
-            window.removeEventListener("orientationchange", relayoutWithRetry);
-            window.removeEventListener("pageshow", relayoutWithRetry);
-            window.removeEventListener("focus", relayoutWithRetry);
+            window.removeEventListener("orientationchange", relayoutOnResume);
+            window.removeEventListener("pageshow", handlePageShow);
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.visualViewport?.removeEventListener("resize", syncViewportHeight);
         };
