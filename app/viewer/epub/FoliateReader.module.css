@@ -1,6 +1,22 @@
 .viewerContainer {
     position: relative;
     overflow: clip;
+    /* Avoid system UI on the side (e.g. status bar on the right in portrait) */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+}
+
+/*
+ * iPhone Duo opened sideways in landscape: the status bar is on the right side only,
+ * so the safe area exists on the right but not on the left, and the text gets close to the left edge.
+ * Add a little left padding only when the right inset exists.
+ * - Normal iPhone in landscape: left inset == right inset, so max() keeps the left inset as is
+ * - Devices without safe area (PC, iPad): right inset is 0, so the left padding stays 0
+ */
+@media (orientation: landscape) {
+    .viewerContainer {
+        padding-left: max(env(safe-area-inset-left, 0px), min(env(safe-area-inset-right, 0px), 24px));
+    }
 }
 
 .menuBar {
