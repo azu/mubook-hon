@@ -242,6 +242,23 @@ const hasHorizontalSafeAreaInset = (): boolean => {
     return inset > 0;
 };
 
+// Width of the system UI on the side that is outside of the page (e.g. iPhone Duo opened sideways in landscape).
+// On such devices the status bar column is not a part of the viewport, so safe-area-inset-* is 0.
+// Instead, compare the long side of the screen and the width of the layout viewport.
+// - Normal iPhone in landscape (viewport-fit=cover): the viewport is as wide as the screen, so 0
+// - PC: not a touch device, so 0
+// - iPad Split View / Stage Manager: the difference is large, so it is ignored by the upper limit
+const MAX_SIDE_SYSTEM_UI_WIDTH_RATIO = 0.15;
+const getSideSystemUIWidth = (): number => {
+    if (typeof window === "undefined") return 0;
+    if (!window.matchMedia("(pointer: coarse) and (orientation: landscape)").matches) return 0;
+    const screenLongSide = Math.max(window.screen.width, window.screen.height);
+    const viewportWidth = document.documentElement.clientWidth;
+    const diff = screenLongSide - viewportWidth;
+    if (diff <= 0 || diff > screenLongSide * MAX_SIDE_SYSTEM_UI_WIDTH_RATIO) return 0;
+    return diff;
+};
+
 export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     const [viewerState, setViewerState] = useState<ViewerState>({ status: "waiting-src" });
     const [bookTitle, setBookTitle] = useState<string>();
@@ -469,9 +486,20 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     };
     // Safe area changes on rotation
     useEffect(() => {
-        const handleResize = () => applySafeAreaGap();
+        const applySideSystemUIWidth = () => {
+            document.documentElement.style.setProperty("--side-system-ui-width", `${getSideSystemUIWidth()}px`);
+        };
+        const handleResize = () => {
+            applySafeAreaGap();
+            applySideSystemUIWidth();
+        };
+        applySideSystemUIWidth();
         window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
+        window.addEventListener("orientationchange", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            window.removeEventListener("orientationchange", handleResize);
+        };
     }, []);
 
     // Initialize foliate-view
