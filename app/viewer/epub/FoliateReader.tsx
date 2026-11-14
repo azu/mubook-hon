@@ -1520,9 +1520,6 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                     className={styles.viewerContainer}
                     style={{
                         width: "100%",
-                        // Avoid system UI on the side (e.g. status bar on the right in portrait)
-                        paddingLeft: "env(safe-area-inset-left, 0px)",
-                        paddingRight: "env(safe-area-inset-right, 0px)",
                         height: hasCompletedNotionSettings
                             ? `calc(100% - ${isPWAStandaloneMode() ? MEMO_BUTTON_AREA_HEIGHT_PWA : MEMO_BUTTON_AREA_HEIGHT}px)`
                             : "100%"
