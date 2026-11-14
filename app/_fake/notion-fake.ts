@@ -1,13 +1,19 @@
 import { Page } from "@playwright/test";
 import type { NotionPage, NotionDatabaseQueryResponse, NotionUser } from "./types";
 
+// Notion APIのモックは page.route ではなく page.context().route で登録する。
+// BibiReader/PdfReader は MSW の Service Worker を起動するため、Service Worker が有効になった後の
+// fetch は Service Worker 経由になり、page.route では捕まえられない（実サーバーへ送られて失敗する）。
+// page.context().route は Service Worker からのリクエストも捕まえられる（Chromiumのみ）。
+// https://playwright.dev/docs/service-workers
+
 /**
  * データベース取得をモック (Notion API 2025-09-03: data_source_idの取得に必要)
  * Matches both direct Notion API and proxy paths
  */
 export async function mockNotionDatabaseRetrieve({ page }: { page: Page }) {
     // Match both api.notion.com and proxy paths (/api/notion-proxy/)
-    await page.route("**/v1/databases/*", async (route) => {
+    await page.context().route("**/v1/databases/*", async (route) => {
         // Skip query endpoint (handled by mockNotionDataSourceQuery)
         if (route.request().url().includes("/query")) {
             return route.fallback();
@@ -32,7 +38,7 @@ export async function mockNotionDatabaseRetrieve({ page }: { page: Page }) {
  */
 export async function mockNotionDataSourceQuery({ page, pages }: { page: Page; pages: NotionPage[] }) {
     // Match both api.notion.com and proxy paths (/api/notion-proxy/)
-    await page.route("**/v1/data_sources/*/query", async (route) => {
+    await page.context().route("**/v1/data_sources/*/query", async (route) => {
         const response: NotionDatabaseQueryResponse = {
             object: "list",
             results: pages,
@@ -75,7 +81,7 @@ export async function mockNotionError({
     // Mock database retrieve to return data_source_id
     await mockNotionDatabaseRetrieve({ page });
     // Mock data source query to return error
-    await page.route("**/v1/data_sources/*/query", async (route) => {
+    await page.context().route("**/v1/data_sources/*/query", async (route) => {
         await route.fulfill({
             status,
             contentType: "application/json",
@@ -93,7 +99,7 @@ export async function mockNotionError({
  * ページ作成をモック
  */
 export async function mockNotionPageCreation({ page }: { page: Page }) {
-    await page.route("**/v1/pages", async (route) => {
+    await page.context().route("**/v1/pages", async (route) => {
         await route.fulfill({
             status: 200,
             contentType: "application/json",
@@ -112,7 +118,7 @@ export async function mockNotionPageCreation({ page }: { page: Page }) {
  * ユーザー情報取得をモック
  */
 export async function mockNotionUserInfo({ page, user }: { page: Page; user?: Partial<NotionUser> }) {
-    await page.route("**/v1/users/me", async (route) => {
+    await page.context().route("**/v1/users/me", async (route) => {
         const userResponse: NotionUser = {
             object: "user",
             id: "mock-user-id",
@@ -147,7 +153,7 @@ export async function mockNotionSlowResponse({ page, delayMs = 3000 }: { page: P
     // Mock database retrieve to return data_source_id
     await mockNotionDatabaseRetrieve({ page });
     // Mock data source query with delay
-    await page.route("**/v1/data_sources/*/query", async (route) => {
+    await page.context().route("**/v1/data_sources/*/query", async (route) => {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
         const response: NotionDatabaseQueryResponse = {
