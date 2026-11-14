@@ -29,6 +29,12 @@ export type FoliateReaderProps = {
     initialPage?: string;
     initialMarker?: string;
     onClearCache?: () => Promise<unknown>;
+    /**
+     * trueのときNotionとの同期（読書位置の取得・保存、メモ、アップロード）と
+     * 「最後に読んだ書籍」の保存を行わない。
+     * ログイン不要の表示確認ページ（/viewer-demo）で使う。
+     */
+    disableSync?: boolean;
 };
 
 type BookMetadata = {
@@ -280,10 +286,18 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
     // Track the last fraction we updated to Notion to avoid unnecessary updates
     const lastUpdatedFractionRef = useRef<number | null>(null);
 
-    const { currentBook, updateBookStatus, addMemo, hasCompletedNotionSettings } = useNotion({
-        fileId: props.id,
+    // disableSyncのときはfileIdを渡さないことで、Notionクライアントを作らずに通信を止める
+    const {
+        currentBook,
+        updateBookStatus,
+        addMemo,
+        hasCompletedNotionSettings: hasNotionSettings
+    } = useNotion({
+        fileId: props.disableSync ? undefined : props.id,
         fileName: props.bookFileName
     });
+    // disableSyncのときはNotion関連のUI（メモ欄やNotionページを開くボタン）も出さない
+    const hasCompletedNotionSettings = !props.disableSync && hasNotionSettings;
 
     // Tap zone settings
     const { userSettings } = useUserSettings();
@@ -893,12 +907,14 @@ export const FoliateReader: FC<FoliateReaderProps> = (props) => {
                 // 最後に読んだ書籍として保存（PWA自動遷移用）
                 const metadata = view.book?.metadata;
                 const title = getTitleString(metadata?.title) || props.bookFileName;
-                saveLastRead({
-                    fileId: props.id,
-                    fileName: props.bookFileName,
-                    title: title,
-                    viewer: "epub:foliate"
-                });
+                if (!props.disableSync) {
+                    saveLastRead({
+                        fileId: props.id,
+                        fileName: props.bookFileName,
+                        title: title,
+                        viewer: "epub:foliate"
+                    });
+                }
                 setBookTitle(title);
 
                 setViewerState({ status: "ready" });
