@@ -9,13 +9,13 @@
 /*
  * iPhone Duo opened sideways in landscape: the status bar is on the right side only,
  * so the safe area exists on the right but not on the left, and the text gets close to the left edge.
- * Add a little left padding only when the right inset exists.
- * - Normal iPhone in landscape: left inset == right inset, so max() keeps the left inset as is
- * - Devices without safe area (PC, iPad): right inset is 0, so the left padding stays 0
+ * Mirror the right inset to the left so that the text is centered with the same margin on both sides.
+ * - Normal iPhone in landscape: left inset == right inset, so nothing changes
+ * - Devices without safe area (PC, iPad): both insets are 0, so nothing changes
  */
 @media (orientation: landscape) {
     .viewerContainer {
-        padding-left: max(env(safe-area-inset-left, 0px), min(env(safe-area-inset-right, 0px), 24px));
+        padding-left: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
     }
 }
 
