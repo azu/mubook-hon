@@ -4,6 +4,12 @@
     /* Avoid system UI on the side (e.g. status bar on the right in portrait) */
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
+    /*
+     * The margins around the book (this padding and the paginator's margins) are in this document, not in the book's iframe.
+     * A long press there on iOS selects the whole page, so disable selection here. Text in the iframe is still selectable.
+     */
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /*

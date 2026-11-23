@@ -189,10 +189,19 @@ const getCSS = (options: { spacing: number; justify: boolean; hyphenate: boolean
         text-size-adjust: 100%;
         /* Prevent iOS bounce/overscroll effect */
         overscroll-behavior: none;
+        /*
+         * The page edges and the gaps between pages are the padding and column gap of <html>.
+         * On iOS, a long press there selects the whole chapter because <html> is the nearest selectable element.
+         * Make only <body> selectable so a long press on the edge does not start a selection.
+         */
+        -webkit-user-select: none;
+        user-select: none;
     }
     body {
         font-size: inherit;
         overscroll-behavior: none;
+        -webkit-user-select: text;
+        user-select: text;
     }
     p, li, blockquote, dd {
         line-height: ${options.spacing};
