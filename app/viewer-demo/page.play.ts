@@ -51,3 +51,34 @@ test.describe("ログイン不要の表示確認ページ", () => {
         expect(notionRequests).toEqual([]);
     });
 });
+
+test.describe("本文の選択", () => {
+    for (const mode of ["vertical", "horizontal"] as const) {
+        test(`ページの端を長押ししても本文全体が選択されないよう、本文以外は選択できない (${mode})`, async ({
+            page
+        }) => {
+            await page.goto(`/viewer-demo?mode=${mode}`);
+            await expect(page.locator("foliate-view")).toBeAttached();
+            // ページの端やページ間の余白は本の iframe の <html> の padding / column-gap
+            await expect
+                .poll(async () => {
+                    const frame = page.frames().find((f) => f !== page.mainFrame());
+                    if (!frame) return null;
+                    return frame.evaluate(() => {
+                        const html = getComputedStyle(document.documentElement);
+                        const body = getComputedStyle(document.body);
+                        return {
+                            html: html.webkitUserSelect || html.userSelect,
+                            body: body.webkitUserSelect || body.userSelect
+                        };
+                    });
+                })
+                .toEqual({ html: "none", body: "text" });
+            // 本の周りの余白（iframeの外）も選択できない
+            const container = await page
+                .locator("foliate-view")
+                .evaluate((el) => getComputedStyle(el.parentElement as Element).userSelect);
+            expect(container).toBe("none");
+        });
+    }
+});
